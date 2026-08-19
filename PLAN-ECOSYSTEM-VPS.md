@@ -23,10 +23,10 @@ Cada paso lleva su marca. **Al terminar un paso, se cambia la marca aquí mismo*
 
 | Bloque | Qué | Fecha tope | Estado |
 |---|---|---|---|
-| **B0** | Seguros: respaldos y commits | 21 ago | `[~]` commits hechos · **Membresías y Campeonatos RESPALDADAS** (19 ago) · la del ecosistema no responde (§1.3.1) |
+| **B0** | Seguros: respaldos y commits | 21 ago | `[x]` **HECHO** (19 ago) — Membresías y Campeonatos respaldadas; la del ecosistema estaba vacía (§1.3.1) |
 | **B1** | **Servicio de vuelta** — VPS + datos + apps tal cual | **29 ago** | `[~]` arreglos previos hechos (19 ago) |
 | **B2** | Correo | 5 sep | `[ ]` |
-| **B2b** | Actualizar el monorepo `dinamyt` | 5 sep | `[ ]` |
+| **B2b** | Actualizar el monorepo `dinamyt` | 5 sep | `[x]` **HECHO** (19 ago) |
 | **B3** | **Identidad única** | **19 sep** | `[ ]` |
 | **B3s** | Reposo y observación | 20–30 sep | `[ ]` |
 | **🔒** | **CONGELADO — campeonato del 9, 10 y 11 de octubre** | 1–13 oct | — |
@@ -164,14 +164,13 @@ producción y son las irreemplazables. Ya están en `D:\dinamyt-migracion\respal
    *pausado* normalmente lo conserva. No es prueba concluyente, pero apunta a que
    el proyecto del ecosistema ya no está.
 
-`[ ]` **Comprobación pendiente, y es de las de hoy:** entrar al panel de Supabase
-y ver si `rybjafolgmguqtklianr` aparece **pausado** (se restaura con un botón) o
-si directamente **no aparece**. En el plan gratis, un proyecto eliminado no tiene
-copia que recuperar.
+`[x]` **Comprobado (19 ago): la base del ecosistema estaba vacía.** No hay nada
+que recuperar porque no había nada. **B0 queda cerrado con dos volcados, que son
+los dos que tenían datos.**
 
-#### Si se confirma que el proyecto del ecosistema no está
+#### Qué implica que el ecosistema arranque de cero
 
-No es una catástrofe, y conviene decir por qué antes de que lo parezca:
+No es una catástrofe, y conviene dejar escrito por qué:
 
 - **Los datos de producción de verdad —alumnos, pagos, asistencias, competidores,
   campeonatos y resultados— están en las otras dos bases, y ya están
@@ -798,30 +797,56 @@ git subtree pull --prefix=services/campeonatos combat/main     --squash
 git subtree pull --prefix=apps/membresias      membresias/main --squash
 ```
 
-### 6.2 Cómo queda
+### 6.2 Cómo quedó  `[x]` *(19 ago)*
 
 ```
 dinamyt/
-├── apps/
-│   ├── ecosystem-api/       (NestJS  :3001)  ← vive aquí
-│   ├── ecosystem-portal/    (Next    :3000)  ← vive aquí
-│   ├── academy-api/         (:3007)          ← vive aquí
-│   ├── academy-web/         (:3008)          ← vive aquí
-│   └── membresias/          (:3004 y :3006)  ← ESPEJO de dinamyt-membresias
-├── services/
-│   └── campeonatos/         (:5000 y :3003)  ← ESPEJO de dinamyt-combat
-├── packages/
-│   ├── shared/              ← contrato del token, fuente de verdad única
+├── apps/            ← vive AQUÍ. Se edita aquí.
+│   ├── ecosystem-api/       (NestJS  :3001)
+│   ├── ecosystem-portal/    (Next    :3000)
+│   ├── academy-api/         (:3007)
+│   ├── academy-web/         (:3008)
+│   └── academy-figuras/     (:3009, Python)
+├── packages/        ← vive AQUÍ.
+│   ├── shared/              contrato del token, fuente de verdad única
 │   └── academy-db/
-└── sync-apps.ps1
+├── productos/       ← ESPEJOS. NO se editan aquí.
+│   ├── campeonatos/         ← ArsenalCrack/dinamyt-combat
+│   └── membresias/          ← ArsenalCrack/dinamyt-membresias
+└── scripts/
+    ├── sync-apps.ps1              pone al día los espejos
+    ├── respaldar-produccion.ps1
+    ├── verificar-respaldo.ps1
+    └── diario-migraciones.mjs
 ```
 
-### 6.3 Qué despliega el VPS
+**El monorepo pasó de 107 a 200 commits**: el historial completo de los dos
+repos viene dentro. `pnpm install` y `pnpm build` limpios, 6 de 6 tareas.
 
-**Los tres repos, cada uno desde su origen.** El espejo del monorepo es para
-tener todo junto y para que `packages/shared` sea de verdad compartido; **no es
-lo que corre en producción**. Así un despliegue no depende de acordarse de
-sincronizar.
+**Por qué `productos/` y no `apps/`.** Bajo `apps/`, el glob `apps/*` del
+workspace los cogería a ellos como paquetes y dejaría fuera sus subcarpetas. Y
+meterlos de verdad en el workspace obligaría a resolver sus dependencias contra
+las del monorepo: una discrepancia de versiones dejaría sin construir a los tres
+productos a la vez, once días antes de un campeonato. Cada uno se construye
+desde su carpeta con su propio lockfile.
+
+### 6.3 Mantenerlos al día
+
+```powershell
+.\scripts\sync-apps.ps1                       # los dos
+.\scripts\sync-apps.ps1 -Producto membresias  # solo uno
+.\scripts\sync-apps.ps1 -Local                # desde el disco, sin pasar por GitHub
+```
+
+Usa `--squash`: un commit por sincronización, en vez de replicar cada commit del
+otro repositorio. Y se niega a correr sobre un árbol sucio, que es exactamente
+como se pierde trabajo en un `subtree pull`.
+
+### 6.4 Qué despliega el VPS
+
+**Los tres repositorios, cada uno desde su origen.** El espejo no es lo que
+corre en producción: así un despliegue nunca depende de que alguien se acordara
+de sincronizar.
 
 | Servicio | Se clona de |
 |---|---|
@@ -829,15 +854,17 @@ sincronizar.
 | Campeonatos (Flask + Next) | `ArsenalCrack/dinamyt-combat` |
 | Membresías (API + web) | `ArsenalCrack/dinamyt-membresias` |
 
-### 6.4 El contrato del token
+> `[ ]` **Para que el VPS pueda clonar, hay que empujar los tres repos.** Ahora
+> mismo hay commits solo en local — incluido el arreglo de las llaves y los
+> arreglos previos. Sin `git push`, el servidor clonaría código viejo.
+
+### 6.5 El contrato del token
 
 `packages/shared/src/auth.ts` es la fuente de verdad. Las dos apps lo consumen
 por **copia con puntero**: un archivo con un comentario en la primera línea que
 dice de dónde salió. Flask no puede importar TypeScript de todas formas, y una
 copia de 25 líneas con un puntero es más honesta que un paquete publicado que
 nadie va a versionar.
-
----
 
 ## 7. El VPS
 
@@ -938,7 +965,7 @@ ago 19 ─────── ago 29 ─── sep 5 ─── sep 19 ───�
 | **B0** | Commitear lo suelto · **volcado de las tres bases, guardado fuera del VPS y verificado** | 21 ago | — | `[ ]` |
 | **B1** | Comprar dominio y VPS · **pedir SES** · arreglos previos (§1.5) · Postgres · restaurar las tres bases · levantar las apps **tal cual, con sus logins actuales** · DNS | **29 ago** | Medio | `[ ]` |
 | **B2** | Correo: verificar dominio, plantillas, prueba a Gmail y Outlook con `SPF: PASS` y `DKIM: PASS` | 5 sep | Bajo | `[ ]` |
-| **B2b** | Actualizar el monorepo (§6). Sin impacto en producción; puede ir en paralelo | 5 sep | Nulo | `[ ]` |
+| **B2b** | Actualizar el monorepo (§6) | 5 sep | Nulo | `[x]` **HECHO** (19 ago) |
 | **B3** | Identidad única (§4): ecosystem-api → Membresías (poco) → Campeonatos (mucho) → reconciliación (§2.4) → aviso a la gente | **19 sep** | **Alto** | `[ ]` |
 | **B3s** | Reposo: 10 días con todo el mundo usándolo antes de la congelación | 20–30 sep | — | `[ ]` |
 | **🔒** | **CONGELADO.** Ni un despliegue. Snapshot del VPS el día 8 | 1–13 oct | — | — |
