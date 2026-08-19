@@ -61,7 +61,7 @@ class Config:
     # Admin inicial. Sin valor por defecto a propósito: una contraseña en el
     # código acaba en el historial de git y en todos los despliegues que la
     # copien. Si falta, el seed avisa y no crea al admin.
-    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@dinamyt.com")
+    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@dinamyt.org")
     ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
     ADMIN_NOMBRE = os.getenv("ADMIN_NOMBRE", "Administrador DINAMYT")
 

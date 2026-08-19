@@ -131,7 +131,7 @@ El proyecto se despliega completo usando solo planes gratuitos
 | ----------------------------- | -------------------------------------- | ------ |
 | Frontend (Next.js)            | [Vercel](https://vercel.com)           | Gratis |
 | Backend (Flask + Socket.IO)   | [Render](https://render.com)           | Gratis |
-| Base de datos (PostgreSQL)    | [Neon](https://neon.tech)              | Gratis |
+| Base de datos (PostgreSQL)    | [Supabase](https://supabase.com)       | Gratis |
 | Mantener el backend despierto | [UptimeRobot](https://uptimerobot.com) | Gratis |
 
 ### 0. Generar los secretos (en tu PC)
@@ -147,11 +147,12 @@ Elige también una `ADMIN_PASSWORD` fuerte (12+ caracteres, con números y símb
 > El backend **se niega a arrancar** en producción si `JWT_SECRET_KEY` o
 > `ADMIN_PASSWORD` son débiles o vacíos (ver `app/__init__.py`).
 
-### 1. Base de datos — Neon
+### 1. Base de datos — Supabase
 
-Crea un proyecto en <https://neon.tech>, copia la **connection string** y úsala
-como `DATABASE_URL`. No la subas a git. (Se usa Neon en vez de SQLite porque el
-disco de Render gratis se borra en cada reinicio; en Neon los datos persisten.)
+Crea un proyecto en <https://supabase.com>, copia la **connection string** y úsala
+como `DATABASE_URL`. No la subas a git. (Se usa Postgres gestionado en vez de
+SQLite porque el disco de Render gratis se borra en cada reinicio; ahí los datos
+persisten.)
 
 ### 2. Backend — Render
 
@@ -170,9 +171,9 @@ Variables de entorno:
 | ---------------- | ------------------------------------------------------------------------------------------- |
 | `PYTHON_VERSION` | `3.11.9` ⚠️ NO usar 3.12+: el monkey-patching de eventlet se rompe y toda consulta da 500    |
 | `FLASK_ENV`      | `production`                                                                                 |
-| `DATABASE_URL`   | connection string de Neon                                                                    |
+| `DATABASE_URL`   | connection string de Supabase                                                                    |
 | `JWT_SECRET_KEY` | el secreto generado en el paso 0                                                             |
-| `ADMIN_EMAIL`    | `admin@dinamyt.com`                                                                          |
+| `ADMIN_EMAIL`    | `admin@dinamyt.org`                                                                          |
 | `ADMIN_PASSWORD` | tu contraseña fuerte                                                                         |
 | `ADMIN_NOMBRE`   | `Administrador DINAMYT`                                                                      |
 | `FRONTEND_URL`   | tu URL de Vercel (temporalmente `http://localhost:3000`)                                     |
@@ -242,8 +243,8 @@ significa que el rol con el que se conecta el backend no es dueño de las
 tablas — pasa cuando la base la creó otro usuario. El backend **arranca igual**
 y el aislamiento por workspace sigue funcionando; solo falta la red de abajo.
 
-Para activarla, conéctate a la base con el rol dueño de las tablas (en Neon, el
-`owner` del proyecto) y ejecuta una vez:
+Para activarla, conéctate a la base con el rol dueño de las tablas (en Supabase,
+el rol `postgres`) y ejecuta una vez:
 
 ```bash
 flask rls

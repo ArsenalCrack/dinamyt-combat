@@ -180,7 +180,7 @@ def register_cli_commands(app):
         """Aplica ADMIN_PASSWORD (del .env) al usuario admin existente."""
         from .models.usuario import Usuario
 
-        email = app.config.get("ADMIN_EMAIL", "admin@dinamyt.com")
+        email = app.config.get("ADMIN_EMAIL", "admin@dinamyt.org")
         password = app.config.get("ADMIN_PASSWORD")
         if not password:
             print("[ERR] ADMIN_PASSWORD no está definida en el entorno.")

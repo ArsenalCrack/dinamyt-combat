@@ -9,7 +9,7 @@ from ..models.usuario import Usuario
 
 def seed_admin(config):
     """Crea el usuario admin inicial si no existe."""
-    email = config.get("ADMIN_EMAIL", "admin@dinamyt.com")
+    email = config.get("ADMIN_EMAIL", "admin@dinamyt.org")
     password = config.get("ADMIN_PASSWORD") or ""
     nombre = config.get("ADMIN_NOMBRE", "Administrador DINAMYT")
 

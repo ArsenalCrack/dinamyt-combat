@@ -2,7 +2,7 @@ r"""
 Corrige el flag de superadmin en la base de datos.
 
 Invariante del sistema: SOLO el admin sembrado (ADMIN_EMAIL, por defecto
-admin@dinamyt.com) debe ser superadmin. Cualquier otro admin que tenga
+admin@dinamyt.org) debe ser superadmin. Cualquier otro admin que tenga
 es_superadmin=True es un dato heredado y hace que vea usuarios de otros
 workspaces (los jueces del superadmin, etc.).
 
@@ -18,12 +18,12 @@ USO (una sola vez):
   # Producción (Postgres de Supabase/Neon) — pega tu connection string real:
   cd backend
   DATABASE_URL="postgresql://USUARIO:PASS@HOST/DB" \
-  SUPERADMIN_EMAIL="admin@dinamyt.com" \
+  SUPERADMIN_EMAIL="admin@dinamyt.org" \
   venv/Scripts/python fix_superadmins.py
 
 En PowerShell (Windows), para producción:
   $env:DATABASE_URL="postgresql://USUARIO:PASS@HOST/DB"
-  $env:SUPERADMIN_EMAIL="admin@dinamyt.com"
+  $env:SUPERADMIN_EMAIL="admin@dinamyt.org"
   venv\Scripts\python fix_superadmins.py
 
 Es idempotente: puedes correrlo las veces que quieras.
@@ -39,7 +39,7 @@ def main():
     if url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql://", 1)
 
-    keep = os.getenv("SUPERADMIN_EMAIL") or os.getenv("ADMIN_EMAIL") or "admin@dinamyt.com"
+    keep = os.getenv("SUPERADMIN_EMAIL") or os.getenv("ADMIN_EMAIL") or "admin@dinamyt.org"
     keep = keep.strip().lower()
 
     destino = "SQLite local" if url.startswith("sqlite") else "Postgres (producción)"

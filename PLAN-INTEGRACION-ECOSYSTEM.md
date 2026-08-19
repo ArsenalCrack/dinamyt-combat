@@ -1,3 +1,9 @@
+> **SUPERADO por [`PLAN-ECOSYSTEM-VPS.md`](PLAN-ECOSYSTEM-VPS.md).** El diseño de
+> identidad de aquí (migrar `usuarios.id` a UUID) se descartó: hoy son 8 claves
+> foráneas contra `usuarios.id` y no 3, y el RLS por workspace también es entero.
+> El plan nuevo usa una tabla espejo. Se conserva por el inventario de funciones
+> del competidor (Fase B), que sigue vigente.
+
 # Plan de integración: DINAMYT-LOCAL → ecosystem DINAMYT
 
 > Objetivo: que **dinamyt-local** (esta app: Flask + Next, autónoma de campeonatos de
