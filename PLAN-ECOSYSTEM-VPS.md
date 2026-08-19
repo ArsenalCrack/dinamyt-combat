@@ -23,8 +23,8 @@ Cada paso lleva su marca. **Al terminar un paso, se cambia la marca aquí mismo*
 
 | Bloque | Qué | Fecha tope | Estado |
 |---|---|---|---|
-| **B0** | Seguros: respaldos y commits | 21 ago | `[ ]` |
-| **B1** | **Servicio de vuelta** — VPS + datos + apps tal cual | **29 ago** | `[ ]` |
+| **B0** | Seguros: respaldos y commits | 21 ago | `[~]` commits hechos (19 ago); faltan los volcados — **hace falta la contraseña real de las dos bases** |
+| **B1** | **Servicio de vuelta** — VPS + datos + apps tal cual | **29 ago** | `[~]` arreglos previos hechos (19 ago) |
 | **B2** | Correo | 5 sep | `[ ]` |
 | **B2b** | Actualizar el monorepo `dinamyt` | 5 sep | `[ ]` |
 | **B3** | **Identidad única** | **19 sep** | `[ ]` |
@@ -147,17 +147,25 @@ Tres consecuencias que cambian el plan:
 
 ### 1.5 Cosas rotas que hay que arreglar sí o sí
 
-`[ ]` **1 · `ecosystem-api` no compila.**
-`apps/ecosystem-api/src/modules/auth/auth.controller.ts:44` lanza
-`BadRequestException` y **no está importado** (la línea 1 solo trae
-`Controller, Post, Body, Get, Headers, UseGuards`). `nest build` muere con
-TS2304, en el HEAD publicado (`bc07e03`).
+`[x]` **1 · `ecosystem-api` no compila.** *(19 ago —
+`fix/arreglos-previos-vps` en `dinamyt`)* `auth.controller.ts:44` lanzaba
+`BadRequestException` sin importarlo y `nest build` moría con TS2304. Añadido al
+import; `tsc --noEmit` sale limpio.
 
-`[ ]` **2 · El diario de migraciones de Drizzle va a chocar.** Ni
-`ecosystem-api` ni `membresias-db` fijan `migrationsSchema`, así que los dos
-usan `drizzle.__drizzle_migrations`. Con una sola base compartida cada uno ve
-las entradas del otro; el migrador decide por marca de tiempo y **Membresías
-daría por aplicadas migraciones que nunca corrió**.
+`[x]` **2 · El diario de migraciones de Drizzle va a chocar.** *(19 ago —
+`fix/diario-migraciones-por-esquema` en `dinamyt-membresias` y
+`fix/arreglos-previos-vps` en `dinamyt`)* Ni `ecosystem-api` ni `membresias-db`
+fijaban `migrationsSchema`, así que los dos usaban
+`drizzle.__drizzle_migrations`. Ahora cada uno lleva el suyo dentro de su
+esquema.
+
+> **Cambiar `migrationsSchema` a secas habría sido peor que el problema:** una
+> base que YA funciona no encontraría su diario, daría las 15 migraciones por
+> pendientes y moriría en la primera tabla existente. Por eso Membresías trae
+> `mudarDiarioSiHaceFalta()` en `migrate.ts`, que traslada el diario del sitio
+> viejo al nuevo antes de migrar — idempotente y no-op en base nueva.
+> **Comprobado sobre una copia del `.localdb` real:** 15 filas pasaron de
+> `drizzle` a `membresias`, los datos intactos, segunda pasada sin efecto.
 
 `[ ]` **3 · Campeonatos tiene 8 claves foráneas contra `usuarios.id`** (Integer),
 no 3 como decía el plan viejo: `ajuste.py:28`, `asignacion.py:21,32,79`,
@@ -165,11 +173,20 @@ no 3 como decía el plan viejo: `ajuste.py:28`, `asignacion.py:21,32,79`,
 `resultado_publicado.py:37`. El RLS por workspace también es entero. Por eso el
 diseño de §4.2 usa un espejo y no una migración a UUID.
 
-`[ ]` **4 · `admin@dinamyt.com`** por defecto en `backend/app/config.py:64` y en
-`ecosystem-portal/src/app/planes/page.tsx:8`. Dominio de otra persona. Va a
-`admin@dinamyt.org`.
+`[x]` **4 · `admin@dinamyt.com`** *(19 ago)* — eran **ocho** apariciones, no dos:
+`config.py`, `seeds/seed_admin.py`, `app/__init__.py`, `fix_superadmins.py`,
+`reset_admin.py` y el `README` en Campeonatos; `planes/page.tsx` y
+**`privacidad/page.tsx`** en el portal. La última es la que más urgía: la
+política de privacidad daba como dirección de contacto un dominio ajeno.
 
-`[ ]` **5 · `PLANVPS.md` y `PLAN-VPS.md` son el mismo archivo duplicado.** Borrar uno.
+`[x]` **5 · `PLANVPS.md` y `PLAN-VPS.md` eran el mismo archivo.** *(19 ago)*
+`PLAN-VPS.md` eliminado tras comprobar con `diff` que eran idénticos byte a
+byte. `PLANVPS.md` y `PLAN-INTEGRACION-ECOSYSTEM.md` quedan con una nota de
+«superado por este plan» y el motivo.
+
+`[x]` **6 · El README decía que la base está en Neon.** *(19 ago)* Está en
+Supabase. Corregido, incluido el apartado de RLS: el rol dueño de las tablas no
+es el `owner` de Neon sino `postgres`.
 
 ---
 
@@ -380,15 +397,62 @@ SQL
 
 ### 3.3 El traslado, paso a paso
 
-`[ ]` **a · Ecosystem y Academy**
+`[ ]` **a · Ecosystem y Academy** — van **juntos y en este orden**, porque
+comparten diario (ver el recuadro de abajo):
 
 ```bash
-pg_dump "$ECO_URL" --no-owner --no-privileges -n ecosystem -Fc -f eco.dump
-pg_dump "$ECO_URL" --no-owner --no-privileges -n academy   -Fc -f acad.dump
+# Un solo volcado con los tres esquemas: los dos de datos y el diario.
+pg_dump "$ECO_URL" --no-owner --no-privileges \
+        -n ecosystem -n academy -n drizzle -Fc -f eco_acad.dump
 
-pg_restore -d "postgresql://dinamyt_eco@localhost/dinamyt"  --no-owner eco.dump
-pg_restore -d "postgresql://dinamyt_acad@localhost/dinamyt" --no-owner acad.dump
+pg_restore -d "postgresql://dinamyt_eco@localhost/dinamyt" --no-owner eco_acad.dump
+
+# Repartir el diario compartido: uno por esquema.
+node scripts/diario-migraciones.mjs separar > separar.sql
+less separar.sql                      # léelo antes
+psql -d dinamyt -f separar.sql
 ```
+
+> ### El fallo que tenía este plan, y que costaría el despliegue entero
+>
+> La versión anterior de esta sección volcaba `-n ecosystem` y `-n academy` por
+> separado, **sin el esquema `drizzle`**. Eso pierde el diario, y entonces la
+> primera migración del VPS reintenta todo desde cero contra tablas que ya
+> existen.
+>
+> Pero el problema de fondo es peor: **ecosystem y academy comparten la misma
+> tabla de diario desde julio**, porque `drizzle.__drizzle_migrations` es un
+> nombre global a la base. El migrador salta las migraciones cuyo `created_at`
+> sea menor o igual al máximo que encuentre — y ese máximo puede ser de la otra
+> app. Con las fechas reales:
+>
+> | App | Migraciones | Fechas |
+> |---|---|---|
+> | `ecosystem` | 0000–0003 | 30 may – **6 jul** 2026 |
+> | `academy` | 0000–0005 | 10 jul – **11 jul** 2026 |
+>
+> **Sobre una base nueva, si academy migra primero, ecosystem ve un máximo del
+> 11 de julio, da sus cuatro migraciones por aplicadas y no crea ni una tabla.**
+> La app arranca sin quejarse y muere en la primera consulta.
+>
+> Por eso existe `scripts/diario-migraciones.mjs` (en el repo `dinamyt`), que
+> calcula el hash de cada migración igual que `readMigrationFiles` de
+> drizzle-orm y emite el SQL del reparto. Tres modos:
+>
+> | Modo | Para qué |
+> |---|---|
+> | `separar` | Reparte el diario compartido a `<esquema>.__drizzle_migrations`. **Es el del VPS.** |
+> | `sellar` | Da por aplicadas todas las migraciones. Solo si el esquema ya es correcto y el diario se perdió |
+> | `listar` | Enseña tag, fecha y hash de cada migración, para comprobar a mano |
+>
+> Emite SQL por la salida estándar y **no toca ninguna base**: se lee antes de
+> ejecutarlo.
+>
+> `[ ]` **Y hay que mirar la producción actual.** Si en `yabnkl…` ya pasó esto,
+> puede haber migraciones que nunca corrieron. Antes de dar el volcado por
+> bueno: `node scripts/diario-migraciones.mjs listar` y contrastar los hashes
+> con `SELECT hash, created_at FROM drizzle.__drizzle_migrations ORDER BY created_at;`.
+> Lo que falte, falta también en el esquema.
 
 `[ ]` **b · Membresías** — de `lhgisckr…`, y con el diario:
 
@@ -1010,13 +1074,40 @@ igual que los otros dos. El anclaje ya estará puesto.
 
 ### 11.2 Pendientes de decisión
 
-| # | Qué | Cuándo hace falta |
+| # | Qué | Estado |
 |---|---|---|
-| 1 | RAM del VPS: recomiendo **8 GB** (§7.4) | B1, al comprar |
-| 2 | ¿Proveedor del VPS? Hetzner Ashburn, Vultr Miami o DigitalOcean — desde Colombia, 50–90 ms | B1 |
-| 3 | ¿Confirmas `dinamyt.org`? (`.com` está tomado y parqueado en venta) | B1 |
-| 4 | Precios reales de los planes | Fase 2, §10.1 |
-| 5 | ¿Límite permanente o mes de prueba? Recomiendo permanente (§10.2) | Fase 2 |
+| 1 | RAM del VPS | `[x]` **8 GB** (19 ago) |
+| 2 | Proveedor | `[x]` **Contabo** (19 ago) — ver §11.4 |
+| 3 | Dominio | `[x]` **`dinamyt.org`** (19 ago) |
+| 4 | Contraseña real de las bases de Membresías y Campeonatos | `[ ]` **bloquea B0** |
+| 5 | Precios reales de los planes | `[ ]` Fase 2, §10.1 |
+| 6 | ¿Límite permanente o mes de prueba? Recomiendo permanente | `[ ]` Fase 2, §10.2 |
+
+### 11.4 Contabo · lo que hay que saber antes de darle a comprar
+
+Contabo da la mejor relación RAM/precio del mercado, que es justo lo que hace
+falta aquí (seis servicios y cuatro `next build`). A cambio hay cuatro cosas que
+no se parecen a Hetzner o DigitalOcean y conviene no descubrir el día del
+despliegue:
+
+`[ ]` **La región.** Elegir una de las de Estados Unidos — Nueva York o
+St. Louis dan la mejor latencia desde Colombia. **No coger una europea**: son
+las que salen por defecto y desde aquí añaden 120–150 ms, que en el marcador de
+un tatami se nota.
+
+`[ ]` **El disco.** El plan base viene con SSD normal, no NVMe. Con PostgreSQL
+encima merece la pena el NVMe: la base es pequeña, pero los `next build` y los
+`pg_restore` van a disco todo el rato.
+
+`[ ]` **El alta no es instantánea.** Hetzner entrega en segundos; Contabo puede
+tardar horas y a veces pide verificación manual. **Comprar el primer día del
+bloque B1, no el último**, o la semana se va esperando.
+
+`[ ]` **La cuota de alta.** Varios planes llevan un pago único además del
+mensual. Mirarlo antes para que el número no sorprenda.
+
+Lo que **no** cambia: el puerto 25 saliente está bloqueado, como en casi todos
+los proveedores — da igual, el correo sale por `smtp.resend.com:587` (§5).
 
 ### 11.3 Cuánto cuesta al mes
 
