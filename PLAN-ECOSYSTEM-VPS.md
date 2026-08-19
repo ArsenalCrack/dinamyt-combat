@@ -760,42 +760,30 @@ correos dejen de llegar.
 > El día que alguien edite Campeonatos dentro de `dinamyt`, ese cambio se pierde
 > en la siguiente sincronización. Sin excepciones.
 
-### 6.1 Qué se hace
+### 6.1 Qué se hizo  `[x]` *(19 ago)*
 
-`[ ]` **1 · Commitear lo suelto.** 2 archivos en `dinamyt-combat`, 30 en
-`dinamyt`. Un subtree sobre un árbol sucio es una tarde perdida.
+`[x]` **1 · Commitear lo suelto.** El arreglo de las llaves en `dinamyt-combat`
+(198 pruebas) y 620 líneas de Academy en `dinamyt` (`tsc` limpio, 24 pruebas).
+Un subtree sobre un árbol sucio es una tarde perdida.
 
-`[ ]` **2 · Tag de archivo antes de borrar nada:**
+`[x]` **2 · Punto de retorno:** tag `archivo/antes-de-actualizar-apps`.
 
-```bash
-cd D:/Repositorios/dinamyt
-git tag archivo/antes-de-actualizar && git push origin archivo/antes-de-actualizar
-```
+`[x]` **3 · Borradas las copias viejas** — 215 archivos, 38.591 líneas:
+`apps/campeonatos-api`, `-web`, `-combat`, `-api-local`, `-web-local`,
+`apps/membresias-api`, `-web`, `-agent`, `packages/campeonatos-core`,
+`packages/campeonatos-db`, `packages/membresias-db`.
 
-`[ ]` **3 · Borrar las copias viejas:** `apps/campeonatos-api`,
-`apps/campeonatos-web`, `apps/campeonatos-combat`, `apps/campeonatos-api-local`,
-`apps/campeonatos-web-local`, `apps/membresias-agent`,
-`packages/campeonatos-core`, `packages/campeonatos-db`, `packages/membresias-db`.
+> Comprobado antes de borrar que nadie que se queda importaba de ellas
+> (`ecosystem-api`, `ecosystem-portal`, `academy-*`, `packages/shared`): solo
+> había un comentario en el portal.
 
-`[ ]` **4 · Traer las buenas con `git subtree`** (conserva el historial completo):
+`[x]` **4 · Traídas las buenas con `git subtree`**, con su historial completo.
 
-```bash
-git checkout -b feat/actualizar-apps
-git remote add combat     https://github.com/ArsenalCrack/dinamyt-combat.git
-git remote add membresias https://github.com/ArsenalCrack/dinamyt-membresias.git
-git fetch combat && git fetch membresias
+> **Se importaron desde las copias del disco, no desde GitHub**, porque los
+> commits del día todavía no están empujados. En cuanto se empujen, un
+> `sync-apps.ps1` deja el espejo alineado con el remoto.
 
-git subtree add --prefix=services/campeonatos combat/main
-git subtree add --prefix=apps/membresias      membresias/main
-```
-
-`[ ]` **5 · Guion de sincronización** (`sync-apps.ps1`), para que ponerse al día
-sea un comando y no una ceremonia:
-
-```powershell
-git subtree pull --prefix=services/campeonatos combat/main     --squash
-git subtree pull --prefix=apps/membresias      membresias/main --squash
-```
+`[x]` **5 · `sync-apps.ps1`** para ponerse al día con un comando (§6.3).
 
 ### 6.2 Cómo quedó  `[x]` *(19 ago)*
 
