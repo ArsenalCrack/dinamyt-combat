@@ -347,7 +347,8 @@ Membresías ya hace el canje.
 
 ### 3.1 Cómo queda
 
-Un PostgreSQL 16 en el VPS, base `dinamyt`, cuatro esquemas, **un rol por app** —
+Un **PostgreSQL 17** en el VPS (no el 16 del repositorio de Ubuntu: hay que
+añadir el de PGDG), base `dinamyt`, cuatro esquemas, **un rol por app** —
 ninguno superusuario:
 
 | Esquema | Rol dueño | Quién se conecta | `search_path` |
@@ -396,6 +397,32 @@ SQL
 | `campeonatos` | **`zcenyqtgaqqsmhjccwck`**, esquema `public` | ~~`campeonatos` de `yabnkl…`~~ (el Fastify muerto) |
 
 ### 3.3 El traslado, paso a paso
+
+> **La versión de PostgreSQL no es un detalle.** El formato `custom` de
+> `pg_dump` lo lee `pg_restore` de su versión **o posterior, nunca anterior**:
+> un volcado hecho con la 18 no se restaura en la 17. Como en el VPS va a correr
+> la **17**, los volcados se hacen con `pg_dump` **17**. En este equipo están la
+> 17 y la 18, y la 18 es la que sale por defecto — de ahí que
+> `scripts/respaldar-produccion.ps1` fije la versión en vez de coger la más nueva.
+
+> **Y el puerto tampoco.** El `6543` de Supabase es el *transaction pooler*:
+> reparte cada sentencia por una conexión distinta del pool. `pg_dump` necesita
+> lo contrario —una sesión estable, con su transacción y sus cursores abiertos de
+> principio a fin— y contra el 6543 falla o, peor, saca un volcado incompleto sin
+> decir nada. **Los tres volcados van por el `5432`** (session pooler) o por la
+> conexión directa. La cadena de Membresías que hay a mano trae el 6543: hay que
+> cambiarlo.
+
+**El volcado de B0 está automatizado**: `scripts/respaldar-produccion.ps1`, en el
+repo `dinamyt`. Lee las cadenas de un `.env.migracion` que vive **fuera de todo
+repositorio**, no las imprime nunca, saca los tres volcados con los esquemas
+correctos de §3.2, avisa si detecta el puerto 6543 y comprueba cada archivo con
+`pg_restore --list` — un volcado truncado se ve en el momento y no dentro de tres
+semanas.
+
+```powershell
+.\scripts\respaldar-produccion.ps1 -Env D:\dinamyt-migracion\.env.migracion -Destino D:\dinamyt-migracion\respaldos
+```
 
 `[ ]` **a · Ecosystem y Academy** — van **juntos y en este orden**, porque
 comparten diario (ver el recuadro de abajo):
