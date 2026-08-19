@@ -779,9 +779,9 @@ Un subtree sobre un árbol sucio es una tarde perdida.
 
 `[x]` **4 · Traídas las buenas con `git subtree`**, con su historial completo.
 
-> **Se importaron desde las copias del disco, no desde GitHub**, porque los
-> commits del día todavía no están empujados. En cuanto se empujen, un
-> `sync-apps.ps1` deja el espejo alineado con el remoto.
+> Se importaron desde las copias del disco porque los commits del día todavía
+> no estaban empujados. Ya lo están, y un `sync-apps.ps1` dejó los dos espejos
+> alineados con el remoto — el ciclo completo probado de punta a punta.
 
 `[x]` **5 · `sync-apps.ps1`** para ponerse al día con un comando (§6.3).
 
@@ -842,9 +842,11 @@ de sincronizar.
 | Campeonatos (Flask + Next) | `ArsenalCrack/dinamyt-combat` |
 | Membresías (API + web) | `ArsenalCrack/dinamyt-membresias` |
 
-> `[ ]` **Para que el VPS pueda clonar, hay que empujar los tres repos.** Ahora
-> mismo hay commits solo en local — incluido el arreglo de las llaves y los
-> arreglos previos. Sin `git push`, el servidor clonaría código viejo.
+> `[x]` **Los tres repos están en `main` y empujados** *(19 ago)*. Todo lo del
+> día viaja en la línea principal —el arreglo de las llaves, el trabajo de
+> Academy, los arreglos previos y el diario de migraciones— así que el VPS
+> clonará lo correcto. Punto de retorno en el tag
+> `archivo/antes-de-actualizar-apps`, también empujado.
 
 ### 6.5 El contrato del token
 
