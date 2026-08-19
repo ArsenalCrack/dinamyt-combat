@@ -23,7 +23,7 @@ Cada paso lleva su marca. **Al terminar un paso, se cambia la marca aquí mismo*
 
 | Bloque | Qué | Fecha tope | Estado |
 |---|---|---|---|
-| **B0** | Seguros: respaldos y commits | 21 ago | `[~]` commits hechos (19 ago); faltan los volcados — **hace falta la contraseña real de las dos bases** |
+| **B0** | Seguros: respaldos y commits | 21 ago | `[~]` commits hechos · **Membresías y Campeonatos RESPALDADAS** (19 ago) · la del ecosistema no responde (§1.3.1) |
 | **B1** | **Servicio de vuelta** — VPS + datos + apps tal cual | **29 ago** | `[~]` arreglos previos hechos (19 ago) |
 | **B2** | Correo | 5 sep | `[ ]` |
 | **B2b** | Actualizar el monorepo `dinamyt` | 5 sep | `[ ]` |
@@ -107,7 +107,7 @@ El contrato del token vive en `packages/shared/src/auth.ts` y ya trae
 ### 1.3 Las bases de datos — son TRES proyectos de Supabase, no uno
 
 ```
-Proyecto yabnklhtfknwvpgadacp · us-west-2 · pooler 6543
+Proyecto rybjafolgmguqtklianr · us-west-2   ← ¡SIN REGISTRO DNS! (ver §1.3.1)
    ├── esquema ecosystem     → LAS CUENTAS.        Se conserva.
    ├── esquema academy       → Academy.            Se conserva (academy entra).
    ├── esquema membresias    → VIEJO (migr. 0001). Se DESCARTA.
@@ -127,7 +127,69 @@ Proyecto zcenyqtgaqqsmhjccwck · us-east-2 · puerto 5432
 
 **Que sean tres proyectos separados es buena noticia:** no hay colisión de
 nombres de esquema entre el bueno y el viejo, cada volcado es independiente, y
-el proyecto `yabnkl…` solo aporta `ecosystem` y `academy`.
+el del ecosistema solo aporta `ecosystem` y `academy`.
+
+### 1.3.1 La base del ecosistema no responde — y puede que ya no exista
+
+**Resultado del volcado del 19 de agosto:**
+
+| Base | Resultado | Contenido |
+|---|---|---|
+| **Membresías** (`lhgisckr…`) | `[x]` **RESPALDADA** | 354,6 KB · 16 tablas con datos |
+| **Campeonatos** (`zceny…`) | `[x]` **RESPALDADA** | 63,8 KB · 14 tablas con datos |
+| **Ecosystem + Academy** (`rybjafol…`) | `[ ]` **FALLA** | `FATAL: (ENOTFOUND) tenant/user not found` |
+
+**Las dos que importaban están a salvo.** Son las que tienen los datos reales de
+producción y son las irreemplazables. Ya están en `D:\dinamyt-migracion\respaldos`.
+
+**Dos correcciones a lo que decía este plan sobre el ecosistema:**
+
+1. **El proyecto no es `yabnklhtfknwvpgadacp`.** Ese valor es el `SUPABASE_URL`,
+   o sea el endpoint de la API REST — no la base. La base es
+   **`rybjafolgmguqtklianr`**, y lo confirman las cuatro apps: `ecosystem-api`,
+   `academy-db`, `campeonatos-db` y `membresias-db` (la vieja) llevan todas ese
+   mismo tenant en su `DATABASE_URL`.
+
+2. **Ninguno de los dos refs tiene registro DNS.** Comprobado con
+   `Resolve-DnsName db.<ref>.supabase.co`:
+
+   | Proyecto | DNS |
+   |---|---|
+   | `lhgisckrvyfqjslbzpuj` (membresías) | responde |
+   | `zcenyqtgaqqsmhjccwck` (campeonatos) | responde |
+   | `rybjafolgmguqtklianr` (ecosystem) | **sin registro** |
+   | `yabnklhtfknwvpgadacp` (REST) | **sin registro** |
+
+   Supabase retira ese registro cuando un proyecto se **elimina**. Un proyecto
+   *pausado* normalmente lo conserva. No es prueba concluyente, pero apunta a que
+   el proyecto del ecosistema ya no está.
+
+`[ ]` **Comprobación pendiente, y es de las de hoy:** entrar al panel de Supabase
+y ver si `rybjafolgmguqtklianr` aparece **pausado** (se restaura con un botón) o
+si directamente **no aparece**. En el plan gratis, un proyecto eliminado no tiene
+copia que recuperar.
+
+#### Si se confirma que el proyecto del ecosistema no está
+
+No es una catástrofe, y conviene decir por qué antes de que lo parezca:
+
+- **Los datos de producción de verdad —alumnos, pagos, asistencias, competidores,
+  campeonatos y resultados— están en las otras dos bases, y ya están
+  respaldados.** Nada de eso vivía en el ecosistema.
+- Lo que había en `ecosystem.users` eran cuentas de prueba y las de los pocos que
+  se registraron en el portal. El producto no llegó a abrirse al público.
+- **La reconciliación de §2.4 ya contemplaba crear las cuentas desde los censos
+  de Membresías y de Campeonatos.** Con el ecosistema vacío, ese paso no cambia:
+  el montón de «ya está en el ecosystem» queda vacío y todo el mundo entra por el
+  de «no está, con correo válido».
+- Academy estaba en desarrollo, no en producción. Su esquema se recrea con sus
+  seis migraciones.
+
+**Lo que sí cambia, y para peor:** el esquema del ecosistema se crea **desde
+cero** en el VPS, y ése es exactamente el escenario en el que el diario
+compartido de Drizzle (§1.5-2) mata el despliegue — academy migra, ecosystem ve
+una marca de tiempo posterior a las suyas y **no crea ni una tabla**. El arreglo
+del 19 de agosto deja de ser una precaución y pasa a ser imprescindible.
 
 ### 1.4 Estado de producción · **está caída**
 
@@ -391,8 +453,8 @@ SQL
 
 | Destino | Origen correcto | Origen que hay que NO usar |
 |---|---|---|
-| `ecosystem` | `yabnklhtfknwvpgadacp`, esquema `ecosystem` | — |
-| `academy` | `yabnklhtfknwvpgadacp`, esquema `academy` | — |
+| `ecosystem` | `rybjafolgmguqtklianr`, esquema `ecosystem` — **si el proyecto sigue existiendo** (§1.3.1) | — |
+| `academy` | `rybjafolgmguqtklianr`, esquema `academy` — ídem | — |
 | `membresias` | **`lhgisckrvyfqjslbzpuj`**, esquemas `membresias` + `drizzle` | ~~`membresias` de `yabnkl…`~~ (migr. 0001) |
 | `campeonatos` | **`zcenyqtgaqqsmhjccwck`**, esquema `public` | ~~`campeonatos` de `yabnkl…`~~ (el Fastify muerto) |
 
