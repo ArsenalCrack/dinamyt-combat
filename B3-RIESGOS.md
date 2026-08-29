@@ -76,7 +76,7 @@ esos tres días, a propósito.
 
 # 2 · Lo que hay que prevenir a toda costa
 
-Estas siete no se negocian. Cada una tiene detrás una avería concreta.
+Estas ocho no se negocian. Cada una tiene detrás una avería concreta.
 
 `[ ]` **1 · El modo local tiene que arrancar con `ECOSYSTEM_JWKS_URL` vacía y
       caer a su login propio.** Se comprueba **desconectando el cable de red**,
@@ -109,6 +109,12 @@ Estas siete no se negocian. Cada una tiene detrás una avería concreta.
 `[ ]` **6 · Ni un despliegue entre el 1 y el 13 de octubre.** Snapshot del VPS el
       día 8.
 
+`[ ]` **7 · El login local no es «legacy»: es un modo de primera.** El riesgo
+      real de B3 a largo plazo es que la ruta offline se convierta en un camino
+      de segunda que nadie ejercita — y un camino que solo corre en la emergencia
+      se pudre en silencio, hasta el día de la emergencia. **Se prueba en cada
+      simulacro, con el cable desconectado, sin excepción.**
+
 `[ ]` **8 · Antes de C4, toda organización que use Campeonatos necesita
       suscripción activa que lo incluya — y la herencia escrita.** Hoy el login
       propio de Campeonatos **disimula el hueco**: los maestros entran directo a
@@ -128,12 +134,6 @@ Estas siete no se negocian. Cada una tiene detrás una avería concreta.
 
       **Si C4 llega antes que esto, los maestros se quedan fuera de su propio
       campeonato** — y se descubre cuando vayan a inscribir.
-
-`[ ]` **7 · El login local no es «legacy»: es un modo de primera.** El riesgo
-      real de B3 a largo plazo es que la ruta offline se convierta en un camino
-      de segunda que nadie ejercita — y un camino que solo corre en la emergencia
-      se pudre en silencio, hasta el día de la emergencia. **Se prueba en cada
-      simulacro, con el cable desconectado, sin excepción.**
 
 ---
 
