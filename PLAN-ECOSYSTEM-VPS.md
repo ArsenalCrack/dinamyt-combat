@@ -45,7 +45,8 @@ Cada paso lleva su marca. **Al terminar un paso, se cambia la marca aquí mismo*
 | 5 | **El club también vive en el ecosystem.** `ecosystem.organizations` es el registro único; cada app guarda un espejo. | Es lo que hace que un club aparezca en Campeonatos con sus alumnos ya asociados. §2.5. |
 | 6 | **El campeonato del 9–11 de octubre manda sobre el calendario.** Congelación del 1 al 13 de octubre. | §8. |
 | 7 | **B3 se hace; el paquete de vuelta se aplaza** *(29 ago)*. Las altas del día del evento no regresarán solas a la VPS en octubre: se pasan a mano desde la carpeta `instance/`. | `B3-RIESGOS.md` §6. |
-| 8 | **Una base de código, dos papeles** *(29 ago, corregida)*. **Una sola** base de código —dos divergen solas— pero **la VPS NUNCA opera un campeonato**: su despliegue no expone la consola de puntuación ni los tatamis. Inscribe antes, muestra durante y después. | El camino del evento es el mismo todos los días, así que está probado por definición, y no existe una segunda consola que pudiera escribir. Se acepta perder el correr un campeonato pequeño por internet. Anexo 2. |
+| 8 | **Una base de código, y el candado decide quién opera** *(29 ago, versión final)*. Una sola base de código. La VPS **es capaz** de operar, pero **por defecto no lo hace**: cada campeonato lleva su `sede` (`nube` o `local:<id>`) y quien no es dueño lo ve en solo lectura. Los campeonatos de verdad corren en local; **un minicampeonato sin PC a mano puede correr en la nube**. | Amputar la consola de la VPS no evitaba los dos escritores —eso lo hace el candado— y costaba perder un caso real. Lo que mantiene vivo el camino local es el **simulacro obligatorio** antes de cada campeonato, no la amputación. Anexo 2. |
+| 10 | **El documento es la llave entre un competidor y una persona** *(29 ago)*. `competidores.documento` y `users.document_id` son los dos `varchar(30)` únicos. Sobre eso se construye «mis campeonatos» y la reclamación de lo competido antes de tener cuenta. | Bloques **C8** y **C9** de §4.2. Sin ellos, B3 conecta cuentas pero el sistema sigue sin saber **cuál de esos competidores eres tú**. |
 | 9 | **Durante el evento el local publica hacia arriba, y nunca descarga** *(29 ago)*. Instantánea completa cada pocos minutos, best-effort, fuera del camino de cualquier petición. | El público sigue el campeonato casi en vivo; si falla la red, solo se ve viejo. Anexo 2. |
 
 ### 0.1 Aviso de seguridad · las cadenas de conexión
@@ -655,6 +656,18 @@ base.** El camino con el mismo resultado y una fracción del riesgo:
 | **C5** Socket.IO | `sockets/combate_ns.py:477` | `decode_token` → el verificador de C1. El token sigue viajando en el `auth` del socket | `[ ]` |
 | **C6** Frontend | `lib/auth.tsx`, `app/login/page.tsx` | Leer `#token=`, canjear por cookie, quitar el formulario propio. **El acceso de jueces por QR se conserva tal cual** | `[ ]` |
 | **C7** Roles | varios | `admin→admin`, `juez→judge`, `maestro→coach`. `es_superadmin` se lee del token | `[ ]` |
+| **C8** Competidor ↔ persona | `models/competidor.py`, `schema_compat.py` | Columna `eco_sub` en `competidores` (nullable). **Hoy no existe ningún enlace entre un competidor y una persona**: `created_by` dice quién lo *inscribió*, no quién *es*. Sin esta columna, al terminar B3 el alumno entra con su cuenta pero el sistema sigue sin saber cuáles de esos competidores es él | `[ ]` |
+| **C9** Reclamar lo competido | ecosystem + Campeonatos | Al crear cuenta o al entrar por primera vez, buscar competidores con el mismo `documento` y sin dueño, y proponerlos: «encontramos 3 participaciones a tu nombre, ¿son tuyas?». Funciona **hacia atrás**, con lo competido hace años | `[ ]` |
+
+> **C8 y C9 son lo que hace posible «mis campeonatos».** Se añaden a B3 porque es
+> cuando ya se está con las manos en esa parte del código; hacerlo después
+> significa volver a abrir lo mismo.
+>
+> **C9 propone, no asigna.** Un documento tecleado con prisa en la mesa de
+> inscripción puede llevar un dígito cambiado, y atribuir en silencio las
+> medallas de otro es peor que no atribuir nada. La persona confirma, y un
+> administrador puede deshacerlo. Quien no dio documento lo enlaza el maestro a
+> mano.
 
 > **Lo que NO se toca:** campeonatos, categorías, competidores, llaves, tatamis,
 > **combate en vivo y puntuación**, resultados, reportes, seeds, importación por
