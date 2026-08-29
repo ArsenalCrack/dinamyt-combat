@@ -652,7 +652,7 @@ base.** El camino con el mismo resultado y una fracción del riesgo:
 
 | Bloque | Archivos | Qué | Estado |
 |---|---|---|---|
-| **C1** Verificador JWKS | `backend/app/security.py` (nuevo) | `PyJWT` + `PyJWKClient` contra `ECOSYSTEM_JWKS_URL`, con caché. Dependencias: `PyJWT[crypto]`, `cryptography` | `[ ]` |
+| **C1** Verificador JWKS | `backend/app/identidad.py` (nuevo) | `PyJWT` + `PyJWKClient` contra `ECOSYSTEM_JWKS_URL`, con caché. Dependencias: `PyJWT[crypto]`, `cryptography` | `[x]` **HECHO** (29 ago). **No es `security.py`**: ese nombre ya lo ocupa el limitador de intentos. Exige emisor `dinamyt-ecosystem` y rechaza todo token con `purpose` —los dos cierres de Membresías—, falla cerrado, y **espera 3 s al JWKS y no 30**: se descarga dentro de la petición y con un solo worker de eventlet un ecosistema caído congelaría la app entera. Sin la variable no sale a la red siquiera (modo local). 9 pruebas |
 | **C2** Guards | `app/api/scoping.py` | `usuario_actual()` lee claims y resuelve el espejo; `@requiere_scope` / `@requiere_rol` sustituyen a `@jwt_required()` | `[ ]` |
 | **C3** Espejo | `models/usuario.py`, `schema_compat.py` | `eco_sub` + alta/enlace automático. `schema_compat.py` ya es el mecanismo para añadir columnas sin migraciones | `[ ]` |
 | **C4** Retirar la emisión | `app/api/auth.py` | Fuera `login`, `register`, contraseñas. Se conservan `/me`, `/logout`, `/socket-ticket`, `/clubes`. `POST /auth/sesion` pasa a ser el canje SSO | `[ ]` |

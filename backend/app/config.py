@@ -55,6 +55,16 @@ class Config:
     JWT_CSRF_IN_COOKIES = True
     JWT_ACCESS_CSRF_HEADER_NAME = "X-CSRF-TOKEN"
 
+    # ── El pase del ecosistema (identidad única) ─────────────────────────────
+    # El JWKS de ecosystem-api, donde publica la llave pública con la que firma
+    # las sesiones. Con esto puesto, Campeonatos reconoce a quien ya inició
+    # sesión en DINAMYT.
+    #
+    # **Vacía es un estado válido, y es el del día del campeonato**: sin ella
+    # no hay a quién preguntar, todo pase del ecosistema se rechaza y el login
+    # propio responde como siempre. Ver `app/identidad.py`.
+    ECOSYSTEM_JWKS_URL = os.getenv("ECOSYSTEM_JWKS_URL", "")
+
     # CORS
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 

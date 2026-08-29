@@ -3,6 +3,12 @@ Flask-SQLAlchemy==3.1.1
 Flask-Migrate==4.1.0
 Flask-SocketIO==5.5.1
 Flask-JWT-Extended==4.7.1
+# cryptography: la necesita PyJWT (que ya viene con Flask-JWT-Extended) para
+# verificar RS256 — el algoritmo con el que firma el ecosistema. Sin ella, el
+# pase de DINAMYT se rechaza con «Algorithm not supported», que no dice nada
+# de una dependencia que falta. Los tokens propios son HS256 y no la usan, así
+# que hasta ahora no hacía falta. Ver app/identidad.py.
+cryptography>=43,<47
 Flask-CORS==5.0.1
 python-dotenv==1.1.0
 # tzdata: la base de datos de husos horarios que `zoneinfo` necesita para
