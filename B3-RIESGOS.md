@@ -109,6 +109,26 @@ Estas siete no se negocian. Cada una tiene detrás una avería concreta.
 `[ ]` **6 · Ni un despliegue entre el 1 y el 13 de octubre.** Snapshot del VPS el
       día 8.
 
+`[ ]` **8 · Antes de C4, toda organización que use Campeonatos necesita
+      suscripción activa que lo incluya — y la herencia escrita.** Hoy el login
+      propio de Campeonatos **disimula el hueco**: los maestros entran directo a
+      `campeonatos.dinamyt.org` sin pasar por el portal. **C4 quita ese login**, y
+      a partir de ahí la única puerta es el salto desde el portal — que solo
+      muestra lo que la suscripción permite.
+
+      Descubierto el 29 de agosto al mirar por qué a un maestro no le salía el
+      botón de Campeonatos. El estado real ese día: **de 11 organizaciones, una
+      sola tenía suscripción**, y su plan era `Plan Membresías`, que no incluye
+      `campeonatos`. Nadie podía llegar a la app desde el portal.
+
+      Y hay una segunda mitad, peor: **la suscripción no se hereda.** El cálculo
+      de `app_scopes` une `org_members → subscriptions` por el **mismo** `org_id` y
+      no mira `parent_id`. Así que poner el plan en la organización que contrata
+      **no se lo da a sus clubes afiliados**. Es el bloque 9 de §4.1 del plan.
+
+      **Si C4 llega antes que esto, los maestros se quedan fuera de su propio
+      campeonato** — y se descubre cuando vayan a inscribir.
+
 `[ ]` **7 · El login local no es «legacy»: es un modo de primera.** El riesgo
       real de B3 a largo plazo es que la ruta offline se convierta en un camino
       de segunda que nadie ejercita — y un camino que solo corre en la emergencia

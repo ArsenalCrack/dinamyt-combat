@@ -46,6 +46,7 @@ Cada paso lleva su marca. **Al terminar un paso, se cambia la marca aquí mismo*
 | 6 | **El campeonato del 9–11 de octubre manda sobre el calendario.** Congelación del 1 al 13 de octubre. | §8. |
 | 7 | **B3 se hace; el paquete de vuelta se aplaza** *(29 ago)*. Las altas del día del evento no regresarán solas a la VPS en octubre: se pasan a mano desde la carpeta `instance/`. | `B3-RIESGOS.md` §6. |
 | 8 | **Una base de código, y el candado decide quién opera** *(29 ago, versión final)*. Una sola base de código. La VPS **es capaz** de operar, pero **por defecto no lo hace**: cada campeonato lleva su `sede` (`nube` o `local:<id>`) y quien no es dueño lo ve en solo lectura. Los campeonatos de verdad corren en local; **un minicampeonato sin PC a mano puede correr en la nube**. | Amputar la consola de la VPS no evitaba los dos escritores —eso lo hace el candado— y costaba perder un caso real. Lo que mantiene vivo el camino local es el **simulacro obligatorio** antes de cada campeonato, no la amputación. Anexo 2. |
+| 11 | **La organización contrata; sus clubes heredan** *(29 ago)*. Una organización (GHA Venezuela) tiene el plan de Campeonatos y **sus clubes afiliados lo reciben por herencia**. Membresías sigue siendo **plan por club**, aparte. Un **invitado** (GHA Colombia) es una suscripción de cortesía con precio 0 y fecha de fin corta. | **Hoy NO se hereda**: el cálculo de scopes une `org_members → subscriptions` por el mismo `org_id` y no mira `parent_id`. Bloque **9** de §4.1 — sin él, C4 deja fuera a los maestros afiliados. |
 | 10 | **El documento es la llave entre un competidor y una persona** *(29 ago)*. `competidores.documento` y `users.document_id` son los dos `varchar(30)` únicos. Sobre eso se construye «mis campeonatos» y la reclamación de lo competido antes de tener cuenta. | Bloques **C8** y **C9** de §4.2. Sin ellos, B3 conecta cuentas pero el sistema sigue sin saber **cuál de esos competidores eres tú**. |
 | 9 | **Durante el evento el local publica hacia arriba, y nunca descarga** *(29 ago)*. Instantánea completa cada pocos minutos, best-effort, fuera del camino de cualquier petición. | El público sigue el campeonato casi en vivo; si falla la red, solo se ve viejo. Anexo 2. |
 
@@ -631,6 +632,7 @@ vacía y entrar a mirar.
 | 6 | Enlazar acudiente ↔ menor (`user_guardians`) desde el portal | §2.2 | `[ ]` |
 | 7 | Mailer por SMTP genérico en vez de «Gmail o SMTP» | §5 | `[ ]` |
 | 8 | `GET /organizations/:id/members` para el autorrellenado de Campeonatos | §2.5 | `[ ]` |
+| 9 | **La suscripción baja del padre.** Al calcular `app_scopes`, mirar también las suscripciones activas de la organización padre, **subiendo por toda la cadena** de `parent_id` | Hoy el join es `orgMembers.orgId = subscriptions.orgId`: una organización con plan de Campeonatos **no se lo pasa a sus clubes**. Es requisito de C4 | `[ ]` |
 
 ### 4.2 Campeonatos — el bloque grande, con un diseño distinto al plan viejo
 
