@@ -203,6 +203,13 @@ def ensure_rls():
     for sentencia in _sentencias():
         try:
             with db.engine.begin() as conn:
+                # Si otra transacción tiene la tabla cogida, este ALTER necesita
+                # ACCESS EXCLUSIVE y se queda esperando SIN LÍMITE: el arranque
+                # entero se cuelga y no hay ni un error que lo cuente. Con el
+                # tope, falla en cinco segundos, cae en `fallos` y se imprime.
+                # No evita el bloqueo — lo hace VISIBLE, que es lo que faltó.
+                # SET LOCAL: solo dura esta transacción, no toca la conexión.
+                conn.execute(text("SET LOCAL lock_timeout = '5s'"))
                 conn.execute(text(sentencia))
             aplicadas += 1
         except Exception as exc:  # noqa: BLE001 — se reporta, no se propaga

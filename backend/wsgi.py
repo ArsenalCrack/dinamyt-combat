@@ -29,6 +29,24 @@ with app.app_context():
     seed_categorias()
     seed_admin(app.config)
 
+    # Los seeds leen `usuarios` con la sesión del ORM y no siempre cierran su
+    # transacción: `seed_admin` sale por la rama SIN commit cuando el admin ya
+    # existe y ya es superadmin (seeds/seed_admin.py:24-26). Esa transacción
+    # abierta retiene un ACCESS SHARE sobre `usuarios`, y el `ensure_rls()` de
+    # abajo pide ACCESS EXCLUSIVE sobre la MISMA tabla desde otra conexión del
+    # pool (rls.py, `db.engine.begin()`). La app se bloquea contra sí misma.
+    #
+    # Cómo se ve cuando pasa, que no se parece a la causa: el ALTER espera hasta
+    # que `idle_in_transaction_session_timeout` mata la sesión ociosa; entonces
+    # el cierre del contexto revienta al hacer ROLLBACK sobre una conexión
+    # muerta, el worker sale con código 3, gunicorn apaga el master («Worker
+    # failed to boot») y systemd reinicia. Ciclo infinito, con la página
+    # cargando y TODO `/api/` esperando para siempre. Pasó el 29-08-2026.
+    #
+    # El try/except de abajo NO protege de esto: un bloqueo no es una excepción,
+    # y la excepción llega tarde y fuera de su alcance.
+    db.session.commit()
+
     # Red de seguridad por workspace. Se aplica DESPUÉS de los seeds: las
     # políticas filtran por created_by, y sembrar con ellas puestas obligaría a
     # dar contexto a cada seed sin ganar nada (aquí no hay petición de nadie).
