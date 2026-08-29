@@ -44,6 +44,9 @@ Cada paso lleva su marca. **Al terminar un paso, se cambia la marca aquí mismo*
 | 4 | **Las cuentas nacen en el ecosystem**, nunca en las apps. El maestro no crea cuentas: crea *fichas* e *invita*. | §2. |
 | 5 | **El club también vive en el ecosystem.** `ecosystem.organizations` es el registro único; cada app guarda un espejo. | Es lo que hace que un club aparezca en Campeonatos con sus alumnos ya asociados. §2.5. |
 | 6 | **El campeonato del 9–11 de octubre manda sobre el calendario.** Congelación del 1 al 13 de octubre. | §8. |
+| 7 | **B3 se hace; el paquete de vuelta se aplaza** *(29 ago)*. Las altas del día del evento no regresarán solas a la VPS en octubre: se pasan a mano desde la carpeta `instance/`. | `B3-RIESGOS.md` §6. |
+| 8 | **Una sola app, dos modos — no se parte el producto** *(29 ago)*. La diferencia entre local y VPS es **de estado, no de código**: el mismo binario, con un candado de propiedad por campeonato (`sede = nube \| local:<id>`). | Un camino que solo corre en la emergencia se pudre. `CONTINGENCIA-CAMPEONATO.md`, Anexo 2. |
+| 9 | **Durante el evento el local publica hacia arriba, y nunca descarga** *(29 ago)*. Instantánea completa cada pocos minutos, best-effort, fuera del camino de cualquier petición. | El público sigue el campeonato casi en vivo; si falla la red, solo se ve viejo. Anexo 2. |
 
 ### 0.1 Aviso de seguridad · las cadenas de conexión
 
