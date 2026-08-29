@@ -24,10 +24,10 @@ Cada paso lleva su marca. **Al terminar un paso, se cambia la marca aquí mismo*
 | Bloque | Qué | Fecha tope | Estado |
 |---|---|---|---|
 | **B0** | Seguros: respaldos y commits | 21 ago | `[x]` **HECHO** (19 ago) — Membresías y Campeonatos respaldadas; la del ecosistema estaba vacía (§1.3.1) |
-| **B1** | **Servicio de vuelta** — VPS + datos + apps tal cual | **29 ago** | `[~]` arreglos previos hechos (19 ago) |
-| **B2** | Correo | 5 sep | `[ ]` |
+| **B1** | **Servicio de vuelta** — VPS + datos + apps tal cual | **29 ago** | `[x]` **HECHO** (20 ago) — `dinamyt.org` en un VPS propio, una sola base PostgreSQL con un esquema por app. Ocho días antes del tope |
+| **B2** | Correo | 5 sep | `[x]` **HECHO** (29 ago) — Resend enviando, Cloudflare Email Routing recibiendo (`soporte@`, `admin@`) y `_dmarc` publicado en `p=none`. **Queda subir la política**: `quarantine` a mediados de septiembre, `reject` desde el 14 de octubre, nunca durante el campeonato |
 | **B2b** | Actualizar el monorepo `dinamyt` | 5 sep | `[x]` **HECHO** (19 ago) |
-| **B3** | **Identidad única** | **19 sep** | `[ ]` |
+| **B3** | **Identidad única** | **19 sep** | `[~]` **en curso.** Ecosystem y Membresías, en pie: SSO por `#token=`, invitaciones, código de club, sesiones revocables (24 ago), **reconciliación aplicada** (29 ago: 0 cuentas creadas, 46 personas enlazadas) y la **herencia de plan** de §4.1 · 9 (29 ago). **Falta Campeonatos entero**: C1–C9 de §4.2 — hoy no tiene una sola línea de JWKS |
 | **B3s** | Reposo y observación | 20–30 sep | `[ ]` |
 | **🔒** | **CONGELADO — campeonato del 9, 10 y 11 de octubre** | 1–13 oct | — |
 | **B4** | Fase 2: portada, planes, multi-arte, plan gratuito, academy | desde 14 oct | `[ ]` |
@@ -632,7 +632,8 @@ vacía y entrar a mirar.
 | 6 | Enlazar acudiente ↔ menor (`user_guardians`) desde el portal | §2.2 | `[ ]` |
 | 7 | Mailer por SMTP genérico en vez de «Gmail o SMTP» | §5 | `[ ]` |
 | 8 | `GET /organizations/:id/members` para el autorrellenado de Campeonatos | §2.5 | `[ ]` |
-| 9 | **La suscripción baja del padre.** Al calcular `app_scopes`, mirar también las suscripciones activas de la organización padre, **subiendo por toda la cadena** de `parent_id` | Hoy el join es `orgMembers.orgId = subscriptions.orgId`: una organización con plan de Campeonatos **no se lo pasa a sus clubes**. Es requisito de C4 | `[ ]` |
+| 9 | **La suscripción baja del padre.** Al calcular `app_scopes`, mirar también las suscripciones activas de la organización padre, **subiendo por toda la cadena** de `parent_id` | El join era `orgMembers.orgId = subscriptions.orgId`: una organización con plan de Campeonatos **no se lo pasaba a sus clubes**. Es requisito de C4 | `[x]` **HECHO** (29 ago) — `common/jerarquia.ts` + `buildToken`; el plan propio SE SUMA al heredado y la herencia solo BAJA. Tope de saltos y corte de ciclos probados en `jerarquia.spec.ts`: un `parent_id` mal puesto no puede colgar el login |
+| 10 | **Una pantalla para afiliar clubes a la federación.** El endpoint existe (`POST /organizations/:id/invitar-club`, el maestro acepta); lo que faltaba era llegar a él | Sin esto, la herencia del punto 9 no tiene cómo estrenarse: una federación recién creada no tiene clubes que hereden | `[~]` **el portal, hecho** (29 ago): actuaba sobre `federaciones[0]` —afiliaba a la federación equivocada si gestionas dos— y se escondía salvo con el rol exacto `admin`, más estricto que el propio servidor. **Falta `/admin`**: una federación creada ahí no tiene miembros, así que no aparece en «Mi organización» de nadie hasta darle acceso a su administrador |
 
 ### 4.2 Campeonatos — el bloque grande, con un diseño distinto al plan viejo
 
@@ -970,11 +971,11 @@ ago 19 ─────── ago 29 ─── sep 5 ─── sep 19 ───�
 
 | | Qué | Tope | Riesgo | Estado |
 |---|---|---|---|---|
-| **B0** | Commitear lo suelto · **volcado de las tres bases, guardado fuera del VPS y verificado** | 21 ago | — | `[ ]` |
-| **B1** | Comprar dominio y VPS · **pedir SES** · arreglos previos (§1.5) · Postgres · restaurar las tres bases · levantar las apps **tal cual, con sus logins actuales** · DNS | **29 ago** | Medio | `[ ]` |
-| **B2** | Correo: verificar dominio, plantillas, prueba a Gmail y Outlook con `SPF: PASS` y `DKIM: PASS` | 5 sep | Bajo | `[ ]` |
+| **B0** | Commitear lo suelto · **volcado de las tres bases, guardado fuera del VPS y verificado** | 21 ago | — | `[x]` **HECHO** (19 ago) |
+| **B1** | Comprar dominio y VPS · **pedir SES** · arreglos previos (§1.5) · Postgres · restaurar las tres bases · levantar las apps **tal cual, con sus logins actuales** · DNS | **29 ago** | Medio | `[x]` **HECHO** (20 ago) |
+| **B2** | Correo: verificar dominio, plantillas, prueba a Gmail y Outlook con `SPF: PASS` y `DKIM: PASS` | 5 sep | Bajo | `[x]` **HECHO** (29 ago) — falta subir la política DMARC |
 | **B2b** | Actualizar el monorepo (§6) | 5 sep | Nulo | `[x]` **HECHO** (19 ago) |
-| **B3** | Identidad única (§4): ecosystem-api → Membresías (poco) → Campeonatos (mucho) → reconciliación (§2.4) → aviso a la gente | **19 sep** | **Alto** | `[ ]` |
+| **B3** | Identidad única (§4): ecosystem-api → Membresías (poco) → Campeonatos (mucho) → reconciliación (§2.4) → aviso a la gente | **19 sep** | **Alto** | `[~]` ecosystem-api y Membresías hechos, reconciliación aplicada (29 ago). **Queda Campeonatos**, que es el 80 % del bloque |
 | **B3s** | Reposo: 10 días con todo el mundo usándolo antes de la congelación | 20–30 sep | — | `[ ]` |
 | **🔒** | **CONGELADO.** Ni un despliegue. Snapshot del VPS el día 8 | 1–13 oct | — | — |
 | **B4** | Fase 2 (§10) | desde 14 oct | — | `[ ]` |
@@ -1059,6 +1060,40 @@ producto, para quién, con capturas reales, y **los precios de verdad** (hoy
 `[ ]` Definir la tabla de precios: qué incluye cada plan, límites, y qué pasa al
 pasarse. Esto es una decisión de negocio, no de código, y conviene tenerla
 escrita antes de programar nada.
+
+#### El cobro va a ser POR USUARIO, y lo que hay hoy no lo es *(29 ago)*
+
+**Los planes que están en la base son de relleno.** Son precios fijos al mes
+—`Plan Membresías` a 60.000, `Academy` a 50.000, los de Campeonatos a
+cotizar— y **la intención nunca fue esa**: la tarifa es **por usuario**. Un club
+de 15 alumnos y uno de 300 no pueden pagar lo mismo, y con precio fijo o el
+pequeño no entra o el grande está regalado.
+
+**No se cambia antes del campeonato.** Queda escrito aquí para que nadie diseñe
+encima del modelo equivocado —ni pinte una portada con esos números—, y se hace
+en la Fase 2, junto con §10.1 y §10.2, que son la misma conversación.
+
+Lo que habrá que resolver cuando se haga, que es más de lo que parece:
+
+- **`subscription_plans` no tiene dónde ponerlo.** Hoy son `price_monthly` y
+  `price_annual`, dos importes fijos. Un cobro por usuario necesita **precio
+  unitario**, **mínimo facturable** (nadie factura 3 alumnos) y probablemente
+  **tramos** — y `max_users` deja de ser un tope para pasar a ser, si acaso, el
+  final de un tramo.
+- **Qué cuenta como usuario, y esto es lo que decide la factura.** ¿El alumno
+  activo del club en Membresías, o toda fila de `org_members`? ¿El competidor
+  inscrito a un campeonato cuenta? Un maestro que además es alumno de otro club,
+  ¿son uno o dos? Sin una definición escrita, la cifra depende de la consulta
+  que se escriba ese día.
+- **El importe deja de ser una constante.** `subscriptions.total_amount` se fija
+  al crear la fila; con tarifa por usuario, lo que se debe **cambia con el
+  padrón** cada mes. Hay que decidir si se congela al renovar (foto del día de
+  corte) o se recalcula, y el panel de recaudo (§4.5 de OPERAR.md) tiene que
+  contar «esperado al mes» de otra manera: hoy suma importes fijos.
+- **Y la herencia se cruza con esto.** Con la decisión 11, una federación paga
+  Campeonatos para sus clubes: la pregunta de «¿por cuántos usuarios paga?»
+  es entonces la suma de los clubes afiliados, y esa suma se mueve cada vez que
+  uno se afilia o se va.
 
 ### 10.2 Plan gratuito de prueba
 
