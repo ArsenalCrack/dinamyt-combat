@@ -27,7 +27,18 @@ export default function LogoutButton({ label }: { label?: string }) {
       if (e.key === "Escape") setConfirming(false);
     }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+
+    // La pantalla de detrás no se mueve mientras se pregunta. Sin esto, el
+    // gesto de desplazar sobre el fondo oscuro seguía recorriendo el panel: se
+    // leía la pregunta encima de un tatami y al cancelar se estaba en otro
+    // sitio. En el celular es peor, porque el pulgar cae justo ahí.
+    const scrollPrevio = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = scrollPrevio;
+    };
   }, [confirming]);
 
   /**
@@ -56,6 +67,18 @@ export default function LogoutButton({ label }: { label?: string }) {
    * un solo componente del panel vivo detrás. Y de paso no depende de que el
    * router esté sano, que es justo lo que más falla con el disfraz de «pulso
    * Salir y no pasa nada».
+   *
+   * ── Y por qué `replace` y no `href` ──
+   *
+   * `href` EMPUJA una entrada al historial, así que la consola de la que se
+   * acaba de salir se queda una flecha atrás. Se volvía a ella —con el diálogo
+   * de «¿cerrar sesión?» todavía abierto, porque el navegador restaura la
+   * página del bfcache tal como estaba— y ahí ninguna acción funcionaba: la
+   * sesión estaba cerrada de verdad y cada petición contestaba 401. Una
+   * pantalla muerta que parece viva es peor que no poder volver.
+   *
+   * `replace` sustituye la entrada: la flecha atrás lleva a donde se estaba
+   * ANTES de entrar a la consola, que es lo que la persona espera.
    */
   async function handleLogout() {
     setLoggingOut(true);
@@ -63,7 +86,7 @@ export default function LogoutButton({ label }: { label?: string }) {
     // que limpiar aquí a secas dejaría la sesión viva en el servidor.
     const salida = await logoutAPI();
     const hayPortal = (salida.portal ?? true) && Boolean(PORTAL_URL);
-    window.location.href = hayPortal ? urlSalirDelPortal() : urlDeSalida(false);
+    window.location.replace(hayPortal ? urlSalirDelPortal() : urlDeSalida(false));
   }
 
   return (
