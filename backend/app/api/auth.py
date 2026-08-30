@@ -270,7 +270,7 @@ def _sesion_con_pase(pase):
     if not abre_campeonatos(pase):
         return _error_sso("sin_plan")
 
-    user, motivo = resolver_espejo(pase)
+    user, motivo = resolver_espejo(pase, _token_de_cabecera())
     if user is None:
         return _error_sso(motivo or "pase_incompleto")
     if not user.activo:

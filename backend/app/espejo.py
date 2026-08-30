@@ -38,10 +38,14 @@ en el portal degrade en silencio al administrador de un campeonato en marcha.
 `es_superadmin` **nunca** viaja en este camino: se concede a mano, mirando.
 """
 
+import json
 import logging
 import secrets
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 
 from .extensions import db
+from .identidad import url_api_ecosistema
 from .models.usuario import Usuario
 
 log = logging.getLogger(__name__)
@@ -61,6 +65,15 @@ ROL_DESDE_ECOSISTEMA = {
 # Tope de la columna `nombre`.
 NOMBRE_MAX = 150
 
+# Cuánto se espera al ecosistema para preguntarle por el club. Va DENTRO del
+# canje de la sesión, así que si el ecosistema tarda, lo que tarda es entrar.
+# Dos segundos y se sigue sin club, que es como se entraba hasta ayer.
+ESPERA_CLUB_SEG = 2
+
+# Los roles a los que el club les sirve de algo. Un juez puntúa donde lo
+# asignen: no inscribe a nadie y su club no pinta nada.
+ROLES_CON_CLUB = ("maestro",)
+
 
 def rol_operativo(claims):
     """El rol que tendría en Campeonatos, o `None` si no opera nada."""
@@ -69,7 +82,55 @@ def rol_operativo(claims):
     return ROL_DESDE_ECOSISTEMA.get((claims.get("role_campeonatos") or "").strip())
 
 
-def resolver_espejo(claims):
+def club_del_pase(claims, pase):
+    """
+    El club de esa persona, preguntándoselo al ecosistema. `None` si no se sabe.
+
+    ── Por qué se pregunta en vez de leerlo del pase ─────────────────────────
+
+    El pase trae `org_id`, que es un identificador: aquí hace falta el NOMBRE,
+    porque `usuarios.club` es texto libre y es lo que se imprime en la llave,
+    en el acta y en la planilla. Meter el nombre en el token engordaría el
+    contrato para las tres apps y quedaría viejo en cuanto el club se
+    renombrara; preguntarlo cuesta una petición **la primera vez que entra**.
+
+    Se pregunta **con el pase de la propia persona**, no con un secreto de
+    servidor: el ecosistema le responde lo que ella ya puede ver, y aquí no
+    hace falta guardar ninguna credencial más.
+
+    **Falla hacia fuera en silencio**: si el ecosistema no contesta, se entra
+    igual y sin club — exactamente como se entraba antes de esto. Lo que no
+    puede pasar es que el ecosistema lento impida entrar a un maestro.
+    """
+    org_id = str((claims or {}).get("org_id") or "").strip()
+    raiz = url_api_ecosistema()
+    if not org_id or not raiz or not pase:
+        return None
+
+    try:
+        peticion = Request(
+            f"{raiz}/organizations/{org_id}",
+            headers={"Authorization": f"Bearer {pase}"},
+        )
+        with urlopen(peticion, timeout=ESPERA_CLUB_SEG) as respuesta:
+            org = json.loads(respuesta.read().decode("utf-8"))
+    except (URLError, ValueError, OSError) as exc:
+        log.warning("[ecosistema] no se pudo leer el club %s: %s", org_id, exc)
+        return None
+
+    nombre = str(org.get("name") or "").strip()
+    if not nombre:
+        return None
+    return {
+        "nombre": nombre.upper(),
+        # La delegación del club, que Campeonatos usa para agrupar reportes, y
+        # que el ecosistema guarda aparte de la ciudad justamente por eso.
+        "ciudad": org.get("delegation") or org.get("city"),
+        "pais": org.get("delegationCountry") or org.get("country"),
+    }
+
+
+def resolver_espejo(claims, pase=None):
     """
     La fila de `usuarios` que corresponde a ese pase.
 
@@ -91,6 +152,7 @@ def resolver_espejo(claims):
 
     usuario = Usuario.query.filter_by(eco_sub=sub).first()
     if usuario:
+        _asegurar_club(usuario, claims, pase)
         return usuario, None
 
     usuario = Usuario.query.filter_by(email=email).first()
@@ -108,6 +170,7 @@ def resolver_espejo(claims):
             )
             return None, "correo_ocupado"
         usuario.eco_sub = sub
+        _asegurar_club(usuario, claims, pase)
         db.session.commit()
         log.info("[ecosistema] %s enlazado con su cuenta del ecosistema.", email)
         return usuario, None
@@ -127,7 +190,26 @@ def resolver_espejo(claims):
     # con contraseña, se abre con el pase. La columna es NOT NULL, así que
     # dejarla vacía no es opción — y un valor fijo sería una llave maestra.
     usuario.set_password(secrets.token_urlsafe(32))
+    _asegurar_club(usuario, claims, pase)
     db.session.add(usuario)
     db.session.commit()
     log.info("[ecosistema] espejo creado para %s (%s).", email, rol)
     return usuario, None
+
+
+def _asegurar_club(usuario, claims, pase):
+    """
+    Le pone su club al maestro que todavía no tiene ninguno.
+
+    **Solo si no tiene**: los clubes de un maestro los edita el administrador
+    desde la consola, y un maestro puede dirigir varios dojangs. Rellenar por
+    encima de eso en cada inicio de sesión borraría ese trabajo en silencio —y
+    con él la delegación, que es como se agrupan los reportes—.
+    """
+    if usuario.rol not in ROLES_CON_CLUB or usuario.clubes:
+        return
+    club = club_del_pase(claims, pase)
+    if not club:
+        return
+    usuario.clubes = [club]
+    log.info("[ecosistema] %s estrena club: %s", usuario.email, club["nombre"])

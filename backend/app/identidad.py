@@ -87,6 +87,29 @@ def hay_ecosistema():
     return bool(url_jwks())
 
 
+def url_api_ecosistema():
+    """
+    La raíz de la API del ecosistema, o cadena vacía si no hay ecosistema.
+
+    Se **deriva** del JWKS (`…/auth/jwks` → `…`) en vez de pedir otra variable:
+    son la misma máquina siempre, y una segunda variable es una segunda
+    oportunidad de que apunten a sitios distintos —o de que alguien configure
+    una y olvide la otra, que es peor porque falla a medias—.
+    `ECOSYSTEM_API_URL` existe por si algún día dejan de serlo.
+    """
+    if has_app_context():
+        propia = current_app.config.get("ECOSYSTEM_API_URL")
+    else:
+        propia = os.getenv("ECOSYSTEM_API_URL")
+    if propia:
+        return propia.rstrip("/")
+
+    jwks = url_jwks()
+    if not jwks:
+        return ""
+    return jwks.split("/auth/jwks")[0].rstrip("/")
+
+
 def _cliente_jwks(url):
     """El cliente de JWKS de esa URL, creado una sola vez."""
     with _lock:

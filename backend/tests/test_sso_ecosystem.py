@@ -8,6 +8,7 @@ operar un campeonato, y esta consola solo sabe de administrar, inscribir y
 puntuar.
 """
 
+import json
 import sys
 import time
 from pathlib import Path
@@ -18,7 +19,7 @@ import jwt  # noqa: E402
 import pytest  # noqa: E402
 from cryptography.hazmat.primitives.asymmetric import rsa  # noqa: E402
 
-from app import create_app, identidad  # noqa: E402
+from app import create_app, espejo, identidad  # noqa: E402
 from app.config import DevelopmentConfig  # noqa: E402
 from app.extensions import db  # noqa: E402
 from app.models.usuario import Usuario  # noqa: E402
@@ -27,6 +28,7 @@ DevelopmentConfig.SQLALCHEMY_DATABASE_URI = "sqlite://"
 
 LLAVE = rsa.generate_private_key(public_exponent=65537, key_size=2048)
 SUB_MAESTRO = "aa000000-0000-4000-8000-000000000001"
+ORG_DEL_PASE = "cc000000-0000-4000-8000-000000000003"
 
 
 @pytest.fixture()
@@ -57,6 +59,7 @@ def pase(rol="maestro", scopes=("campeonatos",), sub=SUB_MAESTRO, **extra):
         "exp": ahora + 1800,
         "app_scopes": list(scopes),
         "role_campeonatos": rol,
+        "org_id": ORG_DEL_PASE,
     }
     cuerpo.update(extra)
     return jwt.encode(cuerpo, LLAVE, algorithm="RS256")
@@ -218,3 +221,91 @@ def test_un_espejo_ya_enlazado_por_la_reconciliacion_entra(cliente):
     assert res.status_code == 200
     assert res.get_json()["user"]["rol"] == "admin"
     assert Usuario.query.count() == 1
+
+
+# ── El club del maestro, preguntado al ecosistema ───────────────────────────
+
+
+class _RespuestaOrg:
+    def __init__(self, datos):
+        self._datos = json.dumps(datos).encode("utf-8")
+
+    def read(self):
+        return self._datos
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+
+def _ecosistema_responde(monkeypatch, datos, registro=None):
+    def falso(peticion, timeout=None):
+        if registro is not None:
+            registro.append(peticion.full_url)
+        if isinstance(datos, Exception):
+            raise datos
+        return _RespuestaOrg(datos)
+
+    monkeypatch.setattr(espejo, "urlopen", falso)
+
+
+def test_el_maestro_nuevo_estrena_el_club_de_su_pase(cliente, monkeypatch):
+    # Sin esto, el maestro entra por SSO y la consola le dice «tu administrador
+    # aún no te asignó un club»: no puede inscribir a nadie.
+    llamadas = []
+    _ecosistema_responde(
+        monkeypatch,
+        {"name": "Dojang Sur", "delegation": "Cali", "delegationCountry": "Colombia"},
+        llamadas,
+    )
+
+    assert canjear(cliente, pase()).status_code == 200
+
+    espejo_creado = Usuario.query.filter_by(email="maestro@dinamyt.org").first()
+    assert espejo_creado.clubes == [
+        {"nombre": "DOJANG SUR", "ciudad": "Cali", "pais": "Colombia"}
+    ]
+    # Se le pregunta al ecosistema por SU organización, la del pase.
+    assert llamadas and llamadas[0].endswith("/organizations/" + ORG_DEL_PASE)
+
+
+def test_el_club_que_ya_tiene_no_se_pisa(cliente, monkeypatch):
+    # Los clubes los edita el administrador desde la consola, y un maestro
+    # puede dirigir varios. Rellenar por encima en cada login borraría eso.
+    previo = Usuario(
+        email="maestro@dinamyt.org", nombre="EL DE SIEMPRE", rol="maestro",
+        activo=True,
+    )
+    previo.set_password("x")
+    previo.clubes = [{"nombre": "DOJANG NORTE", "ciudad": "Popayán", "pais": "Colombia"}]
+    db.session.add(previo)
+    db.session.commit()
+    _ecosistema_responde(monkeypatch, {"name": "Dojang Sur"})
+
+    assert canjear(cliente, pase()).status_code == 200
+
+    assert Usuario.query.first().clubes[0]["nombre"] == "DOJANG NORTE"
+
+
+def test_si_el_ecosistema_no_contesta_se_entra_igual(cliente, monkeypatch):
+    # Falla hacia fuera en silencio: un ecosistema lento no puede impedir que
+    # un maestro entre. Se entra sin club, como se entraba hasta ayer.
+    _ecosistema_responde(monkeypatch, OSError("sin red"))
+
+    res = canjear(cliente, pase())
+
+    assert res.status_code == 200
+    assert Usuario.query.filter_by(email="maestro@dinamyt.org").first().clubes == []
+
+
+def test_al_juez_no_se_le_pregunta_por_ningun_club(cliente, monkeypatch):
+    # El juez puntúa donde lo asignen: no inscribe a nadie y su club no pinta
+    # nada. Preguntarlo sería una petición al ecosistema por cada juez que
+    # entra la mañana del campeonato.
+    llamadas = []
+    _ecosistema_responde(monkeypatch, {"name": "Dojang Sur"}, llamadas)
+
+    assert canjear(cliente, pase(rol="judge")).status_code == 200
+    assert llamadas == []
