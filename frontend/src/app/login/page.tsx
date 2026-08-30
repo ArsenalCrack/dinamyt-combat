@@ -2,12 +2,25 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { loginAPI } from "@/lib/api";
-import { guardarToken, guardarUsuario } from "@/lib/sesion";
+import { abrirSesionConToken, loginAPI } from "@/lib/api";
+import { guardarToken, guardarUsuario, limpiarSesion } from "@/lib/sesion";
 import CampoContrasena from "@/components/CampoContrasena";
 import Logo from "@/components/Logo";
 import { IDIOMAS, useI18n } from "@/lib/i18n";
 import { aplicarTema, getTema, type Tema } from "@/lib/theme";
+
+/** El portal del ecosistema, para devolver a quien no opera campeonatos. */
+const PORTAL_URL =
+  process.env.NEXT_PUBLIC_ECOSYSTEM_PORTAL_URL || "https://dinamyt.org";
+
+/** Dónde aterriza cada rol al entrar. Lo comparten el formulario y el salto
+ *  desde DINAMYT: dos copias de esto es cómo un rol acaba entrando a la
+ *  pantalla de otro. */
+function destinoDe(rol: string) {
+  if (rol === "admin") return "/admin";
+  if (rol === "maestro") return "/maestro";
+  return "/juez";
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,6 +43,53 @@ export default function LoginPage() {
     setTema(nuevo);
   }
 
+  // ── El salto desde DINAMYT ────────────────────────────────────────────────
+  //
+  // El portal manda aquí con el pase en el FRAGMENTO (`/login#token=…`), que
+  // no viaja al servidor ni queda en ningún registro. Se canjea por la cookie
+  // de sesión y se entra directo: es lo que faltaba para que «Entrar a
+  // Campeonatos» no acabara en este mismo formulario.
+  //
+  // ⚠️ El pase **no se guarda** con `guardarToken`. Ese token se manda como
+  // cabecera `Authorization` en TODAS las peticiones (ver el interceptor de
+  // `lib/api.ts`), y el pase es RS256 del ecosistema: el backend no lo sabe
+  // leer y rechazaría cada petición, con la cookie buena ya puesta. Quien
+  // autentica a partir de aquí es la cookie.
+  const [saltando, setSaltando] = useState(false);
+  const [avisoSalto, setAvisoSalto] = useState("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const pase = params.get("token");
+    if (!pase) return;
+
+    // Fuera del historial y de la barra de direcciones antes de nada: un pase
+    // en la URL se comparte por captura de pantalla sin querer.
+    window.history.replaceState(null, "", window.location.pathname);
+
+    let cancelado = false;
+    setSaltando(true);
+    abrirSesionConToken(pase)
+      .then(({ user }) => {
+        if (cancelado) return;
+        guardarUsuario(user);
+        router.replace(destinoDe(user.rol));
+      })
+      .catch((err: unknown) => {
+        if (cancelado) return;
+        limpiarSesion();
+        setSaltando(false);
+        const respuesta = (err as { response?: { data?: { error?: string } } }).response;
+        // El mensaje lo escribe el servidor porque solo él sabe cuál de los
+        // motivos fue —sin plan, sin consola, correo ocupado— y ese texto es
+        // lo único que le dice a la persona qué hacer a continuación.
+        setAvisoSalto(respuesta?.data?.error || t("login.errorConexion"));
+      });
+    return () => { cancelado = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -40,11 +100,7 @@ export default function LoginPage() {
       // guarda el token en memoria (socket y descargas) y el perfil cacheado.
       guardarToken(data.token);
       guardarUsuario(data.user);
-      router.push(
-        data.user.rol === "admin" ? "/admin"
-        : data.user.rol === "maestro" ? "/maestro"
-        : "/juez"
-      );
+      router.push(destinoDe(data.user.rol));
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { error?: string } } };
       setError(axiosErr.response?.data?.error || t("login.errorConexion"));
@@ -67,8 +123,36 @@ export default function LoginPage() {
           <p className="login-sub">Global Hapkido Association · GHA</p>
         </div>
 
+        {/* Volviendo de DINAMYT: mientras se canjea el pase no se enseña el
+            formulario, o parece que el salto no funcionó y la persona escribe
+            su contraseña encima. */}
+        {saltando && (
+          <p className="login-card-desc" style={{ textAlign: "center" }} role="status">
+            {t("comun.cargando")}
+          </p>
+        )}
+
+        {/* Y si el pase no abre esta consola —un alumno, un club sin plan—, se
+            dice por qué AQUÍ arriba, no dentro del formulario: lo que tiene
+            que hacer no es escribir una contraseña, es volver al portal. */}
+        {avisoSalto && (
+          <div
+            className="login-error animate-fade"
+            role="alert"
+            style={{ maxWidth: 560, margin: "0 auto 1rem" }}
+          >
+            {avisoSalto}{" "}
+            <a
+              href={PORTAL_URL}
+              style={{ color: "var(--gold)", textDecoration: "underline" }}
+            >
+              Volver a DINAMYT
+            </a>
+          </div>
+        )}
+
         {/* GRID: Pantalla Publica | Separator | Login */}
-        <div className="login-grid">
+        <div className="login-grid" hidden={saltando}>
 
           {/* ── PANTALLA PUBLICA ── */}
           <div className="login-card login-card-public animate-fade">

@@ -654,13 +654,23 @@ base.** El camino con el mismo resultado y una fracción del riesgo:
 |---|---|---|---|
 | **C1** Verificador JWKS | `backend/app/identidad.py` (nuevo) | `PyJWT` + `PyJWKClient` contra `ECOSYSTEM_JWKS_URL`, con caché. Dependencias: `PyJWT[crypto]`, `cryptography` | `[x]` **HECHO** (29 ago). **No es `security.py`**: ese nombre ya lo ocupa el limitador de intentos. Exige emisor `dinamyt-ecosystem` y rechaza todo token con `purpose` —los dos cierres de Membresías—, falla cerrado, y **espera 3 s al JWKS y no 30**: se descarga dentro de la petición y con un solo worker de eventlet un ecosistema caído congelaría la app entera. Sin la variable no sale a la red siquiera (modo local). 9 pruebas |
 | **C2** Guards | `app/api/scoping.py` | `usuario_actual()` lee claims y resuelve el espejo; `@requiere_scope` / `@requiere_rol` sustituyen a `@jwt_required()` | `[ ]` |
-| **C3** Espejo | `models/usuario.py`, `schema_compat.py` | `eco_sub` + alta/enlace automático. `schema_compat.py` ya es el mecanismo para añadir columnas sin migraciones | `[ ]` |
-| **C4** Retirar la emisión | `app/api/auth.py` | Fuera `login`, `register`, contraseñas. Se conservan `/me`, `/logout`, `/socket-ticket`, `/clubes`. `POST /auth/sesion` pasa a ser el canje SSO | `[ ]` |
+| **C3** Espejo | `models/usuario.py`, `schema_compat.py`, `app/espejo.py` | `eco_sub` + alta/enlace automático. `schema_compat.py` ya es el mecanismo para añadir columnas sin migraciones | `[x]` **HECHO** (30 ago). Tres caminos: ya tiene espejo → se usa; existe por correo → se ENLAZA; no existe → se crea, **y solo si el pase trae rol que opere**. Un alumno no crea fila aquí: una federación de doscientos alumnos no son doscientas filas en la consola. **El rol local manda** sobre el del pase (como Academy): el pase solo decide el rol al crear |
+| **C4** Retirar la emisión | `app/api/auth.py` | Fuera `login`, `register`, contraseñas. Se conservan `/me`, `/logout`, `/socket-ticket`, `/clubes`. `POST /auth/sesion` pasa a ser el canje SSO | `[~]` **el canje, hecho** (30 ago): `/auth/sesion` acepta las dos puertas —el pase del ecosistema y el token propio del QR— y abre la cookie de aquí, con **12 h** en vez de 72 cuando viene del pase (allá la sesión se puede revocar; esta cookie ya no depende de él). **Retirar el login propio NO se hace antes del campeonato**: es la marcha atrás del 9 de octubre y lo que sostiene el modo local |
 | **C5** Socket.IO | `sockets/combate_ns.py:477` | `decode_token` → el verificador de C1. El token sigue viajando en el `auth` del socket | `[ ]` |
-| **C6** Frontend | `lib/auth.tsx`, `app/login/page.tsx` | Leer `#token=`, canjear por cookie, quitar el formulario propio. **El acceso de jueces por QR se conserva tal cual** | `[ ]` |
+| **C6** Frontend | `lib/auth.tsx`, `app/login/page.tsx` | Leer `#token=`, canjear por cookie, quitar el formulario propio. **El acceso de jueces por QR se conserva tal cual** | `[x]` **HECHO** (30 ago) — leer y canjear. El formulario **se queda** (modo local). El pase NO se guarda con `guardarToken`: se manda como cabecera en toda petición y el backend no sabe leer RS256, así que rechazaría cada una con la cookie buena ya puesta. Quien autentica a partir del canje es la cookie |
 | **C7** Roles | varios | `admin→admin`, `juez→judge`, `maestro→coach`. `es_superadmin` se lee del token | `[ ]` |
 | **C8** Competidor ↔ persona | `models/competidor.py`, `schema_compat.py` | Columna `eco_sub` en `competidores` (nullable). **Hoy no existe ningún enlace entre un competidor y una persona**: `created_by` dice quién lo *inscribió*, no quién *es*. Sin esta columna, al terminar B3 el alumno entra con su cuenta pero el sistema sigue sin saber cuáles de esos competidores es él | `[ ]` |
 | **C9** Reclamar lo competido | ecosystem + Campeonatos | Al crear cuenta o al entrar por primera vez, buscar competidores con el mismo `documento` y sin dueño, y proponerlos: «encontramos 3 participaciones a tu nombre, ¿son tuyas?». Funciona **hacia atrás**, con lo competido hace años | `[ ]` |
+
+> **El JWKS del ecosistema no publica `kid`, y PyJWT lo necesita.** *(30 ago)*
+> `PyJWKClient` solo considera «llave de firma» la que lleva `kid`, así que con
+> este JWKS responde «no contiene ninguna llave de firma»; `jose` —lo que usa
+> Membresías— no lo necesita, y por eso allá el SSO funcionó a la primera.
+> Campeonatos lo salva usando la llave única cuando el pase no trae `kid`, y
+> **se niega si hay más de una**: sin `kid` no hay forma de saber cuál firmó.
+> **Pendiente en el ecosistema**: firmar con `kid` y publicarlo. No corre prisa
+> hoy, pero **sin eso no se pueden rotar las llaves** — el día que haya dos,
+> Campeonatos deja de entrar.
 
 > **C8 y C9 son lo que hace posible «mis campeonatos».** Se añaden a B3 porque es
 > cuando ya se está con las manos en esa parte del código; hacerlo después

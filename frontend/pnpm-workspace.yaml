@@ -1,3 +1,16 @@
+# Qué dependencias pueden ejecutar sus scripts de instalación.
+#
+# pnpm 11 los bloquea por defecto y **falla el `pnpm dev`** hasta que se
+# decide una por una (`ERR_PNPM_IGNORED_BUILDS`). Quedaron sin decidir, con el
+# texto de ejemplo que escribe `pnpm approve-builds`, así que arrancar la web
+# en una máquina nueva no funcionaba.
+#
+# · sharp — el optimizador de imágenes de Next. Sin su binario, Next cae a una
+#   implementación lenta en JS y lo avisa en cada arranque.
+# · unrs-resolver — el resolvedor nativo de importaciones de ESLint.
+#
+# Las dos son dependencias directas de herramientas que ya usamos; ninguna
+# ejecuta nada en producción.
 allowBuilds:
-  sharp: set this to true or false
-  unrs-resolver: set this to true or false
+  sharp: true
+  unrs-resolver: true
