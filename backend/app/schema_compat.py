@@ -180,9 +180,24 @@ def _ensure_usuarios_rol_width(inspector, table_names):
     db.session.commit()
 
 
+# Columnas cuyo TIPO depende del motor. `eco_sub` es `uuid` en PostgreSQL
+# porque así la creó el guion de reconciliación —con su índice único— antes de
+# que existiera este código, y dos formas distintas de la misma columna según
+# cómo naciera la base es exactamente el tipo de diferencia que se descubre en
+# producción. En SQLite (el modo local) no hay tipo `uuid`: queda VARCHAR.
+TIPOS_POR_DIALECTO = {
+    ("usuarios", "eco_sub"): {"postgresql": "uuid"},
+}
+
+
+def _tipo_de(dialecto, tabla, columna, por_defecto):
+    return TIPOS_POR_DIALECTO.get((tabla, columna), {}).get(dialecto, por_defecto)
+
+
 def ensure_optional_columns():
     """Agrega columnas nuevas cuando la base existente fue creada con una version previa."""
     inspector = inspect(db.engine)
+    dialecto = db.engine.dialect.name
     table_names = set(inspector.get_table_names())
     _ensure_usuarios_rol_width(inspector, table_names)
 
@@ -193,8 +208,9 @@ def ensure_optional_columns():
         for column_name, column_type in columns.items():
             if column_name in existing:
                 continue
+            tipo = _tipo_de(dialecto, table_name, column_name, column_type)
             db.session.execute(
-                text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+                text(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {tipo}")
             )
     db.session.commit()
 

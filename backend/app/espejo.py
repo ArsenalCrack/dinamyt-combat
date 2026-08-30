@@ -95,7 +95,11 @@ def resolver_espejo(claims):
 
     usuario = Usuario.query.filter_by(email=email).first()
     if usuario:
-        if usuario.eco_sub and usuario.eco_sub != sub:
+        # `str(...)` a los dos lados: en PostgreSQL la columna es `uuid`, y
+        # según por dónde venga la fila esto puede ser un objeto UUID. Comparar
+        # un UUID con una cadena da distinto siempre, y el resultado sería
+        # decirle «ese correo ya es de otra cuenta» a quien es él mismo.
+        if usuario.eco_sub and str(usuario.eco_sub) != sub:
             # Dos cuentas del ecosistema reclamando el mismo correo de aquí.
             # No se pisa ninguna: se para y que lo mire una persona.
             log.warning(

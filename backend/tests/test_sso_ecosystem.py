@@ -199,3 +199,22 @@ def test_en_modo_local_el_pase_del_ecosistema_no_sirve(cliente):
 
     assert res.status_code in (401, 422)
     assert Usuario.query.count() == 0
+
+
+def test_un_espejo_ya_enlazado_por_la_reconciliacion_entra(cliente):
+    # El caso de producción: el guion del 29 de agosto dejó 12 de 22 usuarios
+    # con su `eco_sub` puesto. Esa gente no se «enlaza» al entrar: ya lo está,
+    # y tiene que pasar por la primera puerta sin tocar el correo.
+    previo = Usuario(
+        email="maestro@dinamyt.org", nombre="RECONCILIADO", rol="admin",
+        activo=True, eco_sub=SUB_MAESTRO,
+    )
+    previo.set_password("x")
+    db.session.add(previo)
+    db.session.commit()
+
+    res = canjear(cliente, pase())
+
+    assert res.status_code == 200
+    assert res.get_json()["user"]["rol"] == "admin"
+    assert Usuario.query.count() == 1

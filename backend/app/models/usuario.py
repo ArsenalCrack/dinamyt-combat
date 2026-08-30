@@ -6,6 +6,8 @@ alumnos y, si el admin se lo permite, puntúa como juez) | juez (puntúa combate
 
 import os
 from datetime import datetime, timezone
+from sqlalchemy.dialects.postgresql import UUID as PgUUID
+
 from ..extensions import db
 from ..timeutil import iso_utc
 from ..uid import nuevo_uid
@@ -36,10 +38,28 @@ class Usuario(db.Model):
     # ESPEJO de esa cuenta y no en una cuenta propia (C3 del plan). Nullable
     # porque la mayoría de las filas nacieron antes de la identidad única y se
     # enlazan por correo la primera vez que su dueño entra desde el portal.
-    # Sin `unique` en la columna a propósito: en SQLite, añadir una restricción
-    # a una tabla existente obliga a reconstruirla entera, y lo que protege de
-    # duplicados es el enlace mismo (ver app/espejo.py).
-    eco_sub = db.Column(db.String(64), nullable=True, index=True)
+    #
+    # ── `uuid` en PostgreSQL, texto en SQLite, y no es un capricho ──
+    #
+    # En producción esta columna YA EXISTÍA cuando se escribió esto: la creó el
+    # guion de reconciliación del 29 de agosto —como `uuid`, con su índice
+    # único— y dejó 12 de los 22 usuarios ya enlazados. Declararla `String` a
+    # secas funcionaba para buscar (PostgreSQL convierte el literal), pero la
+    # LECTURA devolvía un objeto `UUID`, y comparar ese objeto con la cadena
+    # del pase da distinto SIEMPRE: el enlace por correo habría contestado
+    # «ese correo ya es de otra cuenta» a gente que era ella misma.
+    #
+    # Con la variante, PostgreSQL usa su tipo nativo y devuelve texto
+    # (`as_uuid=False`), y SQLite —el modo local— sigue con VARCHAR.
+    #
+    # Sin `unique` declarado aquí a propósito: en SQLite, añadir una
+    # restricción a una tabla existente obliga a reconstruirla entera. En
+    # producción el índice único ya lo puso la reconciliación.
+    eco_sub = db.Column(
+        db.String(64).with_variant(PgUUID(as_uuid=False), "postgresql"),
+        nullable=True,
+        index=True,
+    )
     nombre = db.Column(db.String(150), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     # String (no Enum de BD): en SQLite el Enum se guarda como VARCHAR sin
