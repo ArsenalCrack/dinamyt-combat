@@ -31,13 +31,16 @@ otro token firmado con esa llave y se olvide de darle su propio emisor.
 Membresías cierra exactamente igual (`lib/auth/tokens.ts`).
 """
 
+import json
 import logging
 import os
 import threading
+import time
+from urllib.request import urlopen
 
 import jwt
 from flask import current_app, has_app_context
-from jwt import PyJWKClient
+from jwt import PyJWK, PyJWKClient
 
 log = logging.getLogger(__name__)
 
@@ -63,6 +66,10 @@ DESFASE_RELOJ_SEG = 30
 # Un cliente por URL: trae dentro la caché de llaves, así que crear uno nuevo
 # en cada petición significaría descargar el JWKS en cada petición.
 _clientes = {}
+# La llave del JWKS que no trae `kid`, con su momento de descarga. Cinco
+# minutos es lo mismo que cachea `PyJWKClient` por su cuenta.
+_llave_unica = {}
+CACHE_LLAVE_SEG = 300
 _lock = threading.Lock()
 
 
@@ -95,6 +102,56 @@ def olvidar_clientes():
     caliente: sin esto, la instalación seguiría preguntando al JWKS viejo."""
     with _lock:
         _clientes.clear()
+        _llave_unica.clear()
+
+
+def _llave_del_pase(token, url):
+    """
+    La llave pública con la que verificar ese token.
+
+    ── Por qué hay dos caminos ──────────────────────────────────────────────
+    **El JWKS del ecosistema publica UNA llave y sin `kid`**, y sus pases
+    tampoco lo llevan en la cabecera. `PyJWKClient` no sabe trabajar así: para
+    él «llave de firma» es una que tenga `kid`, y con este JWKS responde «no
+    contiene ninguna llave de firma». `jose` —lo que usa Membresías— no lo
+    necesita, y por eso allá el SSO funcionó a la primera y aquí no.
+
+    Así que: si el pase trae `kid`, manda `PyJWKClient` (que es lo correcto y
+    lo que hará falta el día que se roten llaves); si no lo trae, se usa la
+    llave única del JWKS. Y **solo si es única**: dos llaves sin `kid` es
+    justamente el caso en que hay que adivinar, y aquí no se adivina.
+    """
+    try:
+        kid = jwt.get_unverified_header(token).get("kid")
+    except Exception:  # noqa: BLE001 — cabecera ilegible: no es un pase
+        kid = None
+
+    if kid:
+        return _cliente_jwks(url).get_signing_key_from_jwt(token).key
+
+    ahora = time.time()
+    with _lock:
+        guardada = _llave_unica.get(url)
+    if guardada and ahora - guardada[0] < CACHE_LLAVE_SEG:
+        return guardada[1]
+
+    with urlopen(url, timeout=ESPERA_JWKS_SEG) as respuesta:
+        datos = json.loads(respuesta.read().decode("utf-8"))
+
+    claves = [
+        k for k in datos.get("keys", [])
+        if k.get("kty") == "RSA" and k.get("use") in (None, "sig")
+    ]
+    if len(claves) != 1:
+        raise ValueError(
+            f"El JWKS trae {len(claves)} llaves RSA sin `kid`; con más de una "
+            "no hay forma de saber cuál firmó el pase."
+        )
+
+    llave = PyJWK(claves[0], algorithm="RS256").key
+    with _lock:
+        _llave_unica[url] = (ahora, llave)
+    return llave
 
 
 def verificar_pase(token):
@@ -115,10 +172,9 @@ def verificar_pase(token):
         return None
 
     try:
-        llave = _cliente_jwks(url).get_signing_key_from_jwt(token)
         claims = jwt.decode(
             token,
-            llave.key,
+            _llave_del_pase(token, url),
             algorithms=["RS256"],
             issuer=EMISOR_ECOSYSTEM,
             leeway=DESFASE_RELOJ_SEG,

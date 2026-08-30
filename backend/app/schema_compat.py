@@ -9,6 +9,8 @@ OPTIONAL_COLUMNS = {
     "usuarios": {
         # Identidad estable entre instancias (local ↔ online). Ver app/uid.py.
         "uid": "VARCHAR(32)",
+        # El `sub` de la cuenta del ecosistema (identidad unica, C3).
+        "eco_sub": "VARCHAR(64)",
         "creado_por_id": "INTEGER",
         "eliminado_at": "DATETIME",
         # Jerarquía: el superadmin ve todos los workspaces; un admin normal

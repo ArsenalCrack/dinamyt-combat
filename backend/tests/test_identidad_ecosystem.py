@@ -31,7 +31,7 @@ class _LlaveFirmante:
 
 
 class _ClienteDeMentira:
-    """Un JWKS que no viaja por la red. Cuenta cuántas veces le preguntan."""
+    """El PyJWKClient, para el camino de los pases CON `kid`."""
 
     consultas = 0
 
@@ -40,12 +40,51 @@ class _ClienteDeMentira:
         return _LlaveFirmante()
 
 
+def jwks(llaves=1, **extra):
+    """El JWKS tal y como lo publica el ecosistema: sin `kid`."""
+    base = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(LLAVE.public_key()))
+    base.update({"alg": "RS256", "use": "sig"})
+    base.update(extra)
+    return {"keys": [dict(base) for _ in range(llaves)]}
+
+
+class _Respuesta:
+    """Lo mínimo que `urlopen` devuelve y que este código usa."""
+
+    def __init__(self, datos):
+        self._datos = json.dumps(datos).encode("utf-8")
+
+    def read(self):
+        return self._datos
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+
+class _Red:
+    """Cuenta las descargas del JWKS y decide qué devuelve."""
+
+    descargas = 0
+    contenido = None
+
+    @classmethod
+    def urlopen(cls, url, timeout=None):
+        cls.descargas += 1
+        return _Respuesta(cls.contenido if cls.contenido is not None else jwks())
+
+
 @pytest.fixture(autouse=True)
 def _sin_red(monkeypatch):
-    """Ningún test toca la red, y el JWKS empieza configurado."""
+    """Ningún test sale de verdad a la red, y el JWKS empieza configurado."""
     _ClienteDeMentira.consultas = 0
+    _Red.descargas = 0
+    _Red.contenido = None
     identidad.olvidar_clientes()
     monkeypatch.setenv("ECOSYSTEM_JWKS_URL", "https://ejemplo.invalid/auth/jwks")
+    monkeypatch.setattr(identidad, "urlopen", _Red.urlopen)
     monkeypatch.setattr(identidad, "_cliente_jwks", lambda url: _ClienteDeMentira())
     yield
     identidad.olvidar_clientes()
@@ -88,7 +127,7 @@ def test_sin_jwks_no_hay_ecosistema_y_no_se_consulta_nada(monkeypatch):
     monkeypatch.setenv("ECOSYSTEM_JWKS_URL", "")
     assert identidad.hay_ecosistema() is False
     assert identidad.verificar_pase(pase()) is None
-    assert _ClienteDeMentira.consultas == 0
+    assert _Red.descargas == 0
 
 
 def test_un_enlace_de_invitacion_no_es_una_sesion():
@@ -138,10 +177,10 @@ def test_no_se_acepta_otro_algoritmo_con_la_llave_publica():
 
 
 def test_un_jwks_caido_rechaza_en_vez_de_reventar(monkeypatch):
-    def explota(url):
+    def explota(url, timeout=None):
         raise RuntimeError("no hay red")
 
-    monkeypatch.setattr(identidad, "_cliente_jwks", explota)
+    monkeypatch.setattr(identidad, "urlopen", explota)
     # Falla cerrado: no entra nadie, pero tampoco se cae la petición — el
     # login propio de Campeonatos sigue contestando.
     assert identidad.verificar_pase(pase()) is None
@@ -150,7 +189,7 @@ def test_un_jwks_caido_rechaza_en_vez_de_reventar(monkeypatch):
 def test_sin_token_no_se_pregunta_nada():
     assert identidad.verificar_pase(None) is None
     assert identidad.verificar_pase("") is None
-    assert _ClienteDeMentira.consultas == 0
+    assert _Red.descargas == 0
 
 
 def test_el_plan_decide_que_abre_no_la_firma():
@@ -160,3 +199,41 @@ def test_el_plan_decide_que_abre_no_la_firma():
     assert claims is not None
     assert identidad.abre_campeonatos(claims) is False
     assert identidad.abre_campeonatos(None) is False
+
+
+def test_el_jwks_se_descarga_una_vez_y_se_recuerda():
+    # Se verifica dentro de la petición: sin caché, cada pantalla que abre un
+    # maestro sería una descarga más contra el ecosistema.
+    assert identidad.verificar_pase(pase()) is not None
+    assert identidad.verificar_pase(pase()) is not None
+    assert _Red.descargas == 1
+
+
+def test_dos_llaves_sin_kid_no_se_adivinan():
+    # El día que se roten llaves, el JWKS traerá dos. Sin `kid` no hay forma de
+    # saber cuál firmó, y adivinar es exactamente lo que no se hace con una
+    # firma: se para y se arregla el JWKS (poniéndole `kid`).
+    _Red.contenido = jwks(llaves=2)
+    assert identidad.verificar_pase(pase()) is None
+
+
+def test_un_pase_CON_kid_va_por_el_camino_estandar():
+    # Cuando el ecosistema publique `kid` —lo que hace falta para rotar—, este
+    # es el camino que manda, y ya funciona.
+    con_kid = jwt.encode(
+        {
+            "sub": "x",
+            "email": "maestro@dinamyt.org",
+            "iss": identidad.EMISOR_ECOSYSTEM,
+            "exp": int(time.time()) + 600,
+            "app_scopes": ["campeonatos"],
+        },
+        LLAVE,
+        algorithm="RS256",
+        headers={"kid": "llave-1"},
+    )
+
+    assert identidad.verificar_pase(con_kid) is not None
+    assert _ClienteDeMentira.consultas == 1
+    # Y sin bajarse el JWKS a mano: de eso ya se encarga PyJWKClient.
+    assert _Red.descargas == 0

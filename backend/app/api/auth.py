@@ -3,7 +3,7 @@ API: Autenticación
 Endpoints: login, register, me
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import (
@@ -12,9 +12,12 @@ from flask_jwt_extended import (
     get_jwt_identity,
     set_access_cookies,
     unset_jwt_cookies,
+    verify_jwt_in_request,
 )
+from ..espejo import resolver_espejo
 from ..extensions import db
 from ..geo import pais_de_ciudad, pais_valido
+from ..identidad import abre_campeonatos, verificar_pase
 from ..models.asignacion import AsignacionJuez
 from ..models.usuario import ROLES_VALIDOS, Usuario
 from ..security import (
@@ -206,20 +209,16 @@ def login():
     return respuesta, 200
 
 
-@auth_bp.route("/sesion", methods=["POST"])
-@jwt_required()
-def abrir_sesion():
-    """
-    POST /api/auth/sesion — Canjea un token de cabecera por la cookie httpOnly.
+def _token_de_cabecera():
+    """El token del `Authorization: Bearer …`, o None."""
+    partes = (request.headers.get("Authorization") or "").split()
+    if len(partes) == 2 and partes[0].lower() == "bearer":
+        return partes[1]
+    return None
 
-    Lo usa el acceso por QR: el enlace del juez trae el token en el fragmento de
-    la URL. Antes se guardaba en localStorage; ahora se cambia aquí por la
-    cookie, y el token deja de estar al alcance de cualquier script.
-    """
-    user = usuario_actual()
-    if not user or not user.activo:
-        return jsonify({"error": "Usuario no válido"}), 401
 
+def _respuesta_con_cookie(user, horas=None):
+    """La respuesta de sesión abierta, con la cookie httpOnly puesta."""
     token = create_access_token(
         identity=str(user.id),
         additional_claims={
@@ -227,10 +226,104 @@ def abrir_sesion():
             "nombre": user.nombre,
             "email": user.email,
         },
+        expires_delta=timedelta(hours=horas) if horas else None,
     )
     respuesta = jsonify({"user": user.to_dict()})
     set_access_cookies(respuesta, token)
-    return respuesta, 200
+    return respuesta
+
+
+# Lo que dura una sesión abierta con un pase del ecosistema.
+#
+# No son las 72 h del login propio, y la diferencia importa: el pase del
+# ecosistema se puede revocar (cerrar sesión en todos lados), pero esta cookie
+# ya no depende de él. Doce horas cubren una jornada de competencia entera y
+# acotan cuánto sobrevive aquí una sesión que allá ya se cerró. El QR del juez
+# conserva las suyas: se reparte por la mañana y tiene que aguantar el fin de
+# semana sin internet.
+SESION_SSO_HORAS = 12
+
+# Qué se contesta cuando el pase es válido pero la persona no abre la consola.
+MOTIVOS_SSO = {
+    "sin_plan": (
+        "Tu club no tiene Campeonatos en su plan. Escríbele a tu maestro o "
+        "entra a DINAMYT para ver el tuyo.",
+        403,
+    ),
+    "sin_consola": (
+        "Tu cuenta de DINAMYT no administra ni juzga campeonatos. Lo tuyo "
+        "—tus inscripciones y tus resultados— se ve desde el portal.",
+        403,
+    ),
+    "correo_ocupado": (
+        "Ese correo ya está enlazado con otra cuenta de DINAMYT. Escribe a "
+        "soporte@dinamyt.org para que lo revisen.",
+        409,
+    ),
+    "pase_incompleto": ("El pase no trae los datos necesarios.", 401),
+    "desactivado": ("Tu usuario está desactivado en Campeonatos.", 403),
+}
+
+
+def _sesion_con_pase(pase):
+    """Abre la sesión de Campeonatos a partir de un pase del ecosistema."""
+    if not abre_campeonatos(pase):
+        return _error_sso("sin_plan")
+
+    user, motivo = resolver_espejo(pase)
+    if user is None:
+        return _error_sso(motivo or "pase_incompleto")
+    if not user.activo:
+        return _error_sso("desactivado")
+
+    return _respuesta_con_cookie(user, SESION_SSO_HORAS), 200
+
+
+def _error_sso(motivo):
+    texto, codigo = MOTIVOS_SSO.get(motivo, ("No se pudo abrir la sesión.", 403))
+    # `motivo` viaja aparte del texto para que el frontend pueda decidir qué
+    # ofrecer —volver al portal, avisar al maestro— sin leer el mensaje.
+    return jsonify({"error": texto, "motivo": motivo}), codigo
+
+
+@auth_bp.route("/sesion", methods=["POST"])
+def abrir_sesion():
+    """
+    POST /api/auth/sesion — Canjea un token de cabecera por la cookie httpOnly.
+
+    **Dos puertas, y esta es la que une DINAMYT con Campeonatos:**
+
+    · **El pase del ecosistema** (RS256, firmado por `ecosystem-api`). Es el
+      salto desde el portal: se verifica contra el JWKS, se resuelve el espejo
+      local y se abre sesión aquí sin pedir una segunda contraseña. Sin
+      `ECOSYSTEM_JWKS_URL` esta puerta sencillamente no existe y todo sigue
+      como antes — que es el modo local del día del campeonato.
+
+    · **El token propio** (HS256), que es el acceso por QR del juez: el enlace
+      trae el token en el fragmento de la URL y aquí se cambia por la cookie,
+      para que no se quede en localStorage al alcance de cualquier script.
+
+    Se prueba primero el pase porque es el único que se puede distinguir sin
+    ambigüedad (firma RS256 y emisor propio); si no lo es, se cae al camino de
+    siempre, que responde exactamente lo que respondía.
+
+    Sin limitador propio a propósito: los dos caminos verifican una firma antes
+    de tocar la base, y el techo global de `/api/*` ya cubre el martilleo. Un
+    límite por IP aquí castigaría a un gimnasio entero detrás de un solo router
+    el día que veinte jueces entran por QR a la vez.
+    """
+    pase = verificar_pase(_token_de_cabecera())
+    if pase:
+        return _sesion_con_pase(pase)
+
+    # Camino de siempre. `verify_jwt_in_request` responde 401/422 por su cuenta
+    # si no hay token propio válido.
+    verify_jwt_in_request()
+    user = usuario_actual()
+    if not user or not user.activo:
+        return jsonify({"error": "Usuario no válido"}), 401
+
+    return _respuesta_con_cookie(user), 200
 
 
 @auth_bp.route("/socket-ticket", methods=["POST"])

@@ -32,6 +32,14 @@ class Usuario(db.Model):
     # Identidad estable entre instancias (local ↔ online). Ver app/uid.py.
     uid = db.Column(db.String(32), nullable=True, index=True, default=nuevo_uid)
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    # El `sub` de la cuenta en el ecosistema: lo que convierte esta fila en un
+    # ESPEJO de esa cuenta y no en una cuenta propia (C3 del plan). Nullable
+    # porque la mayoría de las filas nacieron antes de la identidad única y se
+    # enlazan por correo la primera vez que su dueño entra desde el portal.
+    # Sin `unique` en la columna a propósito: en SQLite, añadir una restricción
+    # a una tabla existente obliga a reconstruirla entera, y lo que protege de
+    # duplicados es el enlace mismo (ver app/espejo.py).
+    eco_sub = db.Column(db.String(64), nullable=True, index=True)
     nombre = db.Column(db.String(150), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     # String (no Enum de BD): en SQLite el Enum se guarda como VARCHAR sin
