@@ -27,7 +27,7 @@ Cada paso lleva su marca. **Al terminar un paso, se cambia la marca aquí mismo*
 | **B1** | **Servicio de vuelta** — VPS + datos + apps tal cual | **29 ago** | `[x]` **HECHO** (20 ago) — `dinamyt.org` en un VPS propio, una sola base PostgreSQL con un esquema por app. Ocho días antes del tope |
 | **B2** | Correo | 5 sep | `[x]` **HECHO** (29 ago) — Resend enviando, Cloudflare Email Routing recibiendo (`soporte@`, `admin@`) y `_dmarc` publicado en `p=none`. **Queda subir la política**: `quarantine` a mediados de septiembre, `reject` desde el 14 de octubre, nunca durante el campeonato |
 | **B2b** | Actualizar el monorepo `dinamyt` | 5 sep | `[x]` **HECHO** (19 ago) |
-| **B3** | **Identidad única** | **19 sep** | `[~]` **en curso.** Ecosystem y Membresías, en pie: SSO por `#token=`, invitaciones, código de club, sesiones revocables (24 ago), **reconciliación aplicada** (29 ago: 0 cuentas creadas, 46 personas enlazadas) y la **herencia de plan** de §4.1 · 9 (29 ago). **Falta Campeonatos entero**: C1–C9 de §4.2 — hoy no tiene una sola línea de JWKS |
+| **B3** | **Identidad única** | **19 sep** | `[~]` **en curso, y el salto ya funciona.** Ecosystem y Membresías, en pie: SSO por `#token=`, invitaciones, código de club, sesiones revocables (24 ago), **reconciliación aplicada** (29 ago: 0 cuentas creadas, 46 personas enlazadas) y la **herencia de plan** de §4.1 · 9 (29 ago). **Campeonatos ya entra desde el portal sin segunda contraseña** (30 ago): C1 verificador, C3 espejo, C6 frontend y el canje de C4, con el `kid` arreglado en el ecosistema. **Falta**: C2 (guards), C5 (Socket.IO), C7 (roles), C8 y C9 (competidor ↔ persona, «mis campeonatos») |
 | **B3s** | Reposo y observación | 20–30 sep | `[ ]` |
 | **🔒** | **CONGELADO — campeonato del 9, 10 y 11 de octubre** | 1–13 oct | — |
 | **B4** | Fase 2: portada, planes, multi-arte, plan gratuito, academy | desde 14 oct | `[ ]` |
@@ -49,6 +49,7 @@ Cada paso lleva su marca. **Al terminar un paso, se cambia la marca aquí mismo*
 | 11 | **La organización contrata; sus clubes heredan** *(29 ago)*. Una organización (GHA Venezuela) tiene el plan de Campeonatos y **sus clubes afiliados lo reciben por herencia**. Membresías sigue siendo **plan por club**, aparte. Un **invitado** (GHA Colombia) es una suscripción de cortesía con precio 0 y fecha de fin corta. | **Hoy NO se hereda**: el cálculo de scopes une `org_members → subscriptions` por el mismo `org_id` y no mira `parent_id`. Bloque **9** de §4.1 — sin él, C4 deja fuera a los maestros afiliados. |
 | 10 | **El documento es la llave entre un competidor y una persona** *(29 ago)*. `competidores.documento` y `users.document_id` son los dos `varchar(30)` únicos. Sobre eso se construye «mis campeonatos» y la reclamación de lo competido antes de tener cuenta. | Bloques **C8** y **C9** de §4.2. Sin ellos, B3 conecta cuentas pero el sistema sigue sin saber **cuál de esos competidores eres tú**. |
 | 9 | **Durante el evento el local publica hacia arriba, y nunca descarga** *(29 ago)*. Instantánea completa cada pocos minutos, best-effort, fuera del camino de cualquier petición. | El público sigue el campeonato casi en vivo; si falla la red, solo se ve viejo. Anexo 2. |
+| 12 | **El login propio de cada app es la MARCHA ATRÁS, no se retira** *(30 ago)*. Lo que se retira es **crear cuentas**: `register`. La identidad única se cumple porque las cuentas nacen en el ecosistema y el espejo local no tiene contraseña usable — no porque la app sea incapaz de autenticar a nadie. | Corrige el bloque C4, que decía «fuera login». Sin login propio no hay modo local, y sin modo local no hay campeonato el día que falle internet. Membresías ya aplica este criterio (M5). Detalle abajo, en §4.2. |
 
 ### 0.1 Aviso de seguridad · las cadenas de conexión
 
@@ -650,27 +651,72 @@ base.** El camino con el mismo resultado y una fracción del riesgo:
 - En la primera petición con token válido, si el `sub` no está se **crea la fila
   espejo**; si el correo ya existe, se **enlaza** en vez de duplicar.
 
+#### El login propio se queda. Lo que se va es `register` *(decisión 12, 30 ago)*
+
+La pregunta era si Campeonatos debía quedarse sin login propio, como decía C4.
+**No.** Y el motivo no es la comodidad: es que ese login **es la marcha atrás
+del 9 de octubre**. Sin internet no hay ecosistema al que preguntarle nada, y
+una app que solo sabe entrar por SSO es una app que no arranca ese día.
+
+Lo que la identidad única exige de verdad son tres cosas, y **ninguna requiere
+quitar el login**:
+
+1. Que las cuentas **nazcan en un solo sitio** — el ecosistema.
+2. Que no haya **una segunda contraseña** que recordar ni recuperar.
+3. Que haya **un solo sitio donde revocar**.
+
+Las tres se cumplen ya: las filas de `usuarios` son espejos, y las que nacen del
+pase llevan una contraseña aleatoria que nadie conoce — **no se puede entrar con
+ellas por el formulario**. Quien todavía puede usar el login propio es quien ya
+tenía contraseña de antes, y esa lista solo se vacía, nunca crece.
+
+Lo que **sí** contradice la decisión 4 («las cuentas nacen en el ecosystem») es
+`POST /auth/register`: ahí es donde la consola sigue pudiendo fabricar cuentas
+con contraseña. Ese es el que se retira, y **después del campeonato**, porque en
+modo local sigue haciendo falta —el día del evento, un administrador tiene que
+poder dar de alta a un juez que llegó sin cuenta, sin internet y en el momento—.
+La forma correcta es la misma que ya usa el ecosistema para el modo local:
+**existe si no hay ecosistema configurado, y no existe si lo hay**.
+
+> Y es lo que ya hace Membresías (M5): su login propio se conserva **solo** como
+> respaldo. Tres aplicaciones con el mismo criterio es una regla que se puede
+> recordar; una excepción en una de ellas es una trampa esperando.
+
+**Lo que queda por hacer, después del 14 de octubre:**
+
+`[ ]` `register` condicionado a que NO haya `ECOSYSTEM_JWKS_URL`.
+`[ ]` Un aviso al arrancar con cuántas cuentas conservan contraseña usable: es
+      la cuenta atrás de la transición, y hoy nadie la mira.
+`[ ]` En la instancia en línea, el formulario debajo de un enlace discreto
+      («entrar sin DINAMYT»), para que la puerta normal sea inconfundible.
+
 | Bloque | Archivos | Qué | Estado |
 |---|---|---|---|
 | **C1** Verificador JWKS | `backend/app/identidad.py` (nuevo) | `PyJWT` + `PyJWKClient` contra `ECOSYSTEM_JWKS_URL`, con caché. Dependencias: `PyJWT[crypto]`, `cryptography` | `[x]` **HECHO** (29 ago). **No es `security.py`**: ese nombre ya lo ocupa el limitador de intentos. Exige emisor `dinamyt-ecosystem` y rechaza todo token con `purpose` —los dos cierres de Membresías—, falla cerrado, y **espera 3 s al JWKS y no 30**: se descarga dentro de la petición y con un solo worker de eventlet un ecosistema caído congelaría la app entera. Sin la variable no sale a la red siquiera (modo local). 9 pruebas |
 | **C2** Guards | `app/api/scoping.py` | `usuario_actual()` lee claims y resuelve el espejo; `@requiere_scope` / `@requiere_rol` sustituyen a `@jwt_required()` | `[ ]` |
 | **C3** Espejo | `models/usuario.py`, `schema_compat.py`, `app/espejo.py` | `eco_sub` + alta/enlace automático. `schema_compat.py` ya es el mecanismo para añadir columnas sin migraciones | `[x]` **HECHO** (30 ago). Tres caminos: ya tiene espejo → se usa; existe por correo → se ENLAZA; no existe → se crea, **y solo si el pase trae rol que opere**. Un alumno no crea fila aquí: una federación de doscientos alumnos no son doscientas filas en la consola. **El rol local manda** sobre el del pase (como Academy): el pase solo decide el rol al crear |
-| **C4** Retirar la emisión | `app/api/auth.py` | Fuera `login`, `register`, contraseñas. Se conservan `/me`, `/logout`, `/socket-ticket`, `/clubes`. `POST /auth/sesion` pasa a ser el canje SSO | `[~]` **el canje, hecho** (30 ago): `/auth/sesion` acepta las dos puertas —el pase del ecosistema y el token propio del QR— y abre la cookie de aquí, con **12 h** en vez de 72 cuando viene del pase (allá la sesión se puede revocar; esta cookie ya no depende de él). **Retirar el login propio NO se hace antes del campeonato**: es la marcha atrás del 9 de octubre y lo que sostiene el modo local |
+| **C4** Retirar la ~~emisión~~ **creación de cuentas** | `app/api/auth.py` | ~~Fuera `login`~~ (**ver decisión 12**: el login se queda, es la marcha atrás). Fuera **`register`** y las contraseñas nuevas. Se conservan `/me`, `/logout`, `/socket-ticket`, `/clubes`. `POST /auth/sesion` pasa a ser el canje SSO | `[~]` **el canje, hecho** (30 ago): `/auth/sesion` acepta las dos puertas —el pase del ecosistema y el token propio del QR— y abre la cookie de aquí, con **12 h** en vez de 72 cuando viene del pase (allá la sesión se puede revocar; esta cookie ya no depende de él). **Retirar el login propio NO se hace antes del campeonato**: es la marcha atrás del 9 de octubre y lo que sostiene el modo local |
 | **C5** Socket.IO | `sockets/combate_ns.py:477` | `decode_token` → el verificador de C1. El token sigue viajando en el `auth` del socket | `[ ]` |
 | **C6** Frontend | `lib/auth.tsx`, `app/login/page.tsx` | Leer `#token=`, canjear por cookie, quitar el formulario propio. **El acceso de jueces por QR se conserva tal cual** | `[x]` **HECHO** (30 ago) — leer y canjear. El formulario **se queda** (modo local). El pase NO se guarda con `guardarToken`: se manda como cabecera en toda petición y el backend no sabe leer RS256, así que rechazaría cada una con la cookie buena ya puesta. Quien autentica a partir del canje es la cookie |
 | **C7** Roles | varios | `admin→admin`, `juez→judge`, `maestro→coach`. `es_superadmin` se lee del token | `[ ]` |
 | **C8** Competidor ↔ persona | `models/competidor.py`, `schema_compat.py` | Columna `eco_sub` en `competidores` (nullable). **Hoy no existe ningún enlace entre un competidor y una persona**: `created_by` dice quién lo *inscribió*, no quién *es*. Sin esta columna, al terminar B3 el alumno entra con su cuenta pero el sistema sigue sin saber cuáles de esos competidores es él | `[ ]` |
 | **C9** Reclamar lo competido | ecosystem + Campeonatos | Al crear cuenta o al entrar por primera vez, buscar competidores con el mismo `documento` y sin dueño, y proponerlos: «encontramos 3 participaciones a tu nombre, ¿son tuyas?». Funciona **hacia atrás**, con lo competido hace años | `[ ]` |
 
-> **El JWKS del ecosistema no publica `kid`, y PyJWT lo necesita.** *(30 ago)*
-> `PyJWKClient` solo considera «llave de firma» la que lleva `kid`, así que con
-> este JWKS responde «no contiene ninguna llave de firma»; `jose` —lo que usa
-> Membresías— no lo necesita, y por eso allá el SSO funcionó a la primera.
-> Campeonatos lo salva usando la llave única cuando el pase no trae `kid`, y
-> **se niega si hay más de una**: sin `kid` no hay forma de saber cuál firmó.
-> **Pendiente en el ecosistema**: firmar con `kid` y publicarlo. No corre prisa
-> hoy, pero **sin eso no se pueden rotar las llaves** — el día que haya dos,
-> Campeonatos deja de entrar.
+> **El `kid`, y por qué el SSO de Membresías funcionó a la primera y este no.**
+> *(30 ago, cerrado en los dos lados)* `PyJWKClient` solo considera «llave de
+> firma» la que lleva `kid`; el JWKS del ecosistema publicaba **una sola llave
+> sin `kid`**, así que Campeonatos rechazaba todos los pases con «el JWKS no
+> contiene ninguna llave de firma» — un mensaje que no nombra el `kid` por
+> ninguna parte. `jose` (Membresías) se apaña con una llave única, y de ahí la
+> diferencia.
+>
+> **Arreglado donde tocaba**: el ecosistema firma con `kid` y lo publica, y usa
+> la huella RFC 7638 de la propia llave, de modo que dos llaves distintas nunca
+> comparten nombre y nadie tiene que acordarse de cambiarlo. Con eso **ya se
+> pueden rotar llaves**: publicar las dos, firmar con la nueva, retirar la
+> vieja. Campeonatos, además, conserva el camino de la llave única para los
+> pases sin `kid` —los que ya estaban firmados cuando se desplegó— y **se niega
+> si hay más de una sin `kid`**: ahí no se adivina.
 
 > **C8 y C9 son lo que hace posible «mis campeonatos».** Se añaden a B3 porque es
 > cuando ya se está con las manos en esa parte del código; hacerlo después
@@ -985,7 +1031,7 @@ ago 19 ─────── ago 29 ─── sep 5 ─── sep 19 ───�
 | **B1** | Comprar dominio y VPS · **pedir SES** · arreglos previos (§1.5) · Postgres · restaurar las tres bases · levantar las apps **tal cual, con sus logins actuales** · DNS | **29 ago** | Medio | `[x]` **HECHO** (20 ago) |
 | **B2** | Correo: verificar dominio, plantillas, prueba a Gmail y Outlook con `SPF: PASS` y `DKIM: PASS` | 5 sep | Bajo | `[x]` **HECHO** (29 ago) — falta subir la política DMARC |
 | **B2b** | Actualizar el monorepo (§6) | 5 sep | Nulo | `[x]` **HECHO** (19 ago) |
-| **B3** | Identidad única (§4): ecosystem-api → Membresías (poco) → Campeonatos (mucho) → reconciliación (§2.4) → aviso a la gente | **19 sep** | **Alto** | `[~]` ecosystem-api y Membresías hechos, reconciliación aplicada (29 ago). **Queda Campeonatos**, que es el 80 % del bloque |
+| **B3** | Identidad única (§4): ecosystem-api → Membresías (poco) → Campeonatos (mucho) → reconciliación (§2.4) → aviso a la gente | **19 sep** | **Alto** | `[~]` ecosystem-api y Membresías hechos, reconciliación aplicada (29 ago). De Campeonatos: **entrar desde el portal ya funciona** (30 ago). Quedan los guards, el socket, los roles y «mis campeonatos» |
 | **B3s** | Reposo: 10 días con todo el mundo usándolo antes de la congelación | 20–30 sep | — | `[ ]` |
 | **🔒** | **CONGELADO.** Ni un despliegue. Snapshot del VPS el día 8 | 1–13 oct | — | — |
 | **B4** | Fase 2 (§10) | desde 14 oct | — | `[ ]` |
