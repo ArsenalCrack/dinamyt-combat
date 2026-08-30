@@ -75,11 +75,26 @@ ESPERA_CLUB_SEG = 2
 ROLES_CON_CLUB = ("maestro",)
 
 
+def es_super(claims):
+    """`True` si el pase es de un super-administrador del ecosistema.
+
+    Manda sobre el plan y sobre el rol —quien administra la plataforma no
+    pertenece a ningún club y su pase no trae scopes—, pero **no concede
+    `es_superadmin` aquí**: el espejo nace como `admin` y el mando de esta app
+    se sigue dando a mano, mirando (regla §1.5 de OPERAR).
+    """
+    return bool((claims or {}).get("is_super_admin"))
+
+
 def rol_operativo(claims):
     """El rol que tendría en Campeonatos, o `None` si no opera nada."""
     if not claims:
         return None
-    return ROL_DESDE_ECOSISTEMA.get((claims.get("role_campeonatos") or "").strip())
+    propio = ROL_DESDE_ECOSISTEMA.get((claims.get("role_campeonatos") or "").strip())
+    if propio:
+        return propio
+    # El super-admin entra a administrar aunque no sea miembro de ningún club.
+    return "admin" if es_super(claims) else None
 
 
 def club_del_pase(claims, pase):

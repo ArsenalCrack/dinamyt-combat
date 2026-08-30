@@ -79,11 +79,28 @@ export default function LoginPage() {
       .catch((err: unknown) => {
         if (cancelado) return;
         limpiarSesion();
+        const respuesta = (
+          err as { response?: { data?: { error?: string; motivo?: string } } }
+        ).response;
+
+        // ── Si el pase es válido pero esta consola no es para esa persona,
+        //    se la DEVUELVE al portal, no se la deja aquí ──
+        //
+        // Dejarla en este formulario es dejarla delante de una puerta que ya
+        // sabemos que no va a abrir: no tiene contraseña de aquí, y aunque la
+        // tuviera no hay nada dentro para ella. Lo suyo —sus inscripciones,
+        // sus resultados— vive en DINAMYT, así que allá vuelve, con el motivo
+        // para que el portal se lo explique en su idioma y en su sitio.
+        if (respuesta?.data?.motivo) {
+          window.location.replace(
+            `${PORTAL_URL}/dashboard?campeonatos=${encodeURIComponent(respuesta.data.motivo)}`,
+          );
+          return;
+        }
+
+        // Sin motivo es que no hubo respuesta: el servidor no contestó. Ahí sí
+        // se queda aquí, porque el formulario propio puede ser la salida.
         setSaltando(false);
-        const respuesta = (err as { response?: { data?: { error?: string } } }).response;
-        // El mensaje lo escribe el servidor porque solo él sabe cuál de los
-        // motivos fue —sin plan, sin consola, correo ocupado— y ese texto es
-        // lo único que le dice a la persona qué hacer a continuación.
         setAvisoSalto(respuesta?.data?.error || t("login.errorConexion"));
       });
     return () => { cancelado = true; };

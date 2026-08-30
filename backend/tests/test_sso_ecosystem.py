@@ -309,3 +309,17 @@ def test_al_juez_no_se_le_pregunta_por_ningun_club(cliente, monkeypatch):
 
     assert canjear(cliente, pase(rol="judge")).status_code == 200
     assert llamadas == []
+
+
+def test_el_super_admin_entra_sin_club_y_sin_plan(cliente):
+    # Quien administra la plataforma no pertenece a ningún club, así que su
+    # pase no trae `app_scopes` ni rol de campeonatos. Exigírselos lo dejaba
+    # fuera de su propia plataforma — con el mensaje «tu club no tiene
+    # Campeonatos en su plan», que además no significa nada para él.
+    res = canjear(cliente, pase(rol=None, scopes=(), is_super_admin=True))
+
+    assert res.status_code == 200, res.get_json()
+    creado = Usuario.query.filter_by(email="maestro@dinamyt.org").first()
+    assert creado.rol == "admin"
+    # Pero NO se le concede el mando de esta app: eso se da a mano, mirando.
+    assert bool(creado.es_superadmin) is False

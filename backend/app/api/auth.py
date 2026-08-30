@@ -14,7 +14,7 @@ from flask_jwt_extended import (
     unset_jwt_cookies,
     verify_jwt_in_request,
 )
-from ..espejo import resolver_espejo
+from ..espejo import es_super, resolver_espejo
 from ..extensions import db
 from ..geo import pais_de_ciudad, pais_valido
 from ..identidad import abre_campeonatos, verificar_pase
@@ -267,7 +267,11 @@ MOTIVOS_SSO = {
 
 def _sesion_con_pase(pase):
     """Abre la sesión de Campeonatos a partir de un pase del ecosistema."""
-    if not abre_campeonatos(pase):
+    # El super-admin del ecosistema no pertenece a ningún club, así que su pase
+    # no trae `app_scopes`: exigirle el plan lo dejaba fuera de su propia
+    # plataforma. Es la misma excepción que ya hace el portal para enseñarle el
+    # botón.
+    if not abre_campeonatos(pase) and not es_super(pase):
         return _error_sso("sin_plan")
 
     user, motivo = resolver_espejo(pase, _token_de_cabecera())
