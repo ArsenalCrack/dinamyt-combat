@@ -140,6 +140,31 @@ def test_logout_borra_la_cookie_y_corta_el_acceso(cliente):
     assert cliente.get("/api/auth/me").status_code == 401
 
 
+def test_logout_dice_si_hay_portal_que_cerrar(cliente):
+    """
+    La respuesta del logout lleva `portal`, y el botón de Salir depende de eso.
+
+    Es lo que decide si se pasa por `PORTAL/salir` antes de aterrizar. Vivía en
+    el navegador —una marca del `localStorage`— y ahí se perdía sola: sin ella
+    la sesión de DINAMYT quedaba viva y el siguiente «Entrar a Campeonatos»
+    metía a la persona dentro sin enseñar una pantalla. Ver §5.12 de OPERAR.
+
+    Quien lo sabe es el servidor: es la misma variable que habilita el pase.
+    """
+    entrar(cliente)
+    csrf = cliente.get_cookie("csrf_access_token")
+
+    # Modo local: no hay ecosistema, así que no hay segunda sesión que cerrar.
+    res = cliente.post("/api/auth/logout", headers={"X-CSRF-TOKEN": csrf.value})
+    assert res.get_json()["portal"] is False
+
+    # Federado: se pasa por el portal. La variable se lee de la config de la
+    # app —no del entorno— cuando hay contexto, que es como corre en el VPS.
+    cliente.application.config["ECOSYSTEM_JWKS_URL"] = "http://127.0.0.1:3001/auth/jwks"
+    res = cliente.post("/api/auth/logout")
+    assert res.get_json()["portal"] is True
+
+
 def test_socket_ticket_requiere_sesion_y_devuelve_un_token(cliente):
     assert cliente.post("/api/auth/socket-ticket").status_code == 401
 

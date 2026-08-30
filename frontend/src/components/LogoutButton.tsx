@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { logoutAPI } from "@/lib/api";
+import { PORTAL_URL, urlDeSalida, urlSalirDelPortal } from "@/lib/portal";
 
 /**
  * Botón de cerrar sesión con confirmación.
@@ -15,7 +15,6 @@ import { logoutAPI } from "@/lib/api";
  * - Estado de carga mientras se cierra la sesión.
  */
 export default function LogoutButton({ label }: { label?: string }) {
-  const router = useRouter();
   const { t } = useI18n();
   const [confirming, setConfirming] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -31,12 +30,40 @@ export default function LogoutButton({ label }: { label?: string }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [confirming]);
 
+  /**
+   * Salir de verdad, de una sola pulsación, y de las DOS sesiones.
+   *
+   * ── Por qué hay que pasar por el portal ──
+   *
+   * Quien entra desde DINAMYT (§4.13) tiene dos sesiones: la cookie de aquí y
+   * la del portal, que vive en su dominio y que ningún navegador deja tocar
+   * desde fuera. Cerrando solo la de aquí, el portal seguía reconociendo a la
+   * persona: volvía al dashboard, pulsaba «Entrar a Campeonatos» y estaba
+   * dentro otra vez sin ver una sola pantalla. Es exactamente como se ve un
+   * botón de salir roto, aunque el de aquí hubiera hecho su trabajo.
+   *
+   * ── Quién decide si hay portal ──
+   *
+   * El **servidor**, en la respuesta del logout. Membresías lo decidía con una
+   * marca del `localStorage` y ahí estaba su bug de las dos pulsaciones
+   * (§5.12): la marca se perdía sola y nadie se enteraba. Aquí no hay marca
+   * que perder. Si el servidor no contestó se pasa igual —de más solo cuesta
+   * una redirección; de menos deja media sesión abierta—.
+   *
+   * ── Por qué se sale con `location` y no con el router ──
+   *
+   * Es una salida, no una navegación: se quiere una página nueva de cero, sin
+   * un solo componente del panel vivo detrás. Y de paso no depende de que el
+   * router esté sano, que es justo lo que más falla con el disfraz de «pulso
+   * Salir y no pasa nada».
+   */
   async function handleLogout() {
     setLoggingOut(true);
     // La cookie de sesión es httpOnly: solo el backend puede borrarla, así
     // que limpiar aquí a secas dejaría la sesión viva en el servidor.
-    await logoutAPI();
-    router.replace("/login");
+    const salida = await logoutAPI();
+    const hayPortal = (salida.portal ?? true) && Boolean(PORTAL_URL);
+    window.location.href = hayPortal ? urlSalirDelPortal() : urlDeSalida(false);
   }
 
   return (

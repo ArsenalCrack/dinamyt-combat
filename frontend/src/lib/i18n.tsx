@@ -65,6 +65,10 @@ const es = {
   "login.entrar": "Iniciar Sesion",
   "login.verificando": "Verificando...",
   "login.errorConexion": "Error de conexion con el servidor",
+  // Se aterriza aquí viniendo de «Salir». La frase dice de CUÁNTAS sesiones se
+  // salió: en el modo local no hay ningún DINAMYT que cerrar.
+  "login.sesionCerrada": "Cerraste tu sesión.",
+  "login.sesionCerradaDinamyt": "Cerraste tu sesión de Campeonatos y la de DINAMYT.",
   "login.footer": "DINAMYT v4.0 · Global Hapkido ASSOCIATION · Competencias en tiempo real",
 
   // Panel del juez
@@ -1282,6 +1286,8 @@ const en: Record<ClaveTexto, string> = {
   "login.entrar": "Sign In",
   "login.verificando": "Verifying...",
   "login.errorConexion": "Could not connect to the server",
+  "login.sesionCerrada": "You have been signed out.",
+  "login.sesionCerradaDinamyt": "You have been signed out of Championships and DINAMYT.",
   "login.footer": "DINAMYT v4.0 · Global Hapkido ASSOCIATION · Real-time competitions",
 
   "juez.bienvenido": "Welcome,",

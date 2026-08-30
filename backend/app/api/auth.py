@@ -17,7 +17,7 @@ from flask_jwt_extended import (
 from ..espejo import es_super, resolver_espejo
 from ..extensions import db
 from ..geo import pais_de_ciudad, pais_valido
-from ..identidad import abre_campeonatos, verificar_pase
+from ..identidad import abre_campeonatos, hay_ecosistema, verificar_pase
 from ..models.asignacion import AsignacionJuez
 from ..models.usuario import ROLES_VALIDOS, Usuario
 from ..security import (
@@ -372,8 +372,21 @@ def logout():
     Sin @jwt_required a propósito: si la cookie ya caducó, cerrar sesión tiene
     que funcionar igual. Exigir un token válido para poder salir deja al usuario
     atrapado con una sesión rota que no puede ni cerrar.
+
+    ── Por qué la respuesta lleva `portal` ──────────────────────────────────
+
+    Quien salta desde DINAMYT (§4.13) tiene DOS sesiones: esta cookie y la del
+    portal, que vive en otro dominio y solo se cierra pasando por él. Cerrando
+    solo la de aquí, el portal sigue reconociendo a la persona y el siguiente
+    «Entrar a Campeonatos» la mete dentro sin enseñarle una sola pantalla — que
+    por fuera se ve exactamente como si salir no funcionara.
+
+    Quién sabe si hay portal es el **servidor**, no el navegador: es la misma
+    variable que habilita el pase (`ECOSYSTEM_JWKS_URL`). Guardarlo en el
+    navegador es lo que le costó dos pulsaciones a Membresías (§5.12): una
+    marca del `localStorage` se pierde sola y no había forma de notarlo.
     """
-    respuesta = jsonify({"ok": True})
+    respuesta = jsonify({"ok": True, "portal": hay_ecosistema()})
     unset_jwt_cookies(respuesta)
     return respuesta, 200
 

@@ -144,15 +144,43 @@ export async function loginAPI(email: string, password: string) {
   return res.data as { token: string; user: UserData };
 }
 
-/** Cierra la sesión en el servidor: la cookie httpOnly solo la borra él. */
-export async function logoutAPI() {
+/** Lo que se sabe después de intentar salir. Lo lee el botón de Salir. */
+export interface Salida {
+  /**
+   * Si el servidor confirmó el cierre. En `false` la cookie httpOnly PUEDE
+   * seguir viva —solo el servidor puede borrarla—, así que quien llame tiene
+   * que contar con que la sesión no está cerrada del todo.
+   */
+  confirmada: boolean;
+  /**
+   * Si esta instalación habla con el ecosistema y por tanto hay una segunda
+   * sesión que cerrar (la del portal). `null` cuando el servidor no contestó.
+   */
+  portal: boolean | null;
+}
+
+/**
+ * Cierra la sesión en el servidor: la cookie httpOnly solo la borra él.
+ *
+ * **El fallo ya no se traga en silencio.** Antes, si la llamada no salía —el
+ * backend reiniciándose, un 503 de mantenimiento, un corte de red— esto
+ * limpiaba lo local y devolvía como si todo hubiera ido bien. La cookie seguía
+ * valiendo, así que la persona salía a una pantalla que ya no era la suya con
+ * la sesión intacta detrás. Ahora se devuelve lo que de verdad pasó, y
+ * `/login?salida=…` remata el cierre si hizo falta.
+ */
+export async function logoutAPI(): Promise<Salida> {
+  let salida: Salida = { confirmada: false, portal: null };
   try {
-    await api.post("/auth/logout");
+    const res = await api.post("/auth/logout");
+    const data = res.data as { ok?: boolean; portal?: boolean };
+    salida = { confirmada: true, portal: data?.portal ?? null };
   } catch {
-    // Si el backend no responde, la sesión local se limpia igual: dejar al
-    // usuario "dentro" porque falló la red sería peor.
+    // La sesión local se limpia igual: dejar a alguien "dentro" porque falló
+    // la red sería peor. Lo que NO se hace es dar el cierre por bueno.
   }
   limpiarSesion();
+  return salida;
 }
 
 /** Token corto para abrir el Socket.IO (ver hooks/useSocketTicket). */
