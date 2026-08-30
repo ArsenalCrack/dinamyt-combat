@@ -57,6 +57,15 @@ SCOPE_CAMPEONATOS = "campeonatos"
 # corre con un solo worker de eventlet, así que un ecosistema caído no daría
 # errores sueltos — congelaría la app entera 30 s por petición. Tres segundos
 # fallan rápido y dejan el login propio respondiendo.
+#
+# ⚠️ **Este tope NO acota la resolución del nombre.** Bajo eventlet, que
+# sustituye el DNS de Python por el suyo, un nombre que no resuelve tarda ~10 s
+# en rendirse pase lo que pase aquí — medido en el VPS el 30 de agosto, con la
+# máquina resolviendo ese mismo nombre en 9 ms desde `curl`. Por eso en
+# producción `ECOSYSTEM_JWKS_URL` apunta al origen LOCAL del ecosistema
+# (`http://127.0.0.1:3001/auth/jwks`): sin nombre que resolver no hay nada que
+# se cuelgue, y de paso se ahorra el TLS y el rodeo por Cloudflare para pedir
+# una llave pública a un servicio que corre en la misma máquina.
 ESPERA_JWKS_SEG = 3
 
 # Margen de reloj. Dos máquinas distintas nunca van al segundo, y un pase de
