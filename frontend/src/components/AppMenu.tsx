@@ -221,6 +221,15 @@ export default function AppMenu() {
             {t("menu.ecosistema")}
           </a>
 
+          {/* ── Por qué esta separación ──
+              «Ir a DINAMYT» y «Salir» hacen lo mismo desde lejos —los dos te
+              sacan de esta app— pero uno te lleva a tu portal y el otro te
+              cierra la sesión, y equivocarse cuesta volver a escribir la
+              contraseña. Pegados, al pasar el ratón los dos fondos se tocaban y
+              parecían un solo bloque; el de arriba además ES un `<a>` con
+              `:hover` propio. Ocho píxeles no son decoración: son el margen de
+              un dedo en un teléfono. */}
+          <div style={{ height: 8 }} />
           <LogoutButton />
         </div>
       )}

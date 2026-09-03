@@ -8,8 +8,11 @@ porque aquí el servidor está siempre presente en la red.
 - **Frontend** (lo que ve la gente): `http://IP-DEL-PC:3000`
 - **Backend** (API + tiempo real): `http://IP-DEL-PC:5000`
 - **Base de datos:** SQLite local, en `backend/instance/`. Se crea sola.
-- **Usuario admin inicial:** `admin@dinamyt.com` / `Dinamyt2026*`
-  (cámbialo en `backend/.env` antes del evento).
+- **Usuario admin inicial:** lo que pongas en `backend/.env` — `ADMIN_EMAIL`
+  (por defecto `admin@dinamyt.org`) y `ADMIN_PASSWORD`, que **no tiene valor por
+  defecto a propósito**: sin ella el seed no crea el admin y no puedes entrar.
+  Pásale 12 caracteres o más. **Ponlas antes del primer arranque**, que es
+  cuando se crea.
 
 ---
 
