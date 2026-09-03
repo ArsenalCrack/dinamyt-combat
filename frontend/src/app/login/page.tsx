@@ -8,6 +8,7 @@ import CampoContrasena from "@/components/CampoContrasena";
 import Logo from "@/components/Logo";
 import { IDIOMAS, useI18n } from "@/lib/i18n";
 import { PORTAL_URL } from "@/lib/portal";
+import { LIM } from "@/lib/limites";
 import { aplicarTema, getTema, type Tema } from "@/lib/theme";
 
 /** Dónde aterriza cada rol al entrar. Lo comparten el formulario y el salto
@@ -322,6 +323,7 @@ export default function LoginPage() {
                 <input
                   type="email"
                   className="input"
+                  maxLength={LIM.correo}
                   placeholder="juez@dinamyt.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}

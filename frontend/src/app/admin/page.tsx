@@ -28,6 +28,7 @@ import PaisCiudadSelect from "@/components/PaisCiudadSelect";
 import { useI18n, type ClaveTexto } from "@/lib/i18n";
 import { enMayusculas } from "@/lib/texto";
 import { aviso } from "@/lib/toast";
+import { LIM } from "@/lib/limites";
 
 /**
  * Los dojangs de un maestro, con respaldo en los campos sueltos.
@@ -485,9 +486,9 @@ export default function AdminPage() {
               <form onSubmit={handleCreateCamp} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {/* Nombre y sede en mayúsculas (así se guardan); la
                     descripción no: ahí cabe una frase, no un dato. */}
-                <input className="input" placeholder={t("admin.camp.nombre")} value={newCamp.nombre}
+                <input className="input" maxLength={LIM.titulo} placeholder={t("admin.camp.nombre")} value={newCamp.nombre}
                   onChange={(e) => setNewCamp({ ...newCamp, nombre: enMayusculas(e.target.value) })} required />
-                <input className="input" placeholder={t("admin.camp.desc")} value={newCamp.descripcion}
+                <input className="input" maxLength={LIM.descripcion} placeholder={t("admin.camp.desc")} value={newCamp.descripcion}
                   onChange={(e) => setNewCamp({ ...newCamp, descripcion: e.target.value })} />
                 {/* <div> y no <label>: el disparador de <CampoFecha> es un
                     botón, y un <label> que lo envuelva le reenvía el clic
@@ -658,9 +659,9 @@ export default function AdminPage() {
               <form onSubmit={handleCreateUser} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                 {/* Nombre y club en MAYÚSCULAS mientras se escriben: así se
                     guardan (ver lib/texto.ts y el backend). */}
-                <input className="input" placeholder={t("admin.usuarios.nombre")} value={newUser.nombre}
+                <input className="input" maxLength={LIM.nombrePersona} placeholder={t("admin.usuarios.nombre")} value={newUser.nombre}
                   onChange={(e) => setNewUser({ ...newUser, nombre: enMayusculas(e.target.value) })} required />
-                <input className="input" type="email" placeholder={t("admin.usuarios.correo")} value={newUser.email}
+                <input className="input" type="email" maxLength={LIM.correo} placeholder={t("admin.usuarios.correo")} value={newUser.email}
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} required />
                 <CampoContrasena placeholder={t("admin.usuarios.contrasena")} value={newUser.password}
                   autoComplete="new-password"
@@ -821,9 +822,9 @@ export default function AdminPage() {
                     marginTop: 6, borderColor: "var(--gold-border)",
                   }}>
                     <div className="card-title">{t("admin.usuarios.editarA", { nombre: u.nombre })}</div>
-                    <input className="input" placeholder={t("admin.usuarios.nombre")} value={editUserData.nombre}
+                    <input className="input" maxLength={LIM.nombrePersona} placeholder={t("admin.usuarios.nombre")} value={editUserData.nombre}
                       onChange={(e) => setEditUserData({ ...editUserData, nombre: enMayusculas(e.target.value) })} />
-                    <input className="input" type="email" placeholder={t("admin.usuarios.correo")} value={editUserData.email}
+                    <input className="input" type="email" maxLength={LIM.correo} placeholder={t("admin.usuarios.correo")} value={editUserData.email}
                       onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })} />
                     <CampoContrasena autoComplete="new-password"
                       placeholder={t("admin.usuarios.nuevaContrasena")}

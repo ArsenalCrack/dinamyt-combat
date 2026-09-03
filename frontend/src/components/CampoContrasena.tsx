@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { LIM } from "@/lib/limites";
 
 /**
  * Campo de contraseña con el "ojo" para verla.
@@ -80,6 +81,10 @@ export default function CampoContrasena({
   verInicial = false,
   className = "input",
   style,
+  // El tope viene de fábrica: son los 72 bytes que mira bcrypt, y lo que se
+  // escriba de ahí en adelante no forma parte de la contraseña. Dejarlo teclear
+  // es enseñar una seguridad que no existe.
+  maxLength = LIM.password,
   ...props
 }: Props) {
   const { t } = useI18n();
@@ -91,6 +96,7 @@ export default function CampoContrasena({
     <span className="campo-pass" style={estiloEnvoltorio}>
       <input
         {...props}
+        maxLength={maxLength}
         type={ver ? "text" : "password"}
         className={className}
         style={{ ...estiloCampo, margin: 0, paddingRight: 46 }}
