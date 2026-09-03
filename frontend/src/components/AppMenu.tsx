@@ -3,8 +3,39 @@
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
+import { PORTAL_URL } from "@/lib/portal";
 import { aplicarTema, getTema, type Tema } from "@/lib/theme";
 import { IDIOMAS, useI18n } from "@/lib/i18n";
+
+/**
+ * La cuadrícula de aplicaciones, dibujada y no escrita.
+ *
+ * Por lo mismo que el icono de salir: los símbolos técnicos que parecen
+ * iconos (⇱, ⊞, ⏻) no están en las fuentes de Android y salen como el
+ * cuadrito de «glifo que no tengo». Un SVG se ve igual en todos lados y
+ * hereda el color del texto.
+ *
+ * Es el MISMO dibujo en Campeonatos, Membresías y Academy: la puerta al
+ * ecosistema se reconoce por su forma antes que por su texto.
+ */
+function IconoEcosistema() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden="true"
+      focusable="false"
+      style={{ flexShrink: 0 }}
+    >
+      <rect x="3" y="3" width="7.5" height="7.5" rx="2" />
+      <rect x="13.5" y="3" width="7.5" height="7.5" rx="2" />
+      <rect x="3" y="13.5" width="7.5" height="7.5" rx="2" />
+      <rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2" />
+    </svg>
+  );
+}
 
 interface SesionUser {
   nombre?: string;
@@ -156,6 +187,40 @@ export default function AppMenu() {
             </div>
           </div>
           <div className="appmenu-sep" />
+
+          {/**
+            * La puerta de vuelta al ecosistema.
+            *
+            * ── El agujero que tapa ──
+            *
+            * Desde DINAMYT se entra aquí con un botón, pero de aquí no se
+            * volvía: al portal solo se llegaba por el enlace del aviso de
+            * «este pase no abre esta consola» o cerrando sesión. Salir de una
+            * app no puede ser la forma de llegar a la de al lado.
+            *
+            * ── Por qué NO lleva `?redirect=` ──
+            *
+            * Porque ir a DINAMYT significa ir a DINAMYT. Ese parámetro le dice
+            * al portal «cuando acabes, devuélvelo aquí», y es justo el que se
+            * quedaba pegado en el historial del navegador y acababa metiendo
+            * en la app equivocada a quien quería el portal. El destino es el
+            * dashboard, y punto.
+            *
+            * ── Por qué aquí abajo ──
+            *
+            * Junto a «Salir» están las dos cosas que te sacan de esta app. El
+            * resto del menú son pantallas de aquí dentro.
+            */}
+          <a
+            href={`${PORTAL_URL}/dashboard`}
+            role="menuitem"
+            className="appmenu-item"
+            title={t("menu.ecosistemaTitulo")}
+          >
+            <IconoEcosistema />
+            {t("menu.ecosistema")}
+          </a>
+
           <LogoutButton />
         </div>
       )}

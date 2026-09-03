@@ -963,6 +963,11 @@ body.has-appmenu {
   cursor: pointer;
 }
 
+/* Un `<a>` dentro del menú (la puerta al ecosistema) es un enlace de verdad
+   —cruza de dominio—, y sin esto llegaría subrayado: el resto de las filas son
+   botones y no lo están. */
+.appmenu-item { text-decoration: none; }
+
 .appmenu-item:hover,
 .appmenu-item:focus-visible {
   background: var(--bg-hover);
