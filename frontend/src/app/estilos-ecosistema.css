@@ -62,6 +62,13 @@
   --bg-card: #15151f;
   --bg-elevated: #1d1d2a;
   --bg-input: #0a0a11;
+  /* El fondo de la BARRA de arriba, que es su propio token y no `--bg-card`.
+     Va translúcida (lleva `backdrop-filter` detrás), así que necesita un valor
+     con alfa, y ése no se puede derivar de un hex en CSS sin `color-mix`.
+     Existir aparte es además lo que impide que se vuelva a escribir a mano:
+     estaba puesto en línea como `rgba(14,14,21,0.85)` en la portada del portal
+     y por eso la barra se quedaba NEGRA con el modo claro puesto. */
+  --bg-barra: rgba(14, 14, 21, 0.86);
 
   /* ── Trazos ── */
   --border: #262635;
@@ -71,31 +78,70 @@
   --text: #f3f1e8;
   --text-muted: #a19db8;
 
-  /* ── El oro de la marca ── */
+  /* ── El oro de la marca, QUE SON TRES Y NO UNO ──
+     En oscuro los tres valen lo mismo; existen por el modo claro, donde el oro
+     vivo sobre blanco es ilegible y hay que moverlo de sitio en vez de
+     apagarlo. Que los tres nombres existan también aquí es lo que permite
+     escribir la pantalla UNA vez y que se vea bien en los dos temas.
+
+       · `--gold`         la LETRA pequeña (antetítulos, enlaces, insignias).
+       · `--gold-grande`  la letra GRANDE (≥24 px en negrita): titulares y
+                          números de marcador. WCAG le pide 3:1 en vez de
+                          4.5:1, así que aquí cabe un oro de verdad.
+       · `--gold-fill`    el RELLENO, cuando el oro es el fondo y encima va
+                          texto oscuro (el botón del login). */
   --gold: #f0b800;
+  --gold-grande: #f0b800;
   --gold-dim: #c99a00;
   --gold-soft: rgba(240, 184, 0, 0.12);
-  /* El oro de RELLENO, para cuando el oro es el fondo y no la letra (el botón
-     del login). En oscuro es el mismo; en claro NO puede serlo, y ese es el
-     motivo de que exista — ver el bloque del modo claro. */
   --gold-fill: #f0b800;
 
   /* La acción del día a día. El oro se reserva para MARCA —acentos, insignias
      y el botón del login—, que es lo que le devuelve el peso: un oro que sale
      en cada botón deja de decir nada.
-     
-     ⚠️ Era `#1f8f63` con texto `#eafff4`, y eso daba **3.89:1** — por debajo
-     del 4.5:1 de WCAG AA, en el botón que más se usa y en el tema que más se
-     ve. Nadie lo había medido. Ahora es el mismo esquema que el botón de
-     marca: relleno VIVO y texto oscuro encima, que da 5.97:1 y además se ve
-     mucho menos apagado. Mismo tono de jade (hue 157°), otra luminosidad. */
-  --accion: #22b87e;
-  --accion-texto: #0b2b1e;
 
-  /* ── Estados ── */
+     ── Por qué el texto es BLANCO, y por qué el verde bajó de luminosidad ──
+
+     Un botón de acción con letra oscura encima se lee como una pastilla de
+     color, no como un botón: es el patrón del «chip» y del aviso, no el del
+     control que se pulsa. Y aquí convivía con `.btn-cta` (oro con letra
+     oscura) y con `.btn-danger` (contorno), así que las tres acciones de una
+     misma pantalla tenían tres gramáticas distintas.
+
+     Con letra blanca el verde no puede ser cualquiera: `#22b87e` daba **2.55:1**
+     contra el blanco — ilegible. `#00875a` da **4.55:1** y pasa AA, y es el
+     verde más VIVO que lo consigue: a esa luminosidad tiene el croma al tope
+     (verde puro, sin gris dentro), así que no se ve más apagado, se ve más
+     saturado. Contra la tarjeta oscura da 3.98:1, o sea que el botón sigue
+     recortándose del fondo.
+
+     Y vale IGUAL en los dos temas, que es lo que hace que la misma acción se
+     vea la misma en las cuatro webs y con cualquier luz. */
+  --accion: #00875a;
+  --accion-texto: #ffffff;
+  /* El hover OSCURECE, y tiene que ser así: con letra blanca, cualquier verde
+     más claro que `#00875a` baja de 4.5:1, así que aclarar al pasar por encima
+     dejaría el texto por debajo de AA justo en el momento en que se va a
+     pulsar. Lo que da la sensación de «se encendió» es el halo de `.btn-gold`,
+     no la luminosidad del relleno. */
+  --accion-hover: #006b47;
+
+  /* ── Estados ──
+     Cada uno con su `-fill`: el color de la LETRA y el color del RELLENO. En
+     oscuro casi coinciden —sobre tinta, un color vivo se lee bien de las dos
+     formas—, y existen aquí para que las pantallas puedan escribirse una sola
+     vez: en claro esos dos papeles se separan mucho (ver el bloque de abajo). */
   --danger: #ff5577;
+  --danger-fill: #e8002a;
   --ok: #3ecf8e;
+  --ok-fill: #00b878;
   --info: #4d9fff;
+  --info-fill: #2266ff;
+  /* El naranja de aviso. No estaba aquí y sí en Campeonatos (`--orange`), que
+     es como se separan siempre las paletas: un color que usa una app y no está
+     en el sitio común. */
+  --warn: #ff9d2e;
+  --warn-fill: #ff8c00;
 
   /* ── Los dos lados de un combate. Son reglamento, no decoración: hong es el
         rojo y chung el azul, y se llaman así en las cuatro apps. ── */
@@ -141,6 +187,11 @@ html[data-theme='light'] {
   --bg-card: #ffffff;
   --bg-elevated: #e4e7ee;
   --bg-input: #ffffff;
+  /* Blanco, no el `--bg` de la página: la barra tiene que leerse como una capa
+     POR ENCIMA del contenido, y una barra del mismo gris que el fondo con un
+     borde debajo se ve como una raya suelta. Con blanco y el borde, se ve como
+     lo que es. */
+  --bg-barra: rgba(255, 255, 255, 0.9);
 
   /* Los bordes también suben de peso (#dcdce6 → #d3d7e0). Sobre blanco, un
      borde demasiado claro desaparece y los campos parecen manchas. */
@@ -171,33 +222,56 @@ html[data-theme='light'] {
      pasando AA— pero con el matiz corrido hacia el ámbar, que es lo que hace
      que se lea como oro oscuro y no como mostaza. */
   --gold: #a05e00;
+  /* ── Y EL TERCER ORO: el de los titulares ──
+     Éste era el que faltaba, y es el que más se ve. «EL CUADERNO» de la portada
+     y cualquier acento grande salían pintados con `--gold`, que es un oro de
+     TEXTO PEQUEÑO: a 60 px, ese marrón dorado no se lee como el oro de la
+     marca, se lee como un titular sucio. Era el motivo principal de que el modo
+     claro pareciera apagado.
+
+     WCAG mide distinto el texto grande (≥24 px, o ≥18.66 px en negrita): le
+     pide **3:1** en vez de 4.5:1, porque un trazo gordo se distingue con menos
+     contraste. `#c58700` da 3.07:1 sobre blanco y es un oro de verdad —dos
+     escalones de luminosidad por encima del de texto— sin salirse de la regla.
+
+     ⚠️ Solo para texto GRANDE y en negrita. En un párrafo o en una etiqueta
+     pequeña esto no pasa AA: ahí va `--gold`. */
+  --gold-grande: #c58700;
   --gold-dim: #7d4a00;
   --gold-fill: #f0b800;
-  /* Más tinte que antes (0.10 → 0.16) y con el oro VIVO: al 10 % sobre blanco
-     la insignia dorada se veía gris sucio en vez de dorada. */
-  --gold-soft: rgba(240, 184, 0, 0.16);
+  /* Más tinte que antes (0.16 → 0.22) y con el oro VIVO: la insignia dorada
+     tiene que verse dorada, y a poco tinte sobre blanco se veía beige. */
+  --gold-soft: rgba(240, 184, 0, 0.22);
 
-  /* ── Acentos: los mismos hues, con más croma ──
-     Los de antes cumplían el contraste pero se veían apagados, que es lo que
-     pasa cuando se oscurece un color para que pase en vez de elegir uno que ya
-     pase. Estos suben de croma Y siguen cumplindo AA sobre blanco:
-        acción  #17784f → #0a7d52   (81 % → 92 % de croma, 5.16:1)
-        peligro #c4213f → #d61f3f   (83 % → 86 %, 5.09:1)
-        bien    #167a4d → #00875a   (82 % → 100 %, 4.55:1)
-        aviso   #1b5fbf → #0b62d6   (86 % → 95 %, 5.63:1) */
-  /* El mismo relleno vivo que en oscuro, y a propósito: un botón de acción no
-     tiene por qué cambiar de color al cambiar de tema, solo su entorno.
-     
-     El que había —`#0a7d52` con texto blanco— cumplía el contraste (5.16:1)
-     pero se veía pesado y oscuro sobre una pantalla blanca: era un botón verde
-     botella en una app clara. Con texto blanco NO se puede aclarar, porque
-     cualquier verde más vivo baja de 4.5:1; con texto oscuro sí, y da 5.97:1. */
-  --accion: #22b87e;
-  --accion-texto: #0b2b1e;
+  /* ── Acentos: el mismo hue, con TODO el croma que cabe ──
+     La queja era exacta: en claro los colores se veían apagados. Y no era una
+     impresión, era el método — se venía oscureciendo cada color hasta que
+     pasara el contraste, y oscurecer también quita saturación. El resultado es
+     una paleta que cumple y no dice nada.
 
-  --danger: #d61f3f;
+     La forma correcta es la contraria: fijar la luminosidad que exige AA
+     (`L ≤ 0.183` para texto sobre blanco) y, dentro de ella, elegir el color
+     con MÁS croma. Se ve encendido y pasa igual:
+
+        peligro  #d61f3f → #e00028   (rojo puro, 5.00:1)
+        aviso    #0b62d6 → #0a5cf0   (azul eléctrico, 5.53:1)
+        naranja  —       → #c94f00   (no existía aquí, 4.56:1)
+        bien     #00875a             (ya estaba al tope de croma, 4.55:1)
+
+     Los tres `-fill` son la otra mitad: el color VIVO, para cuando es fondo y
+     no letra. Es lo mismo que ya hacía el oro, generalizado — una app clara se
+     ve encendida por sus rellenos, no por sus textos. */
+  /* ⚠️ `--accion` y `--accion-texto` NO se redefinen aquí, y no es un olvido:
+     el botón de acción es el MISMO verde con la MISMA letra blanca en los dos
+     temas. Lo que cambia con la luz es lo que tiene alrededor, no él. */
+  --danger: #e00028;
+  --danger-fill: #e8002a;
   --ok: #00875a;
-  --info: #0b62d6;
+  --ok-fill: #00b878;
+  --info: #0a5cf0;
+  --info-fill: #2266ff;
+  --warn: #c94f00;
+  --warn-fill: #ff8c00;
 
   --serie-1: #8a6200;
   --serie-2: #0b62d6;
@@ -281,12 +355,25 @@ html[data-theme='light'] .btn-danger {
   border-color: var(--danger);
 }
 
-/* Las insignias, con más tinte (0.10 → 0.14): al 10 % sobre blanco el color
-   se perdía y las tres se veían igual de grises. */
+/* Las insignias, con más tinte todavía (0.14 → 0.20) y el borde en el color
+   VIVO. Al 10 % sobre blanco las tres se veían igual de grises; al 14 % ya se
+   distinguían pero seguían pareciendo apagadas, que es la queja. El texto se
+   queda en el color oscuro —es letra pequeña y tiene que pasar AA—, y quien
+   pone el color es el fondo. */
 html[data-theme='light'] .badge-ok {
-  background: rgba(0, 135, 90, 0.14);
-  border-color: var(--ok);
+  background: rgba(0, 184, 120, 0.20);
+  border-color: var(--ok-fill);
   color: var(--ok);
+}
+html[data-theme='light'] .badge-info {
+  background: rgba(34, 102, 255, 0.16);
+  border-color: var(--info-fill);
+  color: var(--info);
+}
+html[data-theme='light'] .badge-warn {
+  background: rgba(255, 140, 0, 0.22);
+  border-color: var(--warn-fill);
+  color: var(--warn);
 }
 /* La insignia dorada, con el oro VIVO de fondo y un borde de verdad. Con el
    tinte al 20 % y el borde apagado se veía beige; el oro de la marca tiene que
@@ -305,8 +392,8 @@ html[data-theme='light'] .btn-outline:hover:not(:disabled) {
 }
 
 html[data-theme='light'] .badge-danger {
-  background: rgba(214, 31, 63, 0.14);
-  border-color: var(--danger);
+  background: rgba(232, 0, 42, 0.16);
+  border-color: var(--danger-fill);
   color: var(--danger);
 }
 
@@ -403,6 +490,22 @@ input[type="password"]::-ms-clear { display: none; }
     font-family: var(--font-mono), ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
   }
+  /* ── La palabra en oro de un TITULAR ─────────────────────────────────
+     «Se acabó **el cuaderno** del club», «Bienvenido a **DINAMYT**»: la firma
+     de la marca en las cuatro webs. Se escribía a mano
+     (`style={{ color: 'var(--gold)' }}`), y ese token es el oro de TEXTO
+     PEQUEÑO — el que tiene que pasar 4.5:1 sobre blanco y por eso es casi
+     marrón. A 60 px se leía como un titular sucio, y era la pieza que más
+     hacía que el modo claro pareciera apagado.
+
+     Esta clase pinta con `--gold-grande`, que es el oro que le corresponde a
+     ese tamaño (WCAG pide 3:1 al texto grande, no 4.5:1). Existe como CLASE y
+     no como estilo en línea para que el día que se afine el oro se afine en un
+     sitio y no en veinte.
+
+     ⚠️ Solo en texto ≥24 px, o ≥18.66 px en negrita. En una etiqueta pequeña
+     no cumple: ahí va `.eyebrow` o `color: var(--gold)`. */
+  .acento { color: var(--gold-grande); }
 
   /* ── Franja de cinturones (firma del ecosistema) ────────────────────── */
   .cinturon {
@@ -442,7 +545,15 @@ input[type="password"]::-ms-clear { display: none; }
   .btn-gold {
     background: var(--accion);
     color: var(--accion-texto);
-    border-color: rgba(234, 255, 244, 0.12);
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+  /* El hover sube al verde vivo en vez de aclarar con `filter`. Aclarar un
+     verde profundo lo LAVA —le quita croma— y el botón parecía desactivarse al
+     pasar por encima, que es lo contrario de lo que tiene que decir. */
+  .btn-gold:hover:not(:disabled) {
+    background: var(--accion-hover);
+    box-shadow: 0 0 0 3px rgba(0, 135, 90, 0.3);
+    filter: none;
   }
   /* CTA de marca (login "Ingresar" y portadas): el oro original. */
   .btn-cta {
@@ -463,6 +574,42 @@ input[type="password"]::-ms-clear { display: none; }
     filter: none;
   }
   .btn-sm { padding: 0.3rem 0.65rem; font-size: 0.75rem; }
+
+  /* ── LA BARRA DE ARRIBA ──────────────────────────────────────────────
+     Se quedaba oscura con el modo claro puesto, y se veía exactamente como lo
+     que era: una franja de tinta pegada encima de una página blanca, con los
+     botones de contorno dibujados para fondo oscuro dentro. Estaba escrita a
+     mano en la portada del portal (`style={{ background: 'rgba(14,14,21,0.85)' }}`),
+     que es donde un color deja de responder al tema.
+
+     ── La raya blanca del celular ──
+
+     Y traía un segundo defecto, el que se veía en Android: al ir translúcida
+     con `backdrop-filter`, el primer píxel de arriba mezclaba con el fondo
+     CLARO de la página y dejaba una línea pálida sobre la barra. Se nota
+     sobre todo al arrastrar de más (el rebote del scroll), que es cuando esa
+     franja crece. Un tono de la MISMA familia que la página —blanco en claro,
+     tinta en oscuro— hace que esa mezcla no se vea, porque ya no hay dos
+     colores que mezclar.
+
+     ⚠️ El `background` va también sin alfa como respaldo: los navegadores que
+     no soportan `backdrop-filter` (Firefox con la opción apagada, WebViews
+     viejas de Android) enseñarían el contenido de debajo desplazándose a
+     través de la barra. */
+  .barra-superior {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+  }
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .barra-superior {
+      background: var(--bg-barra);
+      -webkit-backdrop-filter: blur(14px) saturate(1.4);
+      backdrop-filter: blur(14px) saturate(1.4);
+    }
+  }
 
   /* ── Tarjetas ───────────────────────────────────────────────────────── */
   .card {
@@ -495,6 +642,12 @@ input[type="password"]::-ms-clear { display: none; }
   .badge-ok { background: rgba(62, 207, 142, 0.1); border-color: var(--ok); color: var(--ok); }
   .badge-gold { background: var(--gold-soft); border-color: var(--gold-dim); color: var(--gold); }
   .badge-danger { background: rgba(255, 85, 119, 0.12); border-color: var(--danger); color: var(--danger); }
+  /* Las otras dos de la familia. Faltaban, y por eso cada app se inventaba la
+     suya: Campeonatos tenía `.badge-green` y `.badge-gray` con sus propios
+     colores, y el «pendiente» naranja se escribía a mano con estilos en línea
+     en dos sitios distintos. */
+  .badge-info { background: rgba(77, 159, 255, 0.12); border-color: var(--info); color: var(--info); }
+  .badge-warn { background: rgba(255, 157, 46, 0.12); border-color: var(--warn); color: var(--warn); }
 
   .msg-error { color: var(--danger); }
   .msg-ok { color: var(--ok); }

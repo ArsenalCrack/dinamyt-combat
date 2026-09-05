@@ -1,3 +1,37 @@
+/* ════════════════════════════════════════════════════════════════════════════
+   ⚠️ ESTE `@import` VA PRIMERO, Y NO ES DECORACION: ARREGLA LA APP ENTERA
+   ════════════════════════════════════════════════════════════════════════════
+
+   Campeonatos tenia Tailwind instalado —esta en `package.json` y en
+   `postcss.config.mjs` desde el primer dia— y **nunca lo importaba**. Sin este
+   renglon, Tailwind no emite nada: ni utilidades, ni preflight, ni la
+   declaracion de capas.
+
+   Y esa ultima es la que rompia la aplicacion. `estilos-ecosistema.css` define
+   los botones, las tarjetas y las insignias dentro de `@layer components`; en
+   CSS, **lo que no esta en una capa gana siempre a lo que si**, sin importar el
+   orden ni la especificidad. El reset de aqui abajo iba sin capa y decia
+   `* { padding: 0 }`, asi que:
+
+       .btn { padding: 0.5rem 1rem }   ← en @layer components, PERDIA
+       * { padding: 0 }                ← sin capa, GANABA
+
+   O sea que **todos los botones del ecosistema salian con cero relleno en
+   Campeonatos**: rectangulos pegados al texto, del alto de una linea. Era
+   exactamente lo que se veia — «los rectangulos no tienen su forma bien
+   definida» — y por que la misma pantalla se ve bien en Membresias y mal aqui.
+   Lo mismo le pasaba a los margenes de `.card-title`, `.badge` y compania.
+
+   Con Tailwind importado, su preflight declara `@layer theme, base, components,
+   utilities` y hace ese mismo reset **dentro de `base`**, que es una capa MAS
+   DEBIL que `components`. El reset sigue existiendo, y ahora pierde contra el
+   boton, que es lo correcto.
+
+   Va ANTES del import del ecosistema para que el orden de las capas quede
+   declarado antes de que nadie las use.
+   ════════════════════════════════════════════════════════════════════════════ */
+@import "tailwindcss";
+
 /* El sistema visual del ecosistema —colores, botones, tarjetas, campos y la
    pantalla de entrar— vive en el monorepo y se reparte con
    `scripts/repartir-estilos.ps1`. Las cuatro webs comparten ESE archivo, que es
@@ -72,7 +106,9 @@
   --green-bg: rgba(0, 212, 114, 0.10);
   --green-border: rgba(0, 212, 114, 0.30);
   --red-alert: #FF4444;
-  --orange: #FF8C00;
+  /* El naranja de aviso ya vive en `estilos-ecosistema.css` (`--warn-fill`).
+     Este nombre se queda porque lo escriben veinte pantallas de aqui. */
+  --orange: var(--warn-fill);
 
   /* ── Radios y sombras ── */
   --radius-xs: 4px;
@@ -134,23 +170,30 @@ html[data-theme="light"] {
   --text-dim: #8d8da6;      /* Solo decorativo */
   --text-on-gold: #14141e;
 
-  /* ── HONG (Rojo) — oscurecido para contraste sobre claro ── */
-  --hong-light: #B00020;    /* usado como TEXTO: necesita ser oscuro aqui */
-  --hong-vivid: #D4001F;
-  --hong-bg: rgba(212, 0, 40, 0.08);
-  --hong-bg-strong: rgba(212, 0, 40, 0.16);
-  --hong-border: rgba(212, 0, 40, 0.35);
+  /* ── HONG (Rojo) — el rojo con el que se ESCRIBE sobre claro ──
+     Era `#B00020`, un granate. Cumplia el contraste y se leia apagado, que es
+     lo que pasa cuando se oscurece un color hasta que pase en vez de elegir el
+     mas vivo que YA pase. `--danger` del ecosistema (`#e00028`) da 5.0:1 sobre
+     blanco y es rojo de verdad: mismo sitio de luminosidad, todo el croma.
+     Y de paso, el rojo de un competidor es UNO en las cuatro webs. */
+  --hong-light: var(--danger);
+  --hong-vivid: var(--danger-fill);
+  --hong-bg: rgba(232, 0, 42, 0.12);
+  --hong-bg-strong: rgba(232, 0, 42, 0.22);
+  --hong-border: rgba(232, 0, 42, 0.45);
 
   /* ── CHUNG (Azul) ──
      Tampoco aqui se redefine `--chung`: en las cuatro webs vale `#2266ff` en
      los dos temas, porque es el color del RINCON de un competidor y ese no
      cambia con la luz de la pantalla. Lo que si cambia es el azul con el que se
      ESCRIBE sobre blanco, y para eso esta `--chung-light`. */
-  --chung-light: #0038B8;   /* usado como TEXTO: necesita ser oscuro aqui */
-  --chung-vivid: #0040CC;
-  --chung-bg: rgba(0, 68, 214, 0.08);
-  --chung-bg-strong: rgba(0, 68, 214, 0.16);
-  --chung-border: rgba(0, 68, 214, 0.35);
+  /* Mismo cambio que en hong: `#0038B8` era azul marino, no azul. `--info`
+     (`#0a5cf0`) da 5.53:1 sobre blanco y se ve electrico. */
+  --chung-light: var(--info);
+  --chung-vivid: var(--info-fill);
+  --chung-bg: rgba(34, 102, 255, 0.12);
+  --chung-bg-strong: rgba(34, 102, 255, 0.22);
+  --chung-border: rgba(34, 102, 255, 0.45);
 
   /* ── DORADO — el amarillo del logo manda: fondos, bordes y tintes usan
        #F0B800 directo; para TEXTO se usa el dorado vivo mas profundo que
@@ -160,12 +203,16 @@ html[data-theme="light"] {
   --gold-bg: rgba(240, 184, 0, 0.16);
   --gold-border: rgba(224, 172, 0, 0.60);
 
-  /* ── Verde y rojo de estado ── */
-  --green: #007745;
-  --green-bg: rgba(0, 138, 80, 0.10);
-  --green-border: rgba(0, 138, 80, 0.35);
-  --red-alert: #C41F1F;
-  --orange: #B25E00;
+  /* ── Verde, rojo y naranja de estado ──
+     Los tres apuntan ya a los tokens del ecosistema en vez de tener su propia
+     version oscurecida. `#007745`, `#C41F1F` y `#B25E00` eran verde bosque,
+     ladrillo y marron: cumplian y no decian nada. Los del sistema tienen la
+     misma luminosidad y el croma al tope. */
+  --green: var(--ok);
+  --green-bg: rgba(0, 184, 120, 0.14);
+  --green-border: rgba(0, 184, 120, 0.45);
+  --red-alert: var(--danger);
+  --orange: var(--warn);
 
   /* ── Sombras: mas suaves, tinta azulada ── */
   --shadow-sm: 0 2px 8px rgba(25, 25, 45, 0.10);
@@ -190,11 +237,20 @@ html[data-theme="light"] .btn-primary:hover {
 }
 
 /* ═══════════════════ RESET ═══════════════════ */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-  -webkit-tap-highlight-color: transparent;
+
+/* `box-sizing`, `margin: 0` y `padding: 0` ya no estan aqui: los hace el
+   preflight de Tailwind, y los hace DENTRO de `@layer base`. Escritos aqui iban
+   sin capa y le ganaban a `.btn`, a `.card-title` y a `.badge` del ecosistema
+   —que viven en `@layer components`—, que es lo que dejaba a los botones de
+   esta app sin un pixel de relleno. Ver la cabecera del archivo.
+
+   Lo unico que se queda es lo que el preflight no toca: quitar el destello gris
+   que Android pinta al tocar cualquier cosa. Y va en `@layer base` a proposito,
+   para que nada de aqui vuelva a colarse por encima del sistema compartido. */
+@layer base {
+  *, *::before, *::after {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 html {
