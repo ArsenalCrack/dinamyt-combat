@@ -1,42 +1,47 @@
 import type { Metadata } from "next";
-import { Barlow_Condensed, Bebas_Neue, Inter, Share_Tech_Mono } from "next/font/google";
+import { Archivo, IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
 import AppMenu from "@/components/AppMenu";
 import PorteroMantenimiento from "@/components/PorteroMantenimiento";
 import Toaster from "@/components/Toaster";
 import { I18nProvider } from "@/lib/i18n";
+import { SCRIPT_ANTI_PARPADEO } from "@/lib/theme";
 import "./globals.css";
 
 // Fuentes auto-hospedadas: next/font las descarga en el build y las sirve
 // desde nuestro dominio. Con el @import a Google Fonts, los celulares que no
-// alcanzaban fonts.googleapis.com caían a la fuente del sistema (Roboto, más
-// ancha) y desencajaban todo el layout.
-const bebasNeue = Bebas_Neue({
-  weight: "400",
+// alcanzaban fonts.googleapis.com caian a la fuente del sistema y desencajaban
+// todo el layout.
+//
+// ── Por que estas tres y no las de antes ──────────────────────────────────
+//
+// Campeonatos usaba Bebas Neue + Barlow Condensed + Share Tech Mono, y las
+// otras tres webs del ecosistema Archivo + Instrument Sans + IBM Plex Mono.
+// Era la diferencia que mas se notaba al saltar de una app a otra: los colores
+// se parecian, pero la LETRA no, y la letra es lo primero que se lee.
+//
+// Ahora son las mismas que el portal, Academy y Membresias:
+//   · Archivo         display deportivo, con eje de anchura (font-stretch)
+//   · Instrument Sans  cuerpo humanista
+//   · IBM Plex Mono    mono de marcador (puntos, tiempos, PIN)
+const display = Archivo({
   subsets: ["latin"],
   display: "swap",
-  variable: "--next-font-bebas",
+  axes: ["wdth"],
+  variable: "--next-font-display",
 });
-const barlowCondensed = Barlow_Condensed({
-  weight: ["400", "600", "700", "800"],
-  style: ["normal", "italic"],
+const cuerpo = Instrument_Sans({
   subsets: ["latin"],
   display: "swap",
-  variable: "--next-font-barlow",
+  variable: "--next-font-body",
 });
-const inter = Inter({
-  weight: ["400", "500", "600", "700"],
+const mono = IBM_Plex_Mono({
+  weight: ["400", "500", "600"],
   subsets: ["latin"],
   display: "swap",
-  variable: "--next-font-inter",
-});
-const shareTechMono = Share_Tech_Mono({
-  weight: "400",
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--next-font-share-tech",
+  variable: "--next-font-mono",
 });
 
-const fontClasses = `${bebasNeue.variable} ${barlowCondensed.variable} ${inter.variable} ${shareTechMono.variable}`;
+const fontClasses = `${display.variable} ${cuerpo.variable} ${mono.variable}`;
 
 export const metadata: Metadata = {
   title: "DINAMYT - Sistema de Competencias Hapkido",
@@ -55,16 +60,14 @@ export default function RootLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
         <meta name="format-detection" content="telephone=no" />
-        <meta name="theme-color" content="#050507" />
-        {/* Aplicar el tema guardado ANTES del primer pintado: si esto corriera
-            en un useEffect, cada carga en tema claro mostraría un flash oscuro.
-            Oscuro es el defecto, así que solo hay que marcar el claro. */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html:
-              'try{if(localStorage.getItem("dinamyt_theme")==="light"){document.documentElement.dataset.theme="light";document.querySelector(\'meta[name="theme-color"]\')?.setAttribute("content","#eef0f6")}}catch(e){}',
-          }}
-        />
+        {/* El mismo color de fondo que las otras tres webs (era #050507). */}
+        <meta name="theme-color" content="#0e0e15" />
+        {/* Aplicar el tema ANTES del primer pintado: en un useEffect, cada
+            carga en claro daria un fogonazo oscuro. El script viene de
+            `lib/theme.ts`, que es el mismo archivo en las cuatro apps, y ahora
+            entiende tambien `sistema` — el de antes solo miraba si el valor
+            guardado era exactamente "light". */}
+        <script dangerouslySetInnerHTML={{ __html: SCRIPT_ANTI_PARPADEO }} />
         {/* PWA: instalable en escritorio y móvil */}
         <link rel="manifest" href="/manifest.webmanifest" />
         {/* Android arma la pantalla de carga con el icono MÁS GRANDE que logre

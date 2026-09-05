@@ -1,3 +1,13 @@
+/* El sistema visual del ecosistema —colores, botones, tarjetas, campos y la
+   pantalla de entrar— vive en el monorepo y se reparte con
+   `scripts/repartir-estilos.ps1`. Las cuatro webs comparten ESE archivo, que es
+   lo que hace que Campeonatos, el portal, Academy y Membresias se vean como una
+   sola aplicacion.
+
+   Lo que queda debajo es lo PROPIO de Campeonatos: el marcador, el cronometro,
+   las llaves y los colores de competicion que no comparte con nadie. */
+@import './estilos-ecosistema.css';
+
 /* Las fuentes se auto-hospedan vía next/font en layout.tsx (variables
    --next-font-*). No usar @import de Google Fonts: los dispositivos que no
    lo alcanzan caen a la fuente del sistema y rompen el layout. */
@@ -15,25 +25,17 @@
   color-scheme: dark;
 
   /* ── Fondo: gris oscuro calido (no negro puro) para reducir fatiga ── */
-  --bg: #14141e;
-  --bg-card: #1c1c2a;
-  --bg-elevated: #242436;
   --bg-hover: #2e2e44;
-  --bg-input: #0e0e18;
 
   /* ── Bordes ── */
-  --border: #2a2a3e;
   --border-light: #3a3a56;
   --border-focus: #f0b800;
 
   /* ── Texto — alto contraste para luz ambiental alta ── */
-  --text: #f0f0f8;          /* Blanco calido, ratio 13:1 sobre bg */
-  --text-muted: #9090b0;    /* Gris medio, ratio 4.8:1 sobre bg */
   --text-dim: #5a5a78;      /* Solo decorativo */
   --text-on-gold: #14141e;  /* Texto oscuro sobre dorado */
 
   /* ── HONG (Rojo) — mas brillante para visibilidad ── */
-  --hong: #E8002A;
   --hong-light: #FF3355;
   --hong-vivid: #FF1140;    /* Para scores de pantalla grande */
   --hong-bg: rgba(232, 0, 42, 0.10);
@@ -49,7 +51,6 @@
   --chung-border: rgba(0, 85, 255, 0.35);
 
   /* ── DORADO — acento principal de la marca ── */
-  --gold: #F0B800;
   --gold-light: #FFD040;
   --gold-dark: #C89600;
   --gold-bg: rgba(240, 184, 0, 0.10);
@@ -84,9 +85,12 @@
   --transition-slow: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ── Tipografia (servida por next/font, ver layout.tsx) ── */
-  --font-display: var(--next-font-bebas), 'Bebas Neue', Impact, sans-serif;
-  --font-body: var(--next-font-barlow), 'Barlow Condensed', var(--next-font-inter), 'Inter', system-ui, sans-serif;
-  --font-mono: var(--next-font-share-tech), 'Share Tech Mono', 'Courier New', monospace;
+  /* Las mismas tres del portal, Academy y Membresias. Antes eran Bebas Neue,
+     Barlow Condensed y Share Tech Mono: era la diferencia que mas se notaba al
+     saltar de una app a otra, porque la letra es lo primero que se lee. */
+  --font-display: var(--next-font-display), system-ui, sans-serif;
+  --font-body: var(--next-font-body), system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --font-mono: var(--next-font-mono), ui-monospace, monospace;
 
   /* ── Espaciado ── */
   --space-xs: 4px;
@@ -112,25 +116,17 @@ html[data-theme="light"] {
   color-scheme: light;
 
   /* ── Fondo: gris muy claro con tinte frio (no blanco puro) ── */
-  --bg: #eef0f6;
-  --bg-card: #ffffff;
-  --bg-elevated: #e4e7f0;
   --bg-hover: #d8dcea;
-  --bg-input: #ffffff;
 
   /* ── Bordes ── */
-  --border: #d3d7e4;
   --border-light: #b9bfd4;
   --border-focus: #D8A600;
 
   /* ── Texto ── */
-  --text: #191922;          /* ~15:1 sobre bg */
-  --text-muted: #565670;    /* ~6:1 sobre bg */
   --text-dim: #8d8da6;      /* Solo decorativo */
   --text-on-gold: #14141e;
 
   /* ── HONG (Rojo) — oscurecido para contraste sobre claro ── */
-  --hong: #D40028;
   --hong-light: #B00020;    /* usado como TEXTO: necesita ser oscuro aqui */
   --hong-vivid: #D4001F;
   --hong-bg: rgba(212, 0, 40, 0.08);
@@ -148,7 +144,6 @@ html[data-theme="light"] {
   /* ── DORADO — el amarillo del logo manda: fondos, bordes y tintes usan
        #F0B800 directo; para TEXTO se usa el dorado vivo mas profundo que
        aun cumple 3:1 sobre blanco (el amarillo puro seria ilegible) ── */
-  --gold: #BA8A00;
   --gold-light: #F0B800;
   --gold-dark: #96700A;
   --gold-bg: rgba(240, 184, 0, 0.16);

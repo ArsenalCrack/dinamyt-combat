@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
 import { PORTAL_URL } from "@/lib/portal";
-import { aplicarTema, getTema, type Tema } from "@/lib/theme";
+import { aplicarTema, getTema, temaEfectivo, type Tema } from "@/lib/theme";
 import { IDIOMAS, useI18n } from "@/lib/i18n";
 
 /**
@@ -61,7 +61,7 @@ export default function AppMenu() {
   const [open, setOpen] = useState(false);
   // Arranca en "dark" (igual que el servidor) y se sincroniza al montar:
   // así el HTML del servidor y el primer render del cliente coinciden.
-  const [tema, setTema] = useState<Tema>("dark");
+  const [tema, setTema] = useState<Tema>("sistema");
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -73,7 +73,10 @@ export default function AppMenu() {
   }, []);
 
   function cambiarTema() {
-    const nuevo: Tema = tema === "dark" ? "light" : "dark";
+    // Dos estados en el boton, no tres: `sistema` es un punto de partida, no un
+    // destino al que alguien quiera volver pulsando. Las tres escritas estan en
+    // el perfil del portal, que es donde se elige de verdad.
+    const nuevo: Tema = temaEfectivo(tema) === "claro" ? "oscuro" : "claro";
     aplicarTema(nuevo);
     setTema(nuevo);
   }
@@ -165,7 +168,7 @@ export default function AppMenu() {
             {t("menu.campeonatos")}
           </button>
           <button type="button" role="menuitem" className="appmenu-item" onClick={cambiarTema}>
-            {tema === "dark" ? t("menu.modoClaro") : t("menu.modoOscuro")}
+            {temaEfectivo(tema) === "oscuro" ? t("menu.modoClaro") : t("menu.modoOscuro")}
           </button>
           <div className="appmenu-sep" />
           {/* Selector de idioma: los disponibles, con el activo resaltado */}

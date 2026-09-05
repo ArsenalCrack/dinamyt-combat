@@ -9,7 +9,7 @@ import Logo from "@/components/Logo";
 import { IDIOMAS, useI18n } from "@/lib/i18n";
 import { PORTAL_URL } from "@/lib/portal";
 import { LIM } from "@/lib/limites";
-import { aplicarTema, getTema, type Tema } from "@/lib/theme";
+import { aplicarAparienciaDelPase, aplicarTema, getTema, temaEfectivo, type Tema } from "@/lib/theme";
 
 /** Dónde aterriza cada rol al entrar. Lo comparten el formulario y el salto
  *  desde DINAMYT: dos copias de esto es cómo un rol acaba entrando a la
@@ -29,14 +29,14 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   // Tema (sin sesión no hay menú global): arranca "dark" como el servidor y
   // se sincroniza al montar para no desajustar la hidratación.
-  const [tema, setTema] = useState<Tema>("dark");
+  const [tema, setTema] = useState<Tema>("sistema");
   useEffect(() => {
     let cancelled = false;
     queueMicrotask(() => { if (!cancelled) setTema(getTema()); });
     return () => { cancelled = true; };
   }, []);
   function cambiarTema() {
-    const nuevo: Tema = tema === "dark" ? "light" : "dark";
+    const nuevo: Tema = temaEfectivo(tema) === "claro" ? "oscuro" : "claro";
     aplicarTema(nuevo);
     setTema(nuevo);
   }
@@ -144,6 +144,12 @@ export default function LoginPage() {
       .then(({ user }) => {
         if (cancelado) return;
         guardarUsuario(user);
+        // El tema y el idioma que eligio esta persona en el portal viajan
+        // DENTRO del pase, y este es el unico momento en que Campeonatos lo ve:
+        // despues la sesion es una cookie y el JWT ya no se puede leer.
+        // Sin esto, `localStorage` es por origen y la eleccion se queda en
+        // dinamyt.org.
+        aplicarAparienciaDelPase(pase);
         router.replace(destinoDe(user.rol));
       })
       .catch((err: unknown) => {
@@ -386,9 +392,9 @@ export default function LoginPage() {
           type="button"
           className="login-idioma-btn"
           onClick={cambiarTema}
-          title={tema === "dark" ? t("menu.modoClaro") : t("menu.modoOscuro")}
+          title={temaEfectivo(tema) === "oscuro" ? t("menu.modoClaro") : t("menu.modoOscuro")}
         >
-          {tema === "dark" ? "☀️" : "🌙"}
+          {temaEfectivo(tema) === "oscuro" ? "☀️" : "🌙"}
         </button>
       </div>
 
