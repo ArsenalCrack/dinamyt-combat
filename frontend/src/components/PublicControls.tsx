@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { aplicarTema, getTema, temaEfectivo, type Tema } from "@/lib/theme";
+import { guardarAparienciaEnLaCuenta } from "@/lib/api";
 import { IDIOMAS, useI18n } from "@/lib/i18n";
 
 /**
@@ -35,6 +36,9 @@ export default function PublicControls() {
     const nuevo: Tema = temaEfectivo(tema) === "claro" ? "oscuro" : "claro";
     aplicarTema(nuevo);
     setTema(nuevo);
+    // Y a la CUENTA, para que valga tambien en el portal, en Membresias y en
+    // Academy: `localStorage` no cruza subdominios.
+    guardarAparienciaEnLaCuenta({ theme: nuevo });
   }
 
   return (

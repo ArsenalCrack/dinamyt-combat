@@ -39,6 +39,7 @@ en el portal degrade en silencio al administrador de un campeonato en marcha.
 """
 
 import json
+import os
 import logging
 import secrets
 from urllib.error import URLError
@@ -228,3 +229,67 @@ def _asegurar_club(usuario, claims, pase):
         return
     usuario.clubes = [club]
     log.info("[ecosistema] %s estrena club: %s", usuario.email, club["nombre"])
+
+
+def guardar_apariencia(eco_sub, tema=None, idioma=None):
+    """
+    El tema o el idioma que la persona acaba de elegir AQUÍ, al ecosistema.
+
+    ── Por qué hace falta ──────────────────────────────────────────────────
+
+    La preferencia es de la PERSONA, no de la app, y vive en el portal
+    (`users.theme` y `users.locale`). Ya llegaba de allí hasta aquí dentro del
+    pase, pero solo en ese sentido: quien cambiaba a modo claro **dentro de
+    Campeonatos** lo cambiaba solo en Campeonatos, porque `localStorage` es por
+    origen y las cuatro webs viven en subdominios distintos.
+
+    Visto desde fuera eso es peor que no tener la función: el mismo botón, en la
+    misma cuenta, unas veces se recuerda en todas partes y otras no, según en
+    qué app lo pulsaste.
+
+    ── El interruptor ──────────────────────────────────────────────────────
+
+    `ECOSYSTEM_SYNC_SECRET`. **Sin esa variable esta función no hace nada**, y
+    es deliberado: es el mismo criterio que `ECOSYSTEM_JWKS_URL` en este mismo
+    módulo. Campeonatos tiene que arrancar y funcionar sin internet el día del
+    evento (§1.5 de OPERAR.md), así que ninguna pieza nueva puede volverse
+    obligatoria — y menos una cosmética.
+
+    ── Falla hacia fuera en silencio ───────────────────────────────────────
+
+    Como todo el espejo. Que el portal no conteste no puede impedir que alguien
+    cambie el color de su propia pantalla: la pantalla ya cambió antes de llamar
+    a esto, y lo único que se pierde es que la elección viaje a las otras apps.
+    """
+    secreto = os.getenv("ECOSYSTEM_SYNC_SECRET", "").strip()
+    raiz = url_api_ecosistema()
+    if not secreto or not raiz or not eco_sub:
+        return False
+    if tema is None and idioma is None:
+        return False
+
+    cuerpo = {"ecoSub": str(eco_sub)}
+    if tema is not None:
+        cuerpo["theme"] = tema
+    if idioma is not None:
+        cuerpo["locale"] = idioma
+
+    try:
+        peticion = Request(
+            f"{raiz}/sync/apariencia",
+            data=json.dumps(cuerpo).encode("utf-8"),
+            headers={
+                "content-type": "application/json",
+                "x-dinamyt-sync": secreto,
+            },
+            method="POST",
+        )
+        with urlopen(peticion, timeout=ESPERA_CLUB_SEG):
+            return True
+    except (URLError, ValueError, OSError) as exc:
+        log.warning(
+            "[ecosistema] la apariencia de %s no viajo a las otras apps: %s",
+            eco_sub,
+            exc,
+        )
+        return False

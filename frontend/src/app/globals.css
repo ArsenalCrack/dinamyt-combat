@@ -193,12 +193,19 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Base tipografica ampliada: 106.25% = 17px con la config por defecto del
-   navegador. TODO el texto en rem escala con esto (accesibilidad: usuarios
-   con baja vision). En porcentaje y no px para respetar el ajuste de tamano
-   de fuente que el usuario tenga en su navegador/sistema. */
+/* Base tipografica: la MISMA que las otras tres webs.
+   
+   Era 106.25% (17px), y estaba puesto para una fuente CONDENSADA —Barlow— que
+   a 16px se leia estrecha de lejos. Con Archivo e Instrument Sans, que son
+   anchas, ese 6.25% de mas hacia que todo Campeonatos se viera un tamano por
+   encima del resto del ecosistema: la queja era exacta.
+   
+   Lo que de verdad protegia la lectura de lejos no era este porcentaje sino
+   `--touch-min` en los botones y los tamanos propios del MARCADOR, que se
+   quedan como estan: ahi el numero se lee desde la grada y eso no es
+   tipografia de interfaz. */
 html {
-  font-size: 106.25%;
+  font-size: 100%;
 }
 
 body {
@@ -226,13 +233,23 @@ h1, h2, h3, h4 {
 
 /* ═══════════════════ LOGO ═══════════════════ */
 
+/* La marca escrita. El interletrado de 0.12em estaba puesto para Bebas Neue,
+   que es una condensada altisima y necesita aire entre letras para respirar.
+   Archivo ya viene ancha —y ademas se usa con `font-stretch: 118%`—, asi que
+   ese mismo valor la dejaba desparramada y con aspecto barato.
+   
+   Los numeros son los de `.display` en las otras tres webs, que es como se ve
+   DINAMYT en el portal, en Membresias y en Academy. */
 .logo {
   font-family: var(--font-display);
   font-size: 2.5rem;
-  letter-spacing: 0.12em;
+  font-weight: 800;
+  font-stretch: 118%;
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
   color: var(--text);
   text-align: center;
-  line-height: 1;
+  line-height: 0.98;
 }
 
 .logo em {
@@ -243,45 +260,26 @@ h1, h2, h3, h4 {
 
 /* ═══════════════════ BOTONES ═══════════════════ */
 
+/* La forma del boton la pone `estilos-ecosistema.css`, igual que en las otras
+   tres webs. Lo unico que Campeonatos anade es el AREA TACTIL: esto se usa de
+   pie en un tatami, en una tablet, con prisa y con guantes. `--touch-min` es
+   una decision de esta app y no del diseno, asi que sobrevive.
+
+   ⚠️ Y ojo con la CAPA. Campeonatos no usa Tailwind, asi que sus reglas van
+   sin `@layer` — y en CSS lo NO capado gana siempre a lo capado, sin importar
+   el orden ni la especificidad. Por eso una `.btn` propia aqui no "afinaba" el
+   boton compartido: lo anulaba entero. Fue el motivo de que el rediseno del 5
+   de septiembre no se viera en esta app. */
 .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-sm);
-  padding: 10px 20px;
   min-height: var(--touch-min);
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-sm);
-  background: var(--bg-elevated);
-  color: var(--text);
-  font-family: var(--font-body);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: var(--transition);
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  text-decoration: none;
-  -webkit-user-select: none;
-  user-select: none;
 }
 
-.btn:hover {
-  background: var(--bg-hover);
-  border-color: var(--border-focus);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-sm);
-}
 
-.btn:active {
-  transform: translateY(0) scale(0.98);
-}
 
-.btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none;
-}
+
+
+
+
 
 .btn-primary {
   background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
@@ -322,16 +320,9 @@ h1, h2, h3, h4 {
   box-shadow: var(--shadow-chung);
 }
 
-.btn-danger {
-  background: rgba(255, 68, 68, 0.10);
-  border-color: rgba(255, 68, 68, 0.30);
-  color: var(--red-alert);
-}
 
-.btn-danger:hover {
-  background: rgba(255, 68, 68, 0.20);
-  border-color: var(--red-alert);
-}
+
+
 
 .btn-ghost {
   background: transparent;
@@ -344,11 +335,7 @@ h1, h2, h3, h4 {
   color: var(--text);
 }
 
-.btn-sm {
-  padding: 6px 14px;
-  min-height: 36px;
-  font-size: 0.9rem;
-}
+
 
 .btn-lg {
   padding: 14px 28px;
@@ -362,17 +349,8 @@ h1, h2, h3, h4 {
 
 /* ═══════════════════ CARDS ═══════════════════ */
 
-.card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: var(--space-md);
-  transition: var(--transition);
-}
 
-.card:hover {
-  border-color: var(--border-light);
-}
+
 
 .card-clickable {
   cursor: pointer;
@@ -1036,23 +1014,8 @@ body.has-appmenu {
 
 /* ═══════════════════ BADGES / TAGS ═══════════════════ */
 
-.badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 0.8rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.10em;
-  white-space: nowrap;
-}
 
-.badge-gold {
-  background: var(--gold-bg);
-  border: 1px solid var(--gold-border);
-  color: var(--gold);
-}
+
 
 .badge-hong {
   background: var(--hong-bg);

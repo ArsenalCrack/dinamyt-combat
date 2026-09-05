@@ -1199,3 +1199,24 @@ export interface TatamiAsignacion {
 }
 
 export default api;
+
+/**
+ * Guarda en la CUENTA el tema o el idioma que se acaba de elegir aqui.
+ *
+ * `localStorage` es por origen y las cuatro webs del ecosistema viven en
+ * subdominios distintos: sin esto, cambiar a modo claro en Campeonatos lo
+ * cambiaba solo en Campeonatos, mientras que hacerlo en el portal si llegaba a
+ * las cuatro. El mismo boton comportandose de dos maneras segun donde lo
+ * pulses es peor que no tenerlo.
+ *
+ * Se dispara sin esperarlo y se traga el fallo: la pantalla ya cambio, y lo
+ * unico que se pierde si el portal no contesta es que la eleccion viaje.
+ */
+export function guardarAparienciaEnLaCuenta(datos: {
+  theme?: string;
+  locale?: string;
+}): void {
+  void api.patch("/auth/me/apariencia", datos).catch(() => {
+    /* sin ecosistema, la eleccion se queda en este navegador */
+  });
+}

@@ -14,7 +14,7 @@ from flask_jwt_extended import (
     unset_jwt_cookies,
     verify_jwt_in_request,
 )
-from ..espejo import es_super, resolver_espejo
+from ..espejo import es_super, guardar_apariencia, resolver_espejo
 from ..extensions import db
 from ..geo import pais_de_ciudad, pais_valido
 from ..identidad import abre_campeonatos, hay_ecosistema, verificar_pase
@@ -479,6 +479,48 @@ def me():
         data["tatamis_asignados"] = [a.to_dict() for a in asignaciones]
 
     return jsonify(data), 200
+
+
+@auth_bp.route("/me/apariencia", methods=["PATCH"])
+@jwt_required()
+def guardar_mi_apariencia():
+    """
+    PATCH /api/auth/me/apariencia
+
+    El tema o el idioma que la persona acaba de elegir AQUI, guardado en su
+    CUENTA del ecosistema para que valga tambien en el portal, en Membresias y
+    en Academy.
+
+    ── Por que hace falta ──────────────────────────────────────────────────
+
+    `localStorage` es POR ORIGEN y las cuatro webs viven en subdominios
+    distintos. Sin esto, cambiar a modo claro en Campeonatos lo cambiaba solo
+    en Campeonatos, mientras que hacerlo en el portal si llegaba a las cuatro:
+    el mismo boton comportandose de dos maneras segun donde lo pulses.
+
+    ── Que NO hace ─────────────────────────────────────────────────────────
+
+    No valida el contenido: lo hace el ecosistema, que es de quien es la
+    columna. Y no toca la fila LOCAL de `usuarios`: aqui no se guarda ninguna
+    preferencia de apariencia, la unica copia es la del navegador.
+
+    Sin `ECOSYSTEM_SYNC_SECRET` no hace nada y responde que si: la pantalla ya
+    cambio, y esta app tiene que funcionar sin ecosistema (§1.5).
+    """
+    usuario = Usuario.query.get(int(get_jwt_identity()))
+    if not usuario:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+
+    cuerpo = request.get_json(silent=True) or {}
+    tema = cuerpo.get("theme")
+    idioma = cuerpo.get("locale")
+    if tema is None and idioma is None:
+        return jsonify({"error": "No hay nada que cambiar."}), 400
+
+    viajo = guardar_apariencia(
+        getattr(usuario, "eco_sub", None), tema=tema, idioma=idioma
+    )
+    return jsonify({"ok": True, "enElEcosistema": viajo}), 200
 
 
 @auth_bp.route("/users", methods=["GET"])

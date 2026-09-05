@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
 import { PORTAL_URL } from "@/lib/portal";
 import { aplicarTema, getTema, temaEfectivo, type Tema } from "@/lib/theme";
+import { guardarAparienciaEnLaCuenta } from "@/lib/api";
 import { IDIOMAS, useI18n } from "@/lib/i18n";
 
 /**
@@ -79,6 +80,9 @@ export default function AppMenu() {
     const nuevo: Tema = temaEfectivo(tema) === "claro" ? "oscuro" : "claro";
     aplicarTema(nuevo);
     setTema(nuevo);
+    // Y a la CUENTA, para que valga tambien en el portal, en Membresias y en
+    // Academy: `localStorage` no cruza subdominios.
+    guardarAparienciaEnLaCuenta({ theme: nuevo });
   }
 
   // Releer la sesión en cada cambio de ruta (tras login/logout) y cerrar el panel

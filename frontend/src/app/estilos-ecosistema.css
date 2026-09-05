@@ -80,11 +80,17 @@
      motivo de que exista — ver el bloque del modo claro. */
   --gold-fill: #f0b800;
 
-  /* La acción del día a día: jade profundo, legible y sin neón. El oro se
-     reserva para MARCA — acentos, insignias y el botón del login—, que es lo
-     que le devuelve el peso: un oro que sale en cada botón deja de decir nada. */
-  --accion: #1f8f63;
-  --accion-texto: #eafff4;
+  /* La acción del día a día. El oro se reserva para MARCA —acentos, insignias
+     y el botón del login—, que es lo que le devuelve el peso: un oro que sale
+     en cada botón deja de decir nada.
+     
+     ⚠️ Era `#1f8f63` con texto `#eafff4`, y eso daba **3.89:1** — por debajo
+     del 4.5:1 de WCAG AA, en el botón que más se usa y en el tema que más se
+     ve. Nadie lo había medido. Ahora es el mismo esquema que el botón de
+     marca: relleno VIVO y texto oscuro encima, que da 5.97:1 y además se ve
+     mucho menos apagado. Mismo tono de jade (hue 157°), otra luminosidad. */
+  --accion: #22b87e;
+  --accion-texto: #0b2b1e;
 
   /* ── Estados ── */
   --danger: #ff5577;
@@ -160,8 +166,12 @@ html[data-theme='light'] {
                        texto oscuro, y así da 10:1.
      Es la solución de siempre para una marca luminosa en tema claro: el color
      no se apaga, se cambia de sitio. */
-  --gold: #9a6a00;
-  --gold-dim: #7d5600;
+  /* Un punto más cálido que `#9a6a00`, que a ese peso tiraba a oliva y se leía
+     apagado. `#a05e00` está en el mismo sitio de luminosidad —5.13:1, sigue
+     pasando AA— pero con el matiz corrido hacia el ámbar, que es lo que hace
+     que se lea como oro oscuro y no como mostaza. */
+  --gold: #a05e00;
+  --gold-dim: #7d4a00;
   --gold-fill: #f0b800;
   /* Más tinte que antes (0.10 → 0.16) y con el oro VIVO: al 10 % sobre blanco
      la insignia dorada se veía gris sucio en vez de dorada. */
@@ -175,8 +185,15 @@ html[data-theme='light'] {
         peligro #c4213f → #d61f3f   (83 % → 86 %, 5.09:1)
         bien    #167a4d → #00875a   (82 % → 100 %, 4.55:1)
         aviso   #1b5fbf → #0b62d6   (86 % → 95 %, 5.63:1) */
-  --accion: #0a7d52;
-  --accion-texto: #ffffff;
+  /* El mismo relleno vivo que en oscuro, y a propósito: un botón de acción no
+     tiene por qué cambiar de color al cambiar de tema, solo su entorno.
+     
+     El que había —`#0a7d52` con texto blanco— cumplía el contraste (5.16:1)
+     pero se veía pesado y oscuro sobre una pantalla blanca: era un botón verde
+     botella en una app clara. Con texto blanco NO se puede aclarar, porque
+     cualquier verde más vivo baja de 4.5:1; con texto oscuro sí, y da 5.97:1. */
+  --accion: #22b87e;
+  --accion-texto: #0b2b1e;
 
   --danger: #d61f3f;
   --ok: #00875a;
@@ -271,10 +288,20 @@ html[data-theme='light'] .badge-ok {
   border-color: var(--ok);
   color: var(--ok);
 }
+/* La insignia dorada, con el oro VIVO de fondo y un borde de verdad. Con el
+   tinte al 20 % y el borde apagado se veía beige; el oro de la marca tiene que
+   aparecer vivo en algún sitio del tema claro, y este es su sitio natural. */
 html[data-theme='light'] .badge-gold {
-  background: rgba(240, 184, 0, 0.2);
-  border-color: var(--gold-dim);
+  background: rgba(240, 184, 0, 0.28);
+  border-color: var(--gold-fill);
+  color: #6b3f00;
+}
+/* El botón de contorno, al pasar por encima, tira del oro vivo y no del
+   oscuro: sobre blanco, un borde `#a05e00` no se distingue de uno gris. */
+html[data-theme='light'] .btn-outline:hover:not(:disabled) {
+  border-color: var(--gold-fill);
   color: var(--gold);
+  background: rgba(240, 184, 0, 0.08);
 }
 
 html[data-theme='light'] .badge-danger {
