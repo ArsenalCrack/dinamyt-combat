@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Archivo, IBM_Plex_Mono, Instrument_Sans } from "next/font/google";
+import { AplicarApariencia } from "@/components/AplicarApariencia";
 import AppMenu from "@/components/AppMenu";
 import PorteroMantenimiento from "@/components/PorteroMantenimiento";
 import Toaster from "@/components/Toaster";
@@ -93,6 +94,10 @@ export default function RootLayout({
       </head>
       <body>
         <I18nProvider>
+          {/* El tema y el idioma, al dia: escucha el modo claro del sistema y
+              pregunta a la cuenta lo que se eligio en las otras apps. Solo
+              pregunta con sesion — ver el componente. */}
+          <AplicarApariencia />
           {/* El menú va DENTRO del portero: con el mantenimiento puesto no
               tiene sentido ofrecer navegación a pantallas que no responden. */}
           <PorteroMantenimiento>

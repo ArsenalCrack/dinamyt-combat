@@ -43,6 +43,7 @@ import os
 import logging
 import secrets
 from urllib.error import URLError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 from .extensions import db
@@ -293,3 +294,52 @@ def guardar_apariencia(eco_sub, tema=None, idioma=None):
             exc,
         )
         return False
+
+
+def leer_apariencia(eco_sub):
+    """
+    La VUELTA: qué tema y qué idioma tiene esa persona en su cuenta de DINAMYT.
+
+    ── El hueco que cierra ────────────────────────────────────────────────
+
+    `guardar_apariencia` cerró la IDA: cambiar el modo claro aquí ya se guarda
+    en la cuenta. La vuelta seguía dependiendo del PASE, y el pase se firma al
+    ENTRAR.
+
+    O sea que quien cambiaba el tema en el portal y venía aquí —donde ya tenía
+    la sesión abierta desde ayer, con su propia cookie— no veía nada: el pase
+    que trajo el primer día decía otra cosa, y esta app no lo vuelve a ver
+    nunca. Es la otra mitad exacta de «unas veces se recuerda y otras no».
+
+    ── El mismo interruptor ───────────────────────────────────────────────
+
+    Sin `ECOSYSTEM_SYNC_SECRET` devuelve `None` y la pantalla se queda con el
+    tema que ya tenía, que es exactamente lo de antes. El día del evento, sin
+    internet, esto no puede estorbar (§1.5 de OPERAR.md).
+
+    Devuelve `{"theme": ..., "locale": ...}` o `None` si no se pudo preguntar.
+    """
+    secreto = os.getenv("ECOSYSTEM_SYNC_SECRET", "").strip()
+    raiz = url_api_ecosistema()
+    if not secreto or not raiz or not eco_sub:
+        return None
+
+    try:
+        peticion = Request(
+            f"{raiz}/sync/apariencia/{quote(str(eco_sub), safe='')}",
+            headers={"x-dinamyt-sync": secreto},
+            method="GET",
+        )
+        with urlopen(peticion, timeout=ESPERA_CLUB_SEG) as respuesta:
+            datos = json.loads(respuesta.read().decode("utf-8"))
+        return {
+            "theme": datos.get("theme") or "sistema",
+            "locale": datos.get("locale"),
+        }
+    except (URLError, ValueError, OSError) as exc:
+        log.warning(
+            "[ecosistema] no se pudo leer la apariencia de %s: %s",
+            eco_sub,
+            exc,
+        )
+        return None

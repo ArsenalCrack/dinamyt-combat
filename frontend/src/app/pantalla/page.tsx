@@ -58,7 +58,16 @@ export default function PantallaAccess() {
         border: "1px solid var(--border)", borderRadius: "var(--radius-lg)",
         padding: "36px 28px", textAlign: "center"
       }} className="animate-slide">
-        <Logo stacked fontSize="clamp(1.8rem, 6vw, 2.2rem)" style={{ marginBottom: 8 }} />
+        {/* La pantalla de proyeccion es el unico sitio donde «DINAMYT» va en dos
+            colores: aqui se lee desde la grada y el oro ayuda. En el resto de la
+            app la palabra va entera del color del texto, como en las otras tres
+            webs — ver `.logo em` en globals.css. */}
+        <Logo
+          stacked
+          className="logo-acento"
+          fontSize="clamp(1.8rem, 6vw, 2.2rem)"
+          style={{ marginBottom: 8 }}
+        />
         <p style={{ color: "var(--text-muted)", marginBottom: 24, fontSize: "0.9rem" }}>
           {t("pantalla.sub")}
         </p>

@@ -102,12 +102,18 @@ export default function NoEncontrada() {
           letter-spacing: 0.06em;
           text-shadow: 0 0 30px var(--gold-bg);
         }
+        /* Interletrado NEGATIVO y la letra de titular, como en las otras tres
+           webs. El +0.06em venia de Bebas Neue, que es condensada y necesita
+           aire; Archivo es ancha y con ese valor la palabra se desparrama.
+           Ver .display en estilos-ecosistema.css. */
         .e404-titulo {
+          font-family: var(--font-display);
           font-size: 1.25rem;
           font-weight: 800;
+          font-stretch: 118%;
           color: var(--text);
           text-transform: uppercase;
-          letter-spacing: 0.06em;
+          letter-spacing: -0.015em;
         }
         .e404-desc {
           font-size: 0.94rem;

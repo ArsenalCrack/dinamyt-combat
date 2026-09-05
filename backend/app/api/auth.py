@@ -14,7 +14,7 @@ from flask_jwt_extended import (
     unset_jwt_cookies,
     verify_jwt_in_request,
 )
-from ..espejo import es_super, guardar_apariencia, resolver_espejo
+from ..espejo import es_super, guardar_apariencia, leer_apariencia, resolver_espejo
 from ..extensions import db
 from ..geo import pais_de_ciudad, pais_valido
 from ..identidad import abre_campeonatos, hay_ecosistema, verificar_pase
@@ -479,6 +479,40 @@ def me():
         data["tatamis_asignados"] = [a.to_dict() for a in asignaciones]
 
     return jsonify(data), 200
+
+
+@auth_bp.route("/me/apariencia", methods=["GET"])
+@jwt_required()
+def leer_mi_apariencia():
+    """
+    GET /api/auth/me/apariencia
+
+    La VUELTA: que tema y que idioma tiene esta persona en su cuenta de DINAMYT.
+
+    ── El hueco que cierra ─────────────────────────────────────────────────
+
+    El PATCH de aqui abajo cerro la IDA. Esto cierra la vuelta, que era la mitad
+    que faltaba: quien cambia el tema en el portal y entra aqui —con la sesion
+    de aqui ya abierta desde ayer— no veia el cambio, porque la preferencia
+    viaja DENTRO DEL PASE y esta app solo ve el pase en un momento, el salto
+    desde el portal.
+
+    La web la llama al cargar y CORRIGE lo que ya pinto. No al reves: pintar
+    esperando a esto devolveria el fogonazo oscuro que costo tanto quitar.
+
+    Sin ecosistema responde `null` y la pantalla se queda con lo que tenia — que
+    es exactamente lo de antes, y lo que hace falta el dia del evento (§1.5).
+    """
+    usuario = Usuario.query.get(int(get_jwt_identity()))
+    if not usuario:
+        return jsonify({"error": "Usuario no encontrado"}), 404
+
+    eco = leer_apariencia(getattr(usuario, "eco_sub", None))
+    return jsonify({
+        "theme": (eco or {}).get("theme"),
+        "locale": (eco or {}).get("locale"),
+        "delEcosistema": eco is not None,
+    }), 200
 
 
 @auth_bp.route("/me/apariencia", methods=["PATCH"])

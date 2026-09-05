@@ -497,12 +497,18 @@ export default function LoginPage() {
           line-height: 1;
         }
 
+        /* Interletrado NEGATIVO y la letra de titular, como en las otras tres
+           webs. El +0.06em venia de Bebas Neue, que es condensada y necesita
+           aire; Archivo es ancha y con ese valor la palabra se desparrama.
+           Ver .display en estilos-ecosistema.css. */
         .login-card-title {
-          font-size: 1.3rem;
+          font-family: var(--font-display);
+          font-size: 1.25rem;
           font-weight: 800;
+          font-stretch: 118%;
           color: var(--text);
           text-transform: uppercase;
-          letter-spacing: 0.06em;
+          letter-spacing: -0.015em;
         }
 
         .login-card-desc {

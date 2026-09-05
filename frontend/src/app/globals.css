@@ -42,13 +42,21 @@
   --hong-bg-strong: rgba(232, 0, 42, 0.20);
   --hong-border: rgba(232, 0, 42, 0.35);
 
-  /* ── CHUNG (Azul) — azul puro, mas visible que oscuro ── */
-  --chung: #0055FF;
-  --chung-light: #3399FF;
-  --chung-vivid: #0077FF;   /* Para scores de pantalla grande */
-  --chung-bg: rgba(0, 85, 255, 0.10);
-  --chung-bg-strong: rgba(0, 85, 255, 0.20);
-  --chung-border: rgba(0, 85, 255, 0.35);
+  /* ── CHUNG (Azul) ──
+     ⚠️ `--chung` NO se define aqui: lo pone `estilos-ecosistema.css` y vale
+     `#2266ff` en las cuatro webs. Era el ultimo de los ocho tokens en los que
+     esta app se habia desviado (tenia `#0055FF`), y es de los que mas se notan:
+     hong y chung son REGLAMENTO, no decoracion, y el azul de un competidor no
+     puede ser uno en la inscripcion del portal y otro en la llave.
+
+     Lo que si es de aqui son los derivados de COMPETICION, y se quedan porque
+     responden a un problema que las otras apps no tienen —leerse a diez metros,
+     con luz de polideportivo—. Ahora salen del azul compartido. */
+  --chung-light: #5b8cff;
+  --chung-vivid: #1a5cff;   /* Para scores de pantalla grande */
+  --chung-bg: rgba(34, 102, 255, 0.10);
+  --chung-bg-strong: rgba(34, 102, 255, 0.20);
+  --chung-border: rgba(34, 102, 255, 0.35);
 
   /* ── DORADO — acento principal de la marca ── */
   --gold-light: #FFD040;
@@ -78,7 +86,7 @@
   --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.6);
   --shadow-gold: 0 4px 20px rgba(240, 184, 0, 0.2);
   --shadow-hong: 0 4px 20px rgba(232, 0, 42, 0.25);
-  --shadow-chung: 0 4px 20px rgba(0, 85, 255, 0.25);
+  --shadow-chung: 0 4px 20px rgba(34, 102, 255, 0.25);
 
   /* ── Transiciones ── */
   --transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
@@ -133,8 +141,11 @@ html[data-theme="light"] {
   --hong-bg-strong: rgba(212, 0, 40, 0.16);
   --hong-border: rgba(212, 0, 40, 0.35);
 
-  /* ── CHUNG (Azul) ── */
-  --chung: #0044D6;
+  /* ── CHUNG (Azul) ──
+     Tampoco aqui se redefine `--chung`: en las cuatro webs vale `#2266ff` en
+     los dos temas, porque es el color del RINCON de un competidor y ese no
+     cambia con la luz de la pantalla. Lo que si cambia es el azul con el que se
+     ESCRIBE sobre blanco, y para eso esta `--chung-light`. */
   --chung-light: #0038B8;   /* usado como TEXTO: necesita ser oscuro aqui */
   --chung-vivid: #0040CC;
   --chung-bg: rgba(0, 68, 214, 0.08);
@@ -252,8 +263,27 @@ h1, h2, h3, h4 {
   line-height: 0.98;
 }
 
+/* ── La marca se escribe de UN color ──────────────────────────────────────
+
+   Aqui «DINAMYT» salia partido: «DINA» en el color del texto y «MYT» en oro.
+   En el portal, en Membresias y en Academy la palabra va entera del color del
+   texto, con el escudo dorado al lado haciendo de acento — el oro se reserva
+   para MARCA, y un oro que sale tambien dentro de la palabra deja de decir
+   nada.
+
+   Era, ademas, la pieza que mas delataba que esta app venia de otro sitio: el
+   nombre es lo primero que se lee en las cuatro, y aqui se leia distinto.
+
+   La regla se queda (no se borra el `<em>`) porque el marcador del tatami y
+   las pantallas de proyeccion sí lo quieren en oro: ahi la palabra se ve desde
+   la grada y el acento ayuda. Se pide a proposito con `.logo-acento`. */
 .logo em {
   font-style: normal;
+  color: inherit;
+}
+
+/* El unico sitio donde la marca SI va en dos colores: proyectada. */
+.logo-acento em {
   /* Siempre el amarillo del logo (tambien en claro): es logotipo */
   color: var(--gold-brand);
 }
@@ -262,16 +292,35 @@ h1, h2, h3, h4 {
 
 /* La forma del boton la pone `estilos-ecosistema.css`, igual que en las otras
    tres webs. Lo unico que Campeonatos anade es el AREA TACTIL: esto se usa de
-   pie en un tatami, en una tablet, con prisa y con guantes. `--touch-min` es
-   una decision de esta app y no del diseno, asi que sobrevive.
+   pie en un tatami, en una tablet, con prisa y con guantes.
 
    ⚠️ Y ojo con la CAPA. Campeonatos no usa Tailwind, asi que sus reglas van
    sin `@layer` — y en CSS lo NO capado gana siempre a lo capado, sin importar
    el orden ni la especificidad. Por eso una `.btn` propia aqui no "afinaba" el
    boton compartido: lo anulaba entero. Fue el motivo de que el rediseno del 5
-   de septiembre no se viera en esta app. */
-.btn {
-  min-height: var(--touch-min);
+   de septiembre no se viera en esta app.
+
+   ── Y por que el area tactil dejo de aplicarse A TODOS ──
+
+   Estaba puesta como `.btn { min-height: 44px }` a secas, y eso pisaba tambien
+   a `.btn-sm`, que se usa unas ciento treinta veces en esta app. Un boton
+   pequeno mide ~26 px de alto en las otras tres webs; aqui salia a 44, o sea
+   CASI EL DOBLE. Multiplicado por todas las barras de acciones de las tablas,
+   era la razon principal de que Campeonatos se viera "mas gordo" que
+   Membresias mirando la misma pantalla.
+
+   Ahora la regla dice lo que de verdad queria decir:
+
+   · Solo con DEDO (`pointer: coarse`). Con raton no hace falta un area de
+     44 px y lo unico que aporta es volumen. La tablet del tatami la sigue
+     teniendo, que es el caso para el que se escribio.
+   · Nunca sobre `.btn-sm`. Un boton que se pidio pequeno tiene que salir
+     pequeno; si en alguna pantalla del tatami hace falta grande, lo que se usa
+     es `.btn`, no `.btn-sm` con un parche global. */
+@media (pointer: coarse) {
+  .btn:not(.btn-sm) {
+    min-height: var(--touch-min);
+  }
 }
 
 
@@ -385,26 +434,49 @@ h1, h2, h3, h4 {
 
 /* ═══════════════════ INPUTS ═══════════════════ */
 
+/* ── El campo, con la MISMA caja que las otras tres webs ───────────────────
+
+   `estilos-ecosistema.css` ya viste `input`, `select` y `textarea` por
+   elemento. Esta clase existe porque muchas pantallas de aqui la escriben a
+   mano, y hasta ahora repetia la caja entera con otras medidas — y como va sin
+   `@layer`, ganaba:
+
+       padding    12px 16px   ·  el del ecosistema: 0.55rem 0.75rem (~9 / 12)
+       borde      1.5px       ·  el del ecosistema: 1px
+       tipografia 1rem / 500  ·  el del ecosistema: la heredada
+
+   O sea que el mismo formulario salia una talla mas grande aqui que en
+   Membresias, con la letra mas gorda y el borde mas grueso. Sumado a que los
+   botones tambien salian mas altos, la pantalla entera se veia apretada: las
+   cajas crecen, el hueco entre ellas no, y el contenido acaba pegado al borde.
+
+   Lo que se queda es lo que de verdad es de esta app: el fondo y el borde ya
+   son tokens compartidos, asi que solo hace falta lo que el elemento no trae
+   —`appearance`, la transicion— y el area tactil, con la misma condicion que
+   los botones: solo con dedo. */
 .input {
   width: 100%;
-  padding: 12px 16px;
-  min-height: var(--touch-min);
   background: var(--bg-input);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.75rem;
   color: var(--text);
   font-family: var(--font-body);
-  font-size: 1rem;
-  font-weight: 500;
-  transition: var(--transition);
+  transition: border-color 0.15s ease;
   outline: none;
   appearance: none;
   -webkit-appearance: none;
 }
 
+@media (pointer: coarse) {
+  .input {
+    min-height: var(--touch-min);
+  }
+}
+
 .input:focus {
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px var(--gold-bg);
+  box-shadow: 0 0 0 3px var(--gold-soft);
 }
 
 .input::placeholder {
@@ -416,22 +488,20 @@ h1, h2, h3, h4 {
   cursor: not-allowed;
 }
 
-/* ── Contraseñas: un solo ojo, el nuestro ──
-   Edge dibuja el suyo (`::-ms-reveal`) y ningún otro navegador lo hace, así que
-   el "ver contraseña" lo pone <CampoContrasena> para todos. Sin esta regla,
-   Edge —y solo Edge— enseñaría los dos, uno encima del otro. `::-ms-clear` es
-   la "x" de borrar del mismo navegador, que además tapa el ojo. */
-input[type="password"]::-ms-reveal,
-input[type="password"]::-ms-clear {
-  display: none;
-}
+/* El ojo doble de Edge (`::-ms-reveal` / `::-ms-clear`) lo tapa ya
+   `estilos-ecosistema.css`, con este mismo comentario. Estaba repetido aqui
+   palabra por palabra: dos copias de una regla es una que alguien arreglara y
+   otra que se quedara mal. */
 
 /* ── Desplegables (select): borde, flecha dorada y estados ── */
 select.input {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23F0B800' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 36px;
+  /* Va con el padding nuevo del campo (0.75rem), no con el de 16px de antes:
+     con la flecha a 12 px y el texto a 12, la flecha quedaba mas separada del
+     borde que el propio contenido. */
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
   cursor: pointer;
   border-color: var(--border-light);
 }

@@ -240,9 +240,28 @@ export default function ResultadosPage() {
           padding-bottom: 12px; border-bottom: 1px solid var(--border);
         }
         .resultados-header > div { flex: 1; min-width: 0; }
+        /* ── El titulo de pantalla, como en las otras tres webs ─────────────
+           Estaba en ORO y con un interletrado positivo de 0.08em. Las dos cosas
+           venian de Bebas Neue, la condensada que esta app usaba antes: una
+           condensada necesita aire entre letras, y Archivo —que es ancha y
+           ademas se usa estirada al 118%— con ese mismo valor se desparrama y
+           llega al borde de su caja. Era buena parte de lo que se veia
+           "ampliado y al limite".
+
+           Y el oro: en el portal, Membresias y Academy el titulo va del color
+           del TEXTO, y el oro se reserva para el antetitulo y la marca. Un oro
+           que sale tambien en cada titulo deja de ser un acento.
+
+           Los valores son los de .display (estilos-ecosistema.css) con el
+           tamano de text-3xl, que es con el que se titula en el portal.
+
+           OJO: aqui dentro NO se pueden usar comillas invertidas. Esto vive
+           dentro de un template literal de JS y la primera cerraria la cadena.
+        */
         .resultados-titulo {
-          font-family: var(--font-display); font-size: clamp(1.6rem, 4vw, 2.4rem);
-          color: var(--gold); letter-spacing: 0.08em; line-height: 1;
+          font-family: var(--font-display); font-size: clamp(1.5rem, 3.4vw, 1.9rem);
+          font-weight: 800; font-stretch: 118%; text-transform: uppercase;
+          color: var(--text); letter-spacing: -0.015em; line-height: 0.98;
         }
         .resultados-sub { color: var(--text-muted); font-size: 0.9rem; margin-top: 2px; }
         .resultados-msg { text-align: center; padding: 40px 0; color: var(--text-muted); }

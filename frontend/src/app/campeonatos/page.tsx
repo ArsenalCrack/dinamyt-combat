@@ -107,8 +107,9 @@ export default function CampeonatosPublicoPage() {
         }
         .campub-header > div { flex: 1; min-width: 0; }
         .campub-titulo {
-          font-family: var(--font-display); font-size: clamp(1.6rem, 4vw, 2.4rem);
-          color: var(--gold); letter-spacing: 0.08em; line-height: 1;
+          font-family: var(--font-display); font-size: clamp(1.5rem, 3.4vw, 1.9rem);
+          font-weight: 800; font-stretch: 118%; text-transform: uppercase;
+          color: var(--text); letter-spacing: -0.015em; line-height: 0.98;
         }
         .campub-sub { color: var(--text-muted); font-size: 0.9rem; margin-top: 2px; }
         .campub-msg { text-align: center; padding: 40px 0; color: var(--text-muted); }

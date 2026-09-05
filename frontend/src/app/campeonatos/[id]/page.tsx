@@ -458,8 +458,9 @@ const ESTILOS = `
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   }
   .ficha-titulo {
-    font-family: var(--font-display); font-size: clamp(1.5rem, 4vw, 2.2rem);
-    color: var(--gold); letter-spacing: 0.06em; line-height: 1.1;
+    font-family: var(--font-display); font-size: clamp(1.4rem, 3.2vw, 1.8rem);
+    font-weight: 800; font-stretch: 118%; text-transform: uppercase;
+    color: var(--text); letter-spacing: -0.015em; line-height: 0.98;
     overflow-wrap: anywhere; margin: 0;
   }
   .ficha-desc { color: var(--text-muted); font-size: 0.95rem; margin: 0; }

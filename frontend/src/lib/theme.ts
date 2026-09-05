@@ -138,3 +138,48 @@ export function aplicarAparienciaDelPase(token: string) {
     /* un pase ilegible no puede romper el inicio de sesion */
   }
 }
+
+/**
+ * Vigila el tema del SISTEMA y repinta mientras la eleccion sea `sistema`.
+ *
+ * ── El hueco que cierra ──
+ *
+ * `sistema` es el valor POR DEFECTO —lo dice `users.theme` en el esquema—, asi
+ * que esto no es un caso raro: es el de casi todo el mundo. Y hasta ahora
+ * `prefers-color-scheme` se consultaba UNA SOLA VEZ, al pintar. Con eso, «como
+ * el sistema» significaba en realidad «como estaba el sistema cuando abri la
+ * pagina».
+ *
+ * Se nota en el caso mas comun de todos: el telefono que pasa a modo oscuro
+ * solo al anochecer. La pantalla se queda clara hasta que alguien recarga, y lo
+ * que se lee no es «la web no escucha al sistema» sino «la web se quedo
+ * pegada».
+ *
+ * ── Por que no guarda ──
+ *
+ * Porque no ha cambiado nada que sea de la persona: sigue eligiendo `sistema`.
+ * Lo que cambio es el sistema. Escribirlo convertiria una preferencia viva en
+ * un `claro` o un `oscuro` fijo, que es justo lo contrario de lo que se pidio.
+ *
+ * Devuelve la funcion para dejar de escuchar.
+ */
+export function escucharTemaDelSistema(): () => void {
+  if (typeof window === 'undefined' || !window.matchMedia) {
+    return () => undefined;
+  }
+  const consulta = window.matchMedia('(prefers-color-scheme: light)');
+  const alCambiar = () => {
+    // Solo si la eleccion sigue siendo `sistema`. Quien pidio claro a mano
+    // quiere claro tambien de noche.
+    if (getTema() === 'sistema') aplicarTema('sistema', false);
+  };
+
+  // Safari no soporto `addEventListener` aqui hasta la 14, y en iOS todavia se
+  // ve la 13 en telefonos que la gente usa a diario para esto.
+  if (consulta.addEventListener) {
+    consulta.addEventListener('change', alCambiar);
+    return () => consulta.removeEventListener('change', alCambiar);
+  }
+  consulta.addListener(alCambiar);
+  return () => consulta.removeListener(alCambiar);
+}

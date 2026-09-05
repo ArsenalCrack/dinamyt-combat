@@ -1220,3 +1220,30 @@ export function guardarAparienciaEnLaCuenta(datos: {
     /* sin ecosistema, la eleccion se queda en este navegador */
   });
 }
+
+/**
+ * La VUELTA: que tema y que idioma tiene esta persona en su cuenta de DINAMYT.
+ *
+ * `guardarAparienciaEnLaCuenta` cierra la IDA —lo que se elige aqui llega a las
+ * otras apps—. Esto cierra la vuelta: lo que se eligio en el portal (o en
+ * Membresias) llega AQUI, aunque la sesion de aqui lleve abierta desde ayer y
+ * el pase que la abrio dijera otra cosa.
+ *
+ * Devuelve `null` si no se pudo preguntar, y entonces la pantalla se queda con
+ * lo que ya pinto — que es exactamente el comportamiento de antes. El dia del
+ * evento, sin internet, esto no puede estorbar.
+ */
+export async function leerAparienciaDeLaCuenta(): Promise<{
+  theme: string | null;
+  locale: string | null;
+} | null> {
+  try {
+    const { data } = await api.get<{
+      theme: string | null;
+      locale: string | null;
+    }>("/auth/me/apariencia");
+    return data;
+  } catch {
+    return null;
+  }
+}
