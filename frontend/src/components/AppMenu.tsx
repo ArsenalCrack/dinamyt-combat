@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
 import { PORTAL_URL } from "@/lib/portal";
-import { aplicarTema, getTema, temaEfectivo, type Tema } from "@/lib/theme";
+import { alternarModo, getTema, temaEfectivo, type Tema } from "@/lib/theme";
 import { guardarAparienciaEnLaCuenta } from "@/lib/api";
 import { IDIOMAS, useI18n, type ClaveTexto } from "@/lib/i18n";
 
@@ -141,11 +141,11 @@ export default function AppMenu() {
   }, []);
 
   function cambiarTema() {
-    // Dos estados en el boton, no tres: `sistema` es un punto de partida, no un
-    // destino al que alguien quiera volver pulsando. Las tres escritas estan en
-    // el perfil del portal, que es donde se elige de verdad.
-    const nuevo: Tema = temaEfectivo(tema) === "claro" ? "oscuro" : "claro";
-    aplicarTema(nuevo);
+    // La cuenta la hace `alternarModo` mirando el DOM, no este `tema`: el
+    // estado arranca en "sistema" y se sincroniza en un efecto, asi que una
+    // pulsacion temprana calculaba sobre un valor viejo y aplicaba **el modo
+    // que ya estaba**. Se veia como «tuve que darle dos veces».
+    const nuevo = alternarModo();
     setTema(nuevo);
     // Y a la CUENTA, para que valga tambien en el portal, en Membresias y en
     // Academy: `localStorage` no cruza subdominios.
@@ -221,7 +221,12 @@ export default function AppMenu() {
         <Link href={inicio} className="navbar-marca">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.png" alt="DINAMYT" width={30} height={30} />
-          <span className="display">DINAMYT</span>
+          {/* La marca del ecosistema: DINAMYT en oro + el nombre de la app.
+              Estaba del color del texto —o sea negra en modo claro— mientras
+              en el portal iba en oro. Ver `.marca` en `estilos-ecosistema.css`. */}
+          <span className="marca">
+            DINAMYT<span className="marca-app">{t("app.nombreCorto")}</span>
+          </span>
         </Link>
 
         <nav className="navbar-links" aria-label={t("menu.navegacion")}>

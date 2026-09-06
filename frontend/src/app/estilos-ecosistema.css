@@ -532,6 +532,65 @@ input[type="password"]::-ms-clear { display: none; }
      no cumple: ahí va `.eyebrow` o `color: var(--gold)`. */
   .acento { color: var(--gold-grande); }
 
+  /* ── LA MARCA, escrita igual en las cuatro webs ───────────────────────
+     
+     ── Lo que pasaba ──
+     
+     «DINAMYT» salía distinto en cada sitio, y a veces distinto dentro de la
+     misma app. Auditado el 5 de septiembre de 2026:
+     
+         portal, barra de la portada   oro, 1.125 rem
+         Campeonatos, barra            color del texto (negro en claro)
+         Campeonatos, pantalla pública «DINA» del color del texto + «MYT» oro
+         Campeonatos, resultados       color del texto
+         Membresías, barra             no decía DINAMYT: decía «Mi Club»
+     
+     Cinco tratamientos para una palabra, y es la palabra que tiene que decir
+     «esto es la misma casa» al saltar de una app a otra. Se elige el del
+     portal —oro— porque es la portada, la primera pantalla que ve cualquiera.
+     
+     ── La regla ──
+     
+     **DINAMYT va SIEMPRE en oro y de una sola pieza**, y detrás va el nombre
+     de la aplicación, más pequeño y en gris. El portal no lleva sufijo: él ES
+     DINAMYT.
+     
+         <span class="marca">DINAMYT<span class="marca-app">Membresías</span></span>
+     
+     El oro es `--gold-grande`, que es el que le corresponde a este tamaño (ver
+     `.acento`). El tamaño lo pone quien la usa, y todo lo de dentro escala en
+     `em`: la misma marca vale en una barra de 1.125 rem y en una portada de
+     3 rem sin tocar nada.
+     
+     ⚠️ Esto deroga la regla anterior («la palabra va entera del color del
+     texto, con el escudo dorado al lado»). Se cambió a propósito: aquel oro
+     solo en el escudo se perdía en el modo claro, donde el escudo es pequeño y
+     la palabra ocupa diez veces más. */
+  .marca {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4em;
+    min-width: 0;
+    font-family: var(--font-display), system-ui, sans-serif;
+    font-weight: 800;
+    font-stretch: 118%;
+    text-transform: uppercase;
+    letter-spacing: -0.015em;
+    line-height: 1;
+    color: var(--gold-grande);
+    white-space: nowrap;
+  }
+  /* El nombre de la app: más pequeño, en gris y sin el ancho extra de la
+     display — es una aclaración, no una segunda marca. */
+  .marca-app {
+    font-family: var(--font-body), system-ui, sans-serif;
+    font-stretch: normal;
+    font-size: 0.68em;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
   /* ── Franja de cinturones (firma del ecosistema) ────────────────────── */
   .cinturon {
     height: 4px;
@@ -637,10 +696,35 @@ input[type="password"]::-ms-clear { display: none; }
   }
 
   /* ── Tarjetas ───────────────────────────────────────────────────────── */
+
+  /* ⚠️ **El relleno es parte de la tarjeta**, y no lo era.
+     
+     `.card` daba fondo, borde y esquinas, y el hueco de dentro lo ponía cada
+     pantalla a mano. Contado el 5 de septiembre de 2026, tarjeta por tarjeta:
+
+         Membresías    62 tarjetas ·   0 sin relleno
+         portal        43 tarjetas ·   1 sin relleno
+         Academy       54 tarjetas ·   0 sin relleno
+         Campeonatos  154 tarjetas ·  95 SIN RELLENO
+
+     O sea que en Campeonatos **la mayoría de las tarjetas tenían el texto
+     pegado al borde**. No era un descuido puntual: era que la clase no lo
+     traía y allí nadie había cogido la costumbre de escribirlo. Es lo que se
+     reportó como «hay muchos apartados que no tienen espacios», y aparecía en
+     el panel, en jueces, en competidores, en importar resultados y en los
+     estados de los tatamis — en todos por el mismo motivo.
+
+     Ponerlo aquí lo arregla en los cinco sitios a la vez y no toca ninguna
+     tarjeta que ya lo tuviera: las de Membresías, el portal y Academy lo
+     llevan en línea o en una utilidad de Tailwind, y las dos cosas ganan a una
+     clase de `@layer components`. Para una tarjeta que de verdad quiera el
+     contenido a ras del borde —una cabecera de color, una imagen— se pide
+     explícitamente con `p-0` o `padding: 0`. */
   .card {
     background: var(--bg-card);
     border: 1px solid var(--border);
     border-radius: 0.75rem;
+    padding: 1rem;
     transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   }
   a.card:hover, button.card:hover {
@@ -783,7 +867,11 @@ input[type="password"]::-ms-clear { display: none; }
   align-items: center;
   gap: 0.5rem;
 }
-.navbar-marca span { font-size: 1rem; white-space: nowrap; }
+/* El tamaño es el de la portada del portal (`text-lg`), que es el que se
+   eligió como bueno. Iba sobre `span` a secas, así que también encogía al
+   nombre de la app que ahora va dentro. */
+.navbar-marca > .marca { font-size: 1.125rem; }
+.navbar-marca > span:not(.marca) { font-size: 1rem; white-space: nowrap; }
 /* `min-width: 0` es lo que permite que los enlaces cedan ancho antes que
    empujar el chip de identidad fuera de la pantalla. */
 .navbar-links { display: none; flex: 1 1 auto; min-width: 0; align-items: center; gap: 0.15rem; }

@@ -307,34 +307,29 @@ h1, h2, h3, h4 {
   font-stretch: 118%;
   letter-spacing: -0.015em;
   text-transform: uppercase;
-  color: var(--text);
+  /* ── La marca va en ORO, y de una sola pieza ────────────────────────────
+
+     Aqui «DINAMYT» salia de tres formas distintas segun la pantalla: del color
+     del texto en la barra y en resultados (o sea NEGRA en modo claro), y
+     partida —«DINA» del color del texto, «MYT» en oro— en la pantalla publica.
+     En el portal iba en oro. Cuatro tratamientos para una palabra, y es la que
+     tiene que decir «esto es la misma casa» al saltar de una app a otra.
+
+     Manda el del portal, que es la portada: oro, entera. Es el mismo color que
+     `.marca` en el archivo compartido (`--gold-grande`, el oro que le
+     corresponde al texto grande). */
+  color: var(--gold-grande);
   text-align: center;
   line-height: 0.98;
 }
 
-/* ── La marca se escribe de UN color ──────────────────────────────────────
-
-   Aqui «DINAMYT» salia partido: «DINA» en el color del texto y «MYT» en oro.
-   En el portal, en Membresias y en Academy la palabra va entera del color del
-   texto, con el escudo dorado al lado haciendo de acento — el oro se reserva
-   para MARCA, y un oro que sale tambien dentro de la palabra deja de decir
-   nada.
-
-   Era, ademas, la pieza que mas delataba que esta app venia de otro sitio: el
-   nombre es lo primero que se lee en las cuatro, y aqui se leia distinto.
-
-   La regla se queda (no se borra el `<em>`) porque el marcador del tatami y
-   las pantallas de proyeccion sí lo quieren en oro: ahi la palabra se ve desde
-   la grada y el acento ayuda. Se pide a proposito con `.logo-acento`. */
-.logo em {
+/* El `<em>` se queda en el marcado —lo escriben varias pantallas— pero ya no
+   parte la palabra en dos: hereda. La regla de «un solo color» vale tambien
+   proyectada, que era el unico sitio que se salvaba de la anterior. */
+.logo em,
+.logo-acento em {
   font-style: normal;
   color: inherit;
-}
-
-/* El unico sitio donde la marca SI va en dos colores: proyectada. */
-.logo-acento em {
-  /* Siempre el amarillo del logo (tambien en claro): es logotipo */
-  color: var(--gold-brand);
 }
 
 /* ═══════════════════ BOTONES ═══════════════════ */

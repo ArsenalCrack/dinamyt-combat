@@ -26,6 +26,60 @@ export type Tema = 'sistema' | 'claro' | 'oscuro';
 /** La copia local. La verdad la manda el pase. Misma clave en las cuatro. */
 const STORAGE_KEY = 'dinamyt_theme';
 
+/**
+ * ── LA COOKIE QUE CRUZA LAS CUATRO WEBS ──────────────────────────────────────
+ *
+ * `localStorage` es POR ORIGEN, y las apps viven en subdominios distintos:
+ * `dinamyt.org`, `club.dinamyt.org`, `campeonatos.dinamyt.org`,
+ * `academy.dinamyt.org`. Guardar la eleccion solo ahi significa elegir el modo
+ * claro una vez por app.
+ *
+ * La copia en `users.theme` lo arregla... **cuando hay sesion y cuando da
+ * tiempo**: hay que entrar, pedir `/me/apariencia` y esperar la respuesta. Eso
+ * deja fuera los dos casos que se reportaron:
+ *
+ *   · **Sin sesion.** Se elige claro aqui, se va al portal a entrar y la
+ *     pantalla de login sale oscura. Ahi no hay a quien preguntar.
+ *   · **Con sesion, pero tarde.** La pantalla se pinta oscura y se aclara medio
+ *     segundo despues, cuando contesta el servidor. Ese fogonazo se lee como un
+ *     fallo — es el «se vio el cambio de modos» del reporte.
+ *
+ * Una cookie en el dominio PADRE (`.dinamyt.org`) la leen los cuatro
+ * subdominios, y el script anti-parpadeo la lee **antes del primer pintado**.
+ * Asi la eleccion viaja en el acto, con sesion y sin ella.
+ *
+ * Sigue sin sustituir a `users.theme`: la cookie es de este navegador y la
+ * cuenta es de la persona. La cookie cruza subdominios; la cuenta cruza
+ * dispositivos. Hacen falta las dos.
+ *
+ * En `localhost` no se pone dominio: los puertos comparten cookie igual, asi
+ * que en desarrollo funciona sin tocar nada.
+ */
+const COOKIE_KEY = 'dinamyt_tema';
+
+/** `; domain=.dinamyt.org` en produccion, nada en localhost o en una IP. */
+function dominioDeLaCookie(): string {
+  if (typeof location === 'undefined') return '';
+  const host = location.hostname;
+  if (host === 'localhost' || /^[\d.]+$/.test(host)) return '';
+  const partes = host.split('.');
+  return partes.length > 2 ? `; domain=.${partes.slice(-2).join('.')}` : '';
+}
+
+/** La eleccion, para las otras tres webs. Un anio, que es lo que dura un gusto. */
+function guardarEnLaCookie(tema: Tema) {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${COOKIE_KEY}=${tema}; path=/; max-age=31536000; samesite=lax${dominioDeLaCookie()}`;
+}
+
+/** Lo que eligio esta persona en CUALQUIERA de las cuatro webs, o `null`. */
+function temaDeLaCookie(): Tema | null {
+  if (typeof document === 'undefined') return null;
+  const m = new RegExp(`(?:^|; )${COOKIE_KEY}=([^;]*)`).exec(document.cookie);
+  const v = m ? decodeURIComponent(m[1]) : null;
+  return v === 'claro' || v === 'oscuro' || v === 'sistema' ? v : null;
+}
+
 // Debe coincidir con <meta name="theme-color"> del layout: es el color de la
 // barra del navegador y de la PWA instalada.
 const META_COLOR: Record<'claro' | 'oscuro', string> = {
@@ -44,6 +98,10 @@ export function temaDelSistema(): 'claro' | 'oscuro' {
 /** El tema elegido, tal cual: puede ser `sistema`. */
 export function getTema(): Tema {
   if (typeof window === 'undefined') return 'sistema';
+  // La cookie manda sobre la copia local: es la que trae lo que se acaba de
+  // elegir en OTRA de las cuatro webs, y `localStorage` no puede saberlo.
+  const compartido = temaDeLaCookie();
+  if (compartido) return compartido;
   try {
     const v = localStorage.getItem(STORAGE_KEY);
     if (v === 'claro' || v === 'oscuro' || v === 'sistema') return v;
@@ -75,11 +133,41 @@ export function aplicarTema(tema: Tema, guardar = true) {
     ?.setAttribute('content', META_COLOR[efectivo]);
 
   if (!guardar) return;
+  // La cookie primero: es la que ven las otras tres webs, y no depende de que
+  // este navegador permita `localStorage` (modo incognito, sitios bloqueados).
+  guardarEnLaCookie(tema);
   try {
     localStorage.setItem(STORAGE_KEY, tema);
   } catch {
     /* modo incognito: el tema aplica solo a esta pestana */
   }
+}
+
+
+/**
+ * Cambia de modo y devuelve el que quedo.
+ *
+ * ── Por que lee el DOM y no el estado de React ──
+ *
+ * Porque el estado de React llega tarde. Los botones de tema arrancan en
+ * `'sistema'` —igual que el servidor, para que el primer render coincida— y se
+ * sincronizan con `getTema()` en un efecto. Si alguien pulsa antes de que ese
+ * efecto corra, o si otra pestania cambio el tema entretanto, la cuenta se hace
+ * sobre un valor viejo y sale **el modo que ya estaba puesto**: la pantalla no
+ * cambia y hay que pulsar dos veces. Se reporto exactamente asi.
+ *
+ * `document.documentElement.dataset.theme` no puede estar desfasado: es lo que
+ * se esta viendo. De ahi sale la cuenta.
+ *
+ * Dos estados y no tres: `sistema` es un punto de partida, no un destino al que
+ * alguien quiera volver pulsando. Las tres escritas estan en el perfil.
+ */
+export function alternarModo(): 'claro' | 'oscuro' {
+  const enClaro =
+    typeof document !== 'undefined' && document.documentElement.dataset.theme === 'light';
+  const nuevo: Tema = enClaro ? 'oscuro' : 'claro';
+  aplicarTema(nuevo);
+  return nuevo;
 }
 
 /**
@@ -91,7 +179,8 @@ export function aplicarTema(tema: Tema, guardar = true) {
  * porque para cuando React monte ya es tarde.
  */
 export const SCRIPT_ANTI_PARPADEO = `(function(){try{
-var t=localStorage.getItem('${STORAGE_KEY}')||'sistema';
+var c=document.cookie.match(/(?:^|; )dinamyt_tema=([^;]*)/);
+var t=(c?decodeURIComponent(c[1]):null)||localStorage.getItem('${STORAGE_KEY}')||'sistema';
 if(t==='light')t='claro';if(t==='dark')t='oscuro';
 var claro = t==='claro' || (t==='sistema' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
 if(claro){document.documentElement.dataset.theme='light';

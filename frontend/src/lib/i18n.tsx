@@ -31,6 +31,8 @@ const es = {
   "menu.navegacion": "Ir a",
   /** Antetitulo de las pantallas de panel. Dice EN QUE app estas. */
   "app.antetitulo": "DINAMYT · Campeonatos",
+  /** El nombre de la APP, que va detras de DINAMYT en la barra (`.marca`). */
+  "app.nombreCorto": "Campeonatos",
   "menu.abrir": "Abrir menú",
   "menu.cerrar": "Cerrar menú",
   "menu.inicio": "🏠 Inicio",
@@ -1258,6 +1260,7 @@ const en: Record<ClaveTexto, string> = {
   "menu.etiqueta": "Menu",
   "menu.navegacion": "Go to",
   "app.antetitulo": "DINAMYT · Championships",
+  "app.nombreCorto": "Championships",
   "menu.abrir": "Open menu",
   "menu.cerrar": "Close menu",
   "menu.inicio": "🏠 Home",
