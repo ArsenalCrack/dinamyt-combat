@@ -118,7 +118,7 @@ export default function ResultadosPage() {
   return (
     <div className="resultados-page">
       <div className="resultados-header">
-        <Logo fontSize="clamp(1.5rem, 4vw, 2rem)" />
+        <Logo className="solo-sin-barra" fontSize="1.5rem" />
         <div>
           <h1 className="resultados-titulo">{t("res.titulo")}</h1>
           <p className="resultados-sub">{t("res.sub")}</p>
@@ -259,7 +259,7 @@ export default function ResultadosPage() {
            dentro de un template literal de JS y la primera cerraria la cadena.
         */
         .resultados-titulo {
-          font-family: var(--font-display); font-size: clamp(1.5rem, 3.4vw, 1.9rem);
+          font-family: var(--font-display); font-size: 1.5rem;
           font-weight: 800; font-stretch: 118%; text-transform: uppercase;
           color: var(--text); letter-spacing: -0.015em; line-height: 0.98;
         }

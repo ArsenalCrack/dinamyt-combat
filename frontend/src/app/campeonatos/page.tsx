@@ -46,7 +46,7 @@ export default function CampeonatosPublicoPage() {
   return (
     <div className="campub-page">
       <div className="campub-header">
-        <Logo fontSize="clamp(1.5rem, 4vw, 2rem)" />
+        <Logo className="solo-sin-barra" fontSize="1.5rem" />
         <div>
           <h1 className="campub-titulo">{t("pub.camp.titulo")}</h1>
           <p className="campub-sub">{t("pub.camp.sub")}</p>
@@ -107,7 +107,7 @@ export default function CampeonatosPublicoPage() {
         }
         .campub-header > div { flex: 1; min-width: 0; }
         .campub-titulo {
-          font-family: var(--font-display); font-size: clamp(1.5rem, 3.4vw, 1.9rem);
+          font-family: var(--font-display); font-size: 1.5rem;
           font-weight: 800; font-stretch: 118%; text-transform: uppercase;
           color: var(--text); letter-spacing: -0.015em; line-height: 0.98;
         }

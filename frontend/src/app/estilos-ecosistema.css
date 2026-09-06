@@ -1,135 +1,135 @@
-/* ╔══════════════════════════════════════════════════════════════════════════╗
-   ║  ARCHIVO GENERADO — NO SE EDITA AQUI                                     ║
-   ║                                                                          ║
-   ║  El original vive en el monorepo:                                        ║
-   ║      dinamyt/packages/shared/estilos.css                                 ║
-   ║                                                                          ║
-   ║  Se trae con:  .\scripts\repartir-estilos.ps1                            ║
-   ║  Un cambio hecho en esta copia se pierde en el siguiente reparto.        ║
-   ╚══════════════════════════════════════════════════════════════════════════╝ */
-/* ════════════════════════════════════════════════════════════════════════════
-   DINAMYT · Los colores del ecosistema, en un solo sitio
-   ════════════════════════════════════════════════════════════════════════════
+﻿/* â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—
+   â•‘  ARCHIVO GENERADO â€” NO SE EDITA AQUI                                     â•‘
+   â•‘                                                                          â•‘
+   â•‘  El original vive en el monorepo:                                        â•‘
+   â•‘      dinamyt/packages/shared/estilos.css                                 â•‘
+   â•‘                                                                          â•‘
+   â•‘  Se trae con:  .\scripts\repartir-estilos.ps1                            â•‘
+   â•‘  Un cambio hecho en esta copia se pierde en el siguiente reparto.        â•‘
+   â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   DINAMYT Â· Los colores del ecosistema, en un solo sitio
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-   Hasta ahora cada web tenía su propia copia de esta paleta dentro de su
-   `globals.css`. Cuatro copias: el portal, Academy, Membresías y Campeonatos.
-   Mientras nadie las tocara daba igual — y de hecho tres de ellas siguen
+   Hasta ahora cada web tenÃ­a su propia copia de esta paleta dentro de su
+   `globals.css`. Cuatro copias: el portal, Academy, MembresÃ­as y Campeonatos.
+   Mientras nadie las tocara daba igual â€” y de hecho tres de ellas siguen
    diciendo exactamente lo mismo, token por token.
 
-   **La cuarta no.** Campeonatos se desvió en ocho de los diez que comparte:
+   **La cuarta no.** Campeonatos se desviÃ³ en ocho de los diez que comparte:
 
-       --bg          #0e0e15  ·  Campeonatos: #14141e
-       --bg-card     #15151f  ·  Campeonatos: #1c1c2a
-       --bg-elevated #1d1d2a  ·  Campeonatos: #242436
-       --bg-input    #0a0a11  ·  Campeonatos: #0e0e18
-       --border      #262635  ·  Campeonatos: #2a2a3e
-       --text        #f3f1e8  ·  Campeonatos: #f0f0f8
-       --text-muted  #a19db8  ·  Campeonatos: #9090b0
-       --chung       #2266ff  ·  Campeonatos: #0055FF
+       --bg          #0e0e15  Â·  Campeonatos: #14141e
+       --bg-card     #15151f  Â·  Campeonatos: #1c1c2a
+       --bg-elevated #1d1d2a  Â·  Campeonatos: #242436
+       --bg-input    #0a0a11  Â·  Campeonatos: #0e0e18
+       --border      #262635  Â·  Campeonatos: #2a2a3e
+       --text        #f3f1e8  Â·  Campeonatos: #f0f0f8
+       --text-muted  #a19db8  Â·  Campeonatos: #9090b0
+       --chung       #2266ff  Â·  Campeonatos: #0055FF
 
-   Eso es exactamente lo que §4.9 («que las tres apps se sientan una sola»)
-   existe para evitar, y ya había pasado: quien salta del portal a Campeonatos
-   cruza a un gris distinto sin saber por qué.
+   Eso es exactamente lo que Â§4.9 (Â«que las tres apps se sientan una solaÂ»)
+   existe para evitar, y ya habÃ­a pasado: quien salta del portal a Campeonatos
+   cruza a un gris distinto sin saber por quÃ©.
 
-   ── De dónde salen estos valores ──
+   â”€â”€ De dÃ³nde salen estos valores â”€â”€
 
-   De **Membresías**, que es la paleta que se eligió como buena. No es una
+   De **MembresÃ­as**, que es la paleta que se eligiÃ³ como buena. No es una
    media entre las cuatro: es una de ellas, entera, para que el resultado sea
-   un diseño y no un promedio.
+   un diseÃ±o y no un promedio.
 
-   ── Cómo se usa ──
+   â”€â”€ CÃ³mo se usa â”€â”€
 
    En el `globals.css` de cada web, ANTES de sus propias reglas:
 
        @import '@dinamyt/shared/estilos.css';
 
-   Y se borra de ahí el bloque `:root` con los colores. Lo que NO se borra es
-   todo lo demás —tipografía, espaciado, componentes—: cada app tiene sus
-   pantallas y este archivo solo define de qué color son las cosas.
+   Y se borra de ahÃ­ el bloque `:root` con los colores. Lo que NO se borra es
+   todo lo demÃ¡s â€”tipografÃ­a, espaciado, componentesâ€”: cada app tiene sus
+   pantallas y este archivo solo define de quÃ© color son las cosas.
 
-   ⚠️ Membresías y Campeonatos viven en OTROS repositorios (§1.1) y no están
-   en este workspace de pnpm, así que no pueden importarlo por el nombre del
+   âš ï¸ MembresÃ­as y Campeonatos viven en OTROS repositorios (Â§1.1) y no estÃ¡n
+   en este workspace de pnpm, asÃ­ que no pueden importarlo por el nombre del
    paquete. Para ellas este archivo se copia con `sync-apps.ps1`. Mientras
-   tanto Membresías ya coincide (es el original) y Campeonatos es la que hay
+   tanto MembresÃ­as ya coincide (es el original) y Campeonatos es la que hay
    que alinear, en SU repositorio.
-   ════════════════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 :root {
   color-scheme: dark;
 
-  /* ── Fondos, de más hondo a más cerca ── */
+  /* â”€â”€ Fondos, de mÃ¡s hondo a mÃ¡s cerca â”€â”€ */
   --bg: #0e0e15;
   --bg-card: #15151f;
   --bg-elevated: #1d1d2a;
   --bg-input: #0a0a11;
   /* El fondo de la BARRA de arriba, que es su propio token y no `--bg-card`.
-     Va translúcida (lleva `backdrop-filter` detrás), así que necesita un valor
-     con alfa, y ése no se puede derivar de un hex en CSS sin `color-mix`.
-     Existir aparte es además lo que impide que se vuelva a escribir a mano:
-     estaba puesto en línea como `rgba(14,14,21,0.85)` en la portada del portal
+     Va translÃºcida (lleva `backdrop-filter` detrÃ¡s), asÃ­ que necesita un valor
+     con alfa, y Ã©se no se puede derivar de un hex en CSS sin `color-mix`.
+     Existir aparte es ademÃ¡s lo que impide que se vuelva a escribir a mano:
+     estaba puesto en lÃ­nea como `rgba(14,14,21,0.85)` en la portada del portal
      y por eso la barra se quedaba NEGRA con el modo claro puesto. */
   --bg-barra: rgba(14, 14, 21, 0.86);
 
-  /* ── Trazos ── */
+  /* â”€â”€ Trazos â”€â”€ */
   --border: #262635;
   --border-strong: #3a3a4e;
 
-  /* ── Texto ── */
+  /* â”€â”€ Texto â”€â”€ */
   --text: #f3f1e8;
   --text-muted: #a19db8;
 
-  /* ── El oro de la marca, QUE SON TRES Y NO UNO ──
+  /* â”€â”€ El oro de la marca, QUE SON TRES Y NO UNO â”€â”€
      En oscuro los tres valen lo mismo; existen por el modo claro, donde el oro
      vivo sobre blanco es ilegible y hay que moverlo de sitio en vez de
-     apagarlo. Que los tres nombres existan también aquí es lo que permite
+     apagarlo. Que los tres nombres existan tambiÃ©n aquÃ­ es lo que permite
      escribir la pantalla UNA vez y que se vea bien en los dos temas.
 
-       · `--gold`         la LETRA pequeña (antetítulos, enlaces, insignias).
-       · `--gold-grande`  la letra GRANDE (≥24 px en negrita): titulares y
-                          números de marcador. WCAG le pide 3:1 en vez de
-                          4.5:1, así que aquí cabe un oro de verdad.
-       · `--gold-fill`    el RELLENO, cuando el oro es el fondo y encima va
-                          texto oscuro (el botón del login). */
+       Â· `--gold`         la LETRA pequeÃ±a (antetÃ­tulos, enlaces, insignias).
+       Â· `--gold-grande`  la letra GRANDE (â‰¥24 px en negrita): titulares y
+                          nÃºmeros de marcador. WCAG le pide 3:1 en vez de
+                          4.5:1, asÃ­ que aquÃ­ cabe un oro de verdad.
+       Â· `--gold-fill`    el RELLENO, cuando el oro es el fondo y encima va
+                          texto oscuro (el botÃ³n del login). */
   --gold: #f0b800;
   --gold-grande: #f0b800;
   --gold-dim: #c99a00;
   --gold-soft: rgba(240, 184, 0, 0.12);
   --gold-fill: #f0b800;
 
-  /* La acción del día a día. El oro se reserva para MARCA —acentos, insignias
-     y el botón del login—, que es lo que le devuelve el peso: un oro que sale
-     en cada botón deja de decir nada.
+  /* La acciÃ³n del dÃ­a a dÃ­a. El oro se reserva para MARCA â€”acentos, insignias
+     y el botÃ³n del loginâ€”, que es lo que le devuelve el peso: un oro que sale
+     en cada botÃ³n deja de decir nada.
 
-     ── Por qué el texto es BLANCO, y por qué el verde bajó de luminosidad ──
+     â”€â”€ Por quÃ© el texto es BLANCO, y por quÃ© el verde bajÃ³ de luminosidad â”€â”€
 
-     Un botón de acción con letra oscura encima se lee como una pastilla de
-     color, no como un botón: es el patrón del «chip» y del aviso, no el del
-     control que se pulsa. Y aquí convivía con `.btn-cta` (oro con letra
-     oscura) y con `.btn-danger` (contorno), así que las tres acciones de una
-     misma pantalla tenían tres gramáticas distintas.
+     Un botÃ³n de acciÃ³n con letra oscura encima se lee como una pastilla de
+     color, no como un botÃ³n: es el patrÃ³n del Â«chipÂ» y del aviso, no el del
+     control que se pulsa. Y aquÃ­ convivÃ­a con `.btn-cta` (oro con letra
+     oscura) y con `.btn-danger` (contorno), asÃ­ que las tres acciones de una
+     misma pantalla tenÃ­an tres gramÃ¡ticas distintas.
 
      Con letra blanca el verde no puede ser cualquiera: `#22b87e` daba **2.55:1**
-     contra el blanco — ilegible. `#00875a` da **4.55:1** y pasa AA, y es el
-     verde más VIVO que lo consigue: a esa luminosidad tiene el croma al tope
-     (verde puro, sin gris dentro), así que no se ve más apagado, se ve más
-     saturado. Contra la tarjeta oscura da 3.98:1, o sea que el botón sigue
-     recortándose del fondo.
+     contra el blanco â€” ilegible. `#00875a` da **4.55:1** y pasa AA, y es el
+     verde mÃ¡s VIVO que lo consigue: a esa luminosidad tiene el croma al tope
+     (verde puro, sin gris dentro), asÃ­ que no se ve mÃ¡s apagado, se ve mÃ¡s
+     saturado. Contra la tarjeta oscura da 3.98:1, o sea que el botÃ³n sigue
+     recortÃ¡ndose del fondo.
 
-     Y vale IGUAL en los dos temas, que es lo que hace que la misma acción se
+     Y vale IGUAL en los dos temas, que es lo que hace que la misma acciÃ³n se
      vea la misma en las cuatro webs y con cualquier luz. */
   --accion: #00875a;
   --accion-texto: #ffffff;
-  /* El hover OSCURECE, y tiene que ser así: con letra blanca, cualquier verde
-     más claro que `#00875a` baja de 4.5:1, así que aclarar al pasar por encima
-     dejaría el texto por debajo de AA justo en el momento en que se va a
-     pulsar. Lo que da la sensación de «se encendió» es el halo de `.btn-gold`,
+  /* El hover OSCURECE, y tiene que ser asÃ­: con letra blanca, cualquier verde
+     mÃ¡s claro que `#00875a` baja de 4.5:1, asÃ­ que aclarar al pasar por encima
+     dejarÃ­a el texto por debajo de AA justo en el momento en que se va a
+     pulsar. Lo que da la sensaciÃ³n de Â«se encendiÃ³Â» es el halo de `.btn-gold`,
      no la luminosidad del relleno. */
   --accion-hover: #006b47;
 
-  /* ── Estados ──
+  /* â”€â”€ Estados â”€â”€
      Cada uno con su `-fill`: el color de la LETRA y el color del RELLENO. En
-     oscuro casi coinciden —sobre tinta, un color vivo se lee bien de las dos
-     formas—, y existen aquí para que las pantallas puedan escribirse una sola
+     oscuro casi coinciden â€”sobre tinta, un color vivo se lee bien de las dos
+     formasâ€”, y existen aquÃ­ para que las pantallas puedan escribirse una sola
      vez: en claro esos dos papeles se separan mucho (ver el bloque de abajo). */
   --danger: #ff5577;
   --danger-fill: #e8002a;
@@ -137,22 +137,22 @@
   --ok-fill: #00b878;
   --info: #4d9fff;
   --info-fill: #2266ff;
-  /* El naranja de aviso. No estaba aquí y sí en Campeonatos (`--orange`), que
-     es como se separan siempre las paletas: un color que usa una app y no está
-     en el sitio común. */
+  /* El naranja de aviso. No estaba aquÃ­ y sÃ­ en Campeonatos (`--orange`), que
+     es como se separan siempre las paletas: un color que usa una app y no estÃ¡
+     en el sitio comÃºn. */
   --warn: #ff9d2e;
   --warn-fill: #ff8c00;
 
-  /* ── Los dos lados de un combate. Son reglamento, no decoración: hong es el
-        rojo y chung el azul, y se llaman así en las cuatro apps. ── */
+  /* â”€â”€ Los dos lados de un combate. Son reglamento, no decoraciÃ³n: hong es el
+        rojo y chung el azul, y se llaman asÃ­ en las cuatro apps. â”€â”€ */
   --hong: #e8002a;
   --chung: #2266ff;
 
-  /* ── Series de gráfica (hoy solo las usa el panel del portal) ──
+  /* â”€â”€ Series de grÃ¡fica (hoy solo las usa el panel del portal) â”€â”€
      Dos hues, y estos dos exactos: son los que pasan las seis comprobaciones
-     del validador de paleta contra el fondo de tarjeta (#15151f) —banda de
-     luminosidad, croma mínimo, separación para daltonismo (dE 28 en protan,
-     20 en tritan) y contraste ≥ 3:1—. El oro de marca (#f0b800) y el azul de
+     del validador de paleta contra el fondo de tarjeta (#15151f) â€”banda de
+     luminosidad, croma mÃ­nimo, separaciÃ³n para daltonismo (dE 28 en protan,
+     20 en tritan) y contraste â‰¥ 3:1â€”. El oro de marca (#f0b800) y el azul de
      aviso (#4d9fff) se salen de la banda por arriba: brillan tanto sobre
      tinta que las barras se comen la lectura del eje.
      Se asignan por identidad y en orden fijo, nunca ciclados. */
@@ -160,40 +160,40 @@
   --serie-2: #3f86e8;
 }
 
-/* ════════════════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    MODO CLARO
 
    Se activa con `data-theme="light"` en `<html>`. Lo pone `aplicarTema`
    (`lib/tema.ts`) y, antes del primer pintado, el script anti-parpadeo del
-   `layout` — sin él la pantalla sale oscura un instante y luego se aclara,
+   `layout` â€” sin Ã©l la pantalla sale oscura un instante y luego se aclara,
    que se ve como un fallo.
 
-   **Solo se redefinen colores.** Tipografía, espaciado y componentes se
-   quedan igual: el modo claro no es otro diseño, es el mismo con otra luz.
+   **Solo se redefinen colores.** TipografÃ­a, espaciado y componentes se
+   quedan igual: el modo claro no es otro diseÃ±o, es el mismo con otra luz.
 
-   ⚠️ El oro se oscurece a `#a37400`. El `#f0b800` del modo oscuro sobre
-   blanco da 1.9:1 de contraste — ilegible. Es el único token que no es una
-   traducción directa, y por eso lleva su motivo escrito.
-   ════════════════════════════════════════════════════════════════════════════ */
+   âš ï¸ El oro se oscurece a `#a37400`. El `#f0b800` del modo oscuro sobre
+   blanco da 1.9:1 de contraste â€” ilegible. Es el Ãºnico token que no es una
+   traducciÃ³n directa, y por eso lleva su motivo escrito.
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 html[data-theme='light'] {
   color-scheme: light;
 
-  /* ── Superficies ──
+  /* â”€â”€ Superficies â”€â”€
      El fondo baja de #f4f4f8 a #eef0f4. Parece un detalle y no lo es: con el
-     fondo casi blanco, una tarjeta blanca no se distinguía de la página y todo
-     se veía plano. Bajarlo un punto es lo que hace que la tarjeta se lea como
+     fondo casi blanco, una tarjeta blanca no se distinguÃ­a de la pÃ¡gina y todo
+     se veÃ­a plano. Bajarlo un punto es lo que hace que la tarjeta se lea como
      una tarjeta, que es como se ve una app clara bien hecha. */
   --bg: #eef0f4;
   --bg-card: #ffffff;
   --bg-elevated: #e4e7ee;
   --bg-input: #ffffff;
-  /* Blanco, no el `--bg` de la página: la barra tiene que leerse como una capa
+  /* Blanco, no el `--bg` de la pÃ¡gina: la barra tiene que leerse como una capa
      POR ENCIMA del contenido, y una barra del mismo gris que el fondo con un
      borde debajo se ve como una raya suelta. Con blanco y el borde, se ve como
      lo que es. */
   --bg-barra: rgba(255, 255, 255, 0.9);
 
-  /* Los bordes también suben de peso (#dcdce6 → #d3d7e0). Sobre blanco, un
+  /* Los bordes tambiÃ©n suben de peso (#dcdce6 â†’ #d3d7e0). Sobre blanco, un
      borde demasiado claro desaparece y los campos parecen manchas. */
   --border: #d3d7e0;
   --border-strong: #aeb4c2;
@@ -201,69 +201,69 @@ html[data-theme='light'] {
   --text: #12121a;
   --text-muted: #565669;
 
-  /* ── EL ORO, QUE SON DOS COLORES Y NO UNO ──
-     Aquí estaba el error, y era de accesibilidad, no de gusto: el oro de texto
-     era `#a37400`, que sobre blanco da **4.15:1** — por debajo del 4.5:1 que
-     pide WCAG AA. El antetítulo de cada pantalla se leía mal y nadie lo había
+  /* â”€â”€ EL ORO, QUE SON DOS COLORES Y NO UNO â”€â”€
+     AquÃ­ estaba el error, y era de accesibilidad, no de gusto: el oro de texto
+     era `#a37400`, que sobre blanco da **4.15:1** â€” por debajo del 4.5:1 que
+     pide WCAG AA. El antetÃ­tulo de cada pantalla se leÃ­a mal y nadie lo habÃ­a
      medido. `#9a6a00` da 4.73:1 y pasa.
 
      Pero un oro que pasa como TEXTO es oscuro, y de fondo se ve embarrado: el
-     botón del login («Entrar») lleva texto oscuro ENCIMA del oro, y con el oro
-     oscuro eso daba 3.86:1 — el botón de marca, ilegible.
+     botÃ³n del login (Â«EntrarÂ») lleva texto oscuro ENCIMA del oro, y con el oro
+     oscuro eso daba 3.86:1 â€” el botÃ³n de marca, ilegible.
 
-     De ahí que sean dos:
-       · `--gold`      el de la LETRA. Oscuro, porque tiene que pasar sobre blanco.
-       · `--gold-fill` el del RELLENO. Se queda vivo (#f0b800) porque encima va
-                       texto oscuro, y así da 10:1.
-     Es la solución de siempre para una marca luminosa en tema claro: el color
+     De ahÃ­ que sean dos:
+       Â· `--gold`      el de la LETRA. Oscuro, porque tiene que pasar sobre blanco.
+       Â· `--gold-fill` el del RELLENO. Se queda vivo (#f0b800) porque encima va
+                       texto oscuro, y asÃ­ da 10:1.
+     Es la soluciÃ³n de siempre para una marca luminosa en tema claro: el color
      no se apaga, se cambia de sitio. */
-  /* Un punto más cálido que `#9a6a00`, que a ese peso tiraba a oliva y se leía
-     apagado. `#a05e00` está en el mismo sitio de luminosidad —5.13:1, sigue
-     pasando AA— pero con el matiz corrido hacia el ámbar, que es lo que hace
+  /* Un punto mÃ¡s cÃ¡lido que `#9a6a00`, que a ese peso tiraba a oliva y se leÃ­a
+     apagado. `#a05e00` estÃ¡ en el mismo sitio de luminosidad â€”5.13:1, sigue
+     pasando AAâ€” pero con el matiz corrido hacia el Ã¡mbar, que es lo que hace
      que se lea como oro oscuro y no como mostaza. */
   --gold: #a05e00;
-  /* ── Y EL TERCER ORO: el de los titulares ──
-     Éste era el que faltaba, y es el que más se ve. «EL CUADERNO» de la portada
-     y cualquier acento grande salían pintados con `--gold`, que es un oro de
-     TEXTO PEQUEÑO: a 60 px, ese marrón dorado no se lee como el oro de la
+  /* â”€â”€ Y EL TERCER ORO: el de los titulares â”€â”€
+     Ã‰ste era el que faltaba, y es el que mÃ¡s se ve. Â«EL CUADERNOÂ» de la portada
+     y cualquier acento grande salÃ­an pintados con `--gold`, que es un oro de
+     TEXTO PEQUEÃ‘O: a 60 px, ese marrÃ³n dorado no se lee como el oro de la
      marca, se lee como un titular sucio. Era el motivo principal de que el modo
      claro pareciera apagado.
 
-     WCAG mide distinto el texto grande (≥24 px, o ≥18.66 px en negrita): le
+     WCAG mide distinto el texto grande (â‰¥24 px, o â‰¥18.66 px en negrita): le
      pide **3:1** en vez de 4.5:1, porque un trazo gordo se distingue con menos
-     contraste. `#c58700` da 3.07:1 sobre blanco y es un oro de verdad —dos
-     escalones de luminosidad por encima del de texto— sin salirse de la regla.
+     contraste. `#c58700` da 3.07:1 sobre blanco y es un oro de verdad â€”dos
+     escalones de luminosidad por encima del de textoâ€” sin salirse de la regla.
 
-     ⚠️ Solo para texto GRANDE y en negrita. En un párrafo o en una etiqueta
-     pequeña esto no pasa AA: ahí va `--gold`. */
+     âš ï¸ Solo para texto GRANDE y en negrita. En un pÃ¡rrafo o en una etiqueta
+     pequeÃ±a esto no pasa AA: ahÃ­ va `--gold`. */
   --gold-grande: #c58700;
   --gold-dim: #7d4a00;
   --gold-fill: #f0b800;
-  /* Más tinte que antes (0.16 → 0.22) y con el oro VIVO: la insignia dorada
-     tiene que verse dorada, y a poco tinte sobre blanco se veía beige. */
+  /* MÃ¡s tinte que antes (0.16 â†’ 0.22) y con el oro VIVO: la insignia dorada
+     tiene que verse dorada, y a poco tinte sobre blanco se veÃ­a beige. */
   --gold-soft: rgba(240, 184, 0, 0.22);
 
-  /* ── Acentos: el mismo hue, con TODO el croma que cabe ──
-     La queja era exacta: en claro los colores se veían apagados. Y no era una
-     impresión, era el método — se venía oscureciendo cada color hasta que
-     pasara el contraste, y oscurecer también quita saturación. El resultado es
+  /* â”€â”€ Acentos: el mismo hue, con TODO el croma que cabe â”€â”€
+     La queja era exacta: en claro los colores se veÃ­an apagados. Y no era una
+     impresiÃ³n, era el mÃ©todo â€” se venÃ­a oscureciendo cada color hasta que
+     pasara el contraste, y oscurecer tambiÃ©n quita saturaciÃ³n. El resultado es
      una paleta que cumple y no dice nada.
 
      La forma correcta es la contraria: fijar la luminosidad que exige AA
-     (`L ≤ 0.183` para texto sobre blanco) y, dentro de ella, elegir el color
-     con MÁS croma. Se ve encendido y pasa igual:
+     (`L â‰¤ 0.183` para texto sobre blanco) y, dentro de ella, elegir el color
+     con MÃS croma. Se ve encendido y pasa igual:
 
-        peligro  #d61f3f → #e00028   (rojo puro, 5.00:1)
-        aviso    #0b62d6 → #0a5cf0   (azul eléctrico, 5.53:1)
-        naranja  —       → #c94f00   (no existía aquí, 4.56:1)
+        peligro  #d61f3f â†’ #e00028   (rojo puro, 5.00:1)
+        aviso    #0b62d6 â†’ #0a5cf0   (azul elÃ©ctrico, 5.53:1)
+        naranja  â€”       â†’ #c94f00   (no existÃ­a aquÃ­, 4.56:1)
         bien     #00875a             (ya estaba al tope de croma, 4.55:1)
 
      Los tres `-fill` son la otra mitad: el color VIVO, para cuando es fondo y
-     no letra. Es lo mismo que ya hacía el oro, generalizado — una app clara se
+     no letra. Es lo mismo que ya hacÃ­a el oro, generalizado â€” una app clara se
      ve encendida por sus rellenos, no por sus textos. */
-  /* ⚠️ `--accion` y `--accion-texto` NO se redefinen aquí, y no es un olvido:
-     el botón de acción es el MISMO verde con la MISMA letra blanca en los dos
-     temas. Lo que cambia con la luz es lo que tiene alrededor, no él. */
+  /* âš ï¸ `--accion` y `--accion-texto` NO se redefinen aquÃ­, y no es un olvido:
+     el botÃ³n de acciÃ³n es el MISMO verde con la MISMA letra blanca en los dos
+     temas. Lo que cambia con la luz es lo que tiene alrededor, no Ã©l. */
   --danger: #e00028;
   --danger-fill: #e8002a;
   --ok: #00875a;
@@ -283,11 +283,11 @@ html[data-theme='light'] ::selection {
 }
 
 /* En claro las tarjetas se separan del fondo con SOMBRA, no con un borde
-   luminoso: el truco del modo oscuro aquí se ve sucio.
+   luminoso: el truco del modo oscuro aquÃ­ se ve sucio.
 
-   La sombra es más marcada que antes y la de arriba lleva un tinte azulado en
+   La sombra es mÃ¡s marcada que antes y la de arriba lleva un tinte azulado en
    vez de gris neutro. Es lo que hace que una tarjeta blanca sobre fondo claro
-   se vea apoyada y no pegada — el detalle que separa una app clara buena de
+   se vea apoyada y no pegada â€” el detalle que separa una app clara buena de
    una que parece un documento. */
 html[data-theme='light'] .card {
   box-shadow:
@@ -303,7 +303,7 @@ html[data-theme='light'] button.card:hover {
     0 8px 20px rgba(23, 27, 42, 0.12);
 }
 
-/* El botón de marca conserva su brillo dorado, pero la sombra en claro no
+/* El botÃ³n de marca conserva su brillo dorado, pero la sombra en claro no
    puede ser la misma: sobre blanco, un halo dorado al 25 % se ve sucio. */
 html[data-theme='light'] .btn-cta {
   box-shadow: 0 1px 3px rgba(154, 106, 0, 0.28);
@@ -322,8 +322,8 @@ html[data-theme='light'] textarea:focus {
   box-shadow: 0 0 0 3px rgba(240, 184, 0, 0.28);
 }
 
-/* La franja de cinturones es la firma de la marca y en claro se comía el
-   blanco: sobre fondo claro, el primero (hueso #f3f1e8) desaparecía. Se le
+/* La franja de cinturones es la firma de la marca y en claro se comÃ­a el
+   blanco: sobre fondo claro, el primero (hueso #f3f1e8) desaparecÃ­a. Se le
    pone un gris de contorno en su lugar. */
 html[data-theme='light'] .cinturon {
   background: linear-gradient(
@@ -338,7 +338,7 @@ html[data-theme='light'] .cinturon {
 }
 
 /* Las sombras del modo oscuro son negro al 45 %: sobre fondo claro manchan.
-   Los paneles flotantes de las cuatro apps usan una mucho más suave. */
+   Los paneles flotantes de las cuatro apps usan una mucho mÃ¡s suave. */
 html[data-theme='light'] .navbar-panel,
 html[data-theme='light'] .avisos-panel,
 html[data-theme='light'] .avisos-org-panel,
@@ -355,10 +355,10 @@ html[data-theme='light'] .btn-danger {
   border-color: var(--danger);
 }
 
-/* Las insignias, con más tinte todavía (0.14 → 0.20) y el borde en el color
-   VIVO. Al 10 % sobre blanco las tres se veían igual de grises; al 14 % ya se
-   distinguían pero seguían pareciendo apagadas, que es la queja. El texto se
-   queda en el color oscuro —es letra pequeña y tiene que pasar AA—, y quien
+/* Las insignias, con mÃ¡s tinte todavÃ­a (0.14 â†’ 0.20) y el borde en el color
+   VIVO. Al 10 % sobre blanco las tres se veÃ­an igual de grises; al 14 % ya se
+   distinguÃ­an pero seguÃ­an pareciendo apagadas, que es la queja. El texto se
+   queda en el color oscuro â€”es letra pequeÃ±a y tiene que pasar AAâ€”, y quien
    pone el color es el fondo. */
 html[data-theme='light'] .badge-ok {
   background: rgba(0, 184, 120, 0.20);
@@ -376,14 +376,14 @@ html[data-theme='light'] .badge-warn {
   color: var(--warn);
 }
 /* La insignia dorada, con el oro VIVO de fondo y un borde de verdad. Con el
-   tinte al 20 % y el borde apagado se veía beige; el oro de la marca tiene que
-   aparecer vivo en algún sitio del tema claro, y este es su sitio natural. */
+   tinte al 20 % y el borde apagado se veÃ­a beige; el oro de la marca tiene que
+   aparecer vivo en algÃºn sitio del tema claro, y este es su sitio natural. */
 html[data-theme='light'] .badge-gold {
   background: rgba(240, 184, 0, 0.28);
   border-color: var(--gold-fill);
   color: #6b3f00;
 }
-/* El botón de contorno, al pasar por encima, tira del oro vivo y no del
+/* El botÃ³n de contorno, al pasar por encima, tira del oro vivo y no del
    oscuro: sobre blanco, un borde `#a05e00` no se distingue de uno gris. */
 html[data-theme='light'] .btn-outline:hover:not(:disabled) {
   border-color: var(--gold-fill);
@@ -397,30 +397,30 @@ html[data-theme='light'] .badge-danger {
   color: var(--danger);
 }
 
-/* ════════════════════════════════════════════════════════════════════════════
-   Y DEBAJO: EL DISEÑO, NO SOLO LOS COLORES
-   ════════════════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   Y DEBAJO: EL DISEÃ‘O, NO SOLO LOS COLORES
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-   Hasta el 5 de septiembre de 2026 aquí solo estaba la paleta, y las cuatro
-   webs seguían teniendo cada una su copia de los BOTONES, las TARJETAS, los
-   CAMPOS y la tipografía de rol. Ya se habían empezado a separar:
+   Hasta el 5 de septiembre de 2026 aquÃ­ solo estaba la paleta, y las cuatro
+   webs seguÃ­an teniendo cada una su copia de los BOTONES, las TARJETAS, los
+   CAMPOS y la tipografÃ­a de rol. Ya se habÃ­an empezado a separar:
 
-     · El botón del portal era más gordo que el de Membresías —`0.55rem 1.2rem`
-       contra `0.5rem 1rem`, y `0.9rem` de letra contra `0.875rem`—, así que la
-       misma acción se veía de dos tamaños según la app en la que estuvieras.
-     · `.btn-sm` tampoco coincidía, y en el portal llevaba un `border-radius`
-       que en Membresías no existe.
-     · Campeonatos ni siquiera usaba estas clases: tenía su propio sistema, con
+     Â· El botÃ³n del portal era mÃ¡s gordo que el de MembresÃ­as â€”`0.55rem 1.2rem`
+       contra `0.5rem 1rem`, y `0.9rem` de letra contra `0.875rem`â€”, asÃ­ que la
+       misma acciÃ³n se veÃ­a de dos tamaÃ±os segÃºn la app en la que estuvieras.
+     Â· `.btn-sm` tampoco coincidÃ­a, y en el portal llevaba un `border-radius`
+       que en MembresÃ­as no existe.
+     Â· Campeonatos ni siquiera usaba estas clases: tenÃ­a su propio sistema, con
        otras fuentes (Bebas Neue, Barlow Condensed) y su propia paleta.
 
-   **Lo que sigue son los valores de Membresías, tal cual.** Es la app que se
-   eligió como buena, así que no se promedia: se copia. Una media entre cuatro
-   no es un diseño — es lo que queda cuando nadie decide.
+   **Lo que sigue son los valores de MembresÃ­as, tal cual.** Es la app que se
+   eligiÃ³ como buena, asÃ­ que no se promedia: se copia. Una media entre cuatro
+   no es un diseÃ±o â€” es lo que queda cuando nadie decide.
 
    Lo que cada app conserva en SU `globals.css` es lo suyo y solo lo suyo: el
    marcador de combate, el carnet, la rejilla del calendario. **Si una clase la
    usan dos apps, su sitio es este archivo.**
-   ════════════════════════════════════════════════════════════════════════════ */
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 body {
   background: var(--bg);
@@ -431,38 +431,38 @@ body {
 }
 
 /* La barra es sticky y tapa los primeros 57 px: sin esto, saltar a un ancla
-   —«Cobrar →» lleva a #cobrar— dejaba el título del formulario debajo de la
-   barra y parecía que el salto se había pasado de largo. */
+   â€”Â«Cobrar â†’Â» lleva a #cobrarâ€” dejaba el tÃ­tulo del formulario debajo de la
+   barra y parecÃ­a que el salto se habÃ­a pasado de largo. */
 html { scroll-padding-top: 4.5rem; }
 
-/* ── EL ENLACE VA EN `@layer base`, Y ESO ARREGLA TODOS LOS BOTONES ────────
+/* â”€â”€ EL ENLACE VA EN `@layer base`, Y ESO ARREGLA TODOS LOS BOTONES â”€â”€â”€â”€â”€â”€â”€â”€
    Esta regla estaba SIN CAPA, y en CSS lo no capado gana siempre a lo capado
-   sin importar la especificidad. Los botones viven en `@layer components`, así
-   que pasaba esto en cada botón que además es un enlace:
+   sin importar la especificidad. Los botones viven en `@layer components`, asÃ­
+   que pasaba esto en cada botÃ³n que ademÃ¡s es un enlace:
 
-       .btn-gold { color: var(--accion-texto) }   ← en components: PERDÍA
-       a         { color: inherit }               ← sin capa: GANABA
+       .btn-gold { color: var(--accion-texto) }   â† en components: PERDÃA
+       a         { color: inherit }               â† sin capa: GANABA
 
-   Y «heredar» quiere decir heredar `--text`: **blanco en oscuro y casi negro
-   en claro**. O sea que el botón verde de «Crear mi cuenta», el de «Cobrar» y
-   el de «+ Nuevo alumno» —los tres son `<Link>`, es decir `<a>`— se ponían la
-   letra negra al pasar al modo claro, mientras que el mismo botón escrito como
-   `<button>` salía bien. Por eso parecía que unos verdes obedecían y otros no.
+   Y Â«heredarÂ» quiere decir heredar `--text`: **blanco en oscuro y casi negro
+   en claro**. O sea que el botÃ³n verde de Â«Crear mi cuentaÂ», el de Â«CobrarÂ» y
+   el de Â«+ Nuevo alumnoÂ» â€”los tres son `<Link>`, es decir `<a>`â€” se ponÃ­an la
+   letra negra al pasar al modo claro, mientras que el mismo botÃ³n escrito como
+   `<button>` salÃ­a bien. Por eso parecÃ­a que unos verdes obedecÃ­an y otros no.
 
-   No es un caso raro: la mitad de los botones de acción del ecosistema navegan
-   a otra pantalla, así que son enlaces.
+   No es un caso raro: la mitad de los botones de acciÃ³n del ecosistema navegan
+   a otra pantalla, asÃ­ que son enlaces.
 
-   En `base` sigue haciendo su trabajo —un enlace suelto no sale azul y
-   subrayado— y pierde contra cualquier clase de componente, que es lo correcto.
+   En `base` sigue haciendo su trabajo â€”un enlace suelto no sale azul y
+   subrayadoâ€” y pierde contra cualquier clase de componente, que es lo correcto.
    De paso, las utilidades de Tailwind (`underline`, `text-*`) empiezan a
-   funcionar sobre enlaces: antes también las anulaba. */
+   funcionar sobre enlaces: antes tambiÃ©n las anulaba. */
 @layer base {
   a { color: inherit; text-decoration: none; }
 }
 
 ::selection { background: var(--gold); color: #14141e; }
 
-/* ── Formularios (base por elemento) ────────────────────────────────────── */
+/* â”€â”€ Formularios (base por elemento) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 input, select, textarea {
   background: var(--bg-input);
   border: 1px solid var(--border);
@@ -479,11 +479,11 @@ input:focus, select:focus, textarea:focus {
 }
 input[type="checkbox"], input[type="radio"] { width: auto; accent-color: var(--gold); }
 
-/* ── Contraseñas: un solo ojo, el nuestro ──
-   Edge dibuja el suyo (`::-ms-reveal`) y ningún otro navegador lo hace, así que
-   el «ver contraseña» lo pone <CampoContrasena> para todos. Sin esta regla,
-   Edge —y solo Edge— enseñaría los dos, uno encima del otro. `::-ms-clear` es
-   la «x» de borrar del mismo navegador, que además tapa el ojo. */
+/* â”€â”€ ContraseÃ±as: un solo ojo, el nuestro â”€â”€
+   Edge dibuja el suyo (`::-ms-reveal`) y ningÃºn otro navegador lo hace, asÃ­ que
+   el Â«ver contraseÃ±aÂ» lo pone <CampoContrasena> para todos. Sin esta regla,
+   Edge â€”y solo Edgeâ€” enseÃ±arÃ­a los dos, uno encima del otro. `::-ms-clear` es
+   la Â«xÂ» de borrar del mismo navegador, que ademÃ¡s tapa el ojo. */
 input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear { display: none; }
 
@@ -494,7 +494,7 @@ input[type="password"]::-ms-clear { display: none; }
 }
 
 @layer components {
-  /* ── Tipografía de rol ──────────────────────────────────────────────── */
+  /* â”€â”€ TipografÃ­a de rol â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .display {
     font-family: var(--font-display), system-ui, sans-serif;
     font-weight: 800;
@@ -515,83 +515,107 @@ input[type="password"]::-ms-clear { display: none; }
     font-family: var(--font-mono), ui-monospace, monospace;
     font-variant-numeric: tabular-nums;
   }
-  /* ── La palabra en oro de un TITULAR ─────────────────────────────────
-     «Se acabó **el cuaderno** del club», «Bienvenido a **DINAMYT**»: la firma
-     de la marca en las cuatro webs. Se escribía a mano
+  /* â”€â”€ La palabra en oro de un TITULAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+     Â«Se acabÃ³ **el cuaderno** del clubÂ», Â«Bienvenido a **DINAMYT**Â»: la firma
+     de la marca en las cuatro webs. Se escribÃ­a a mano
      (`style={{ color: 'var(--gold)' }}`), y ese token es el oro de TEXTO
-     PEQUEÑO — el que tiene que pasar 4.5:1 sobre blanco y por eso es casi
-     marrón. A 60 px se leía como un titular sucio, y era la pieza que más
-     hacía que el modo claro pareciera apagado.
+     PEQUEÃ‘O â€” el que tiene que pasar 4.5:1 sobre blanco y por eso es casi
+     marrÃ³n. A 60 px se leÃ­a como un titular sucio, y era la pieza que mÃ¡s
+     hacÃ­a que el modo claro pareciera apagado.
 
      Esta clase pinta con `--gold-grande`, que es el oro que le corresponde a
-     ese tamaño (WCAG pide 3:1 al texto grande, no 4.5:1). Existe como CLASE y
-     no como estilo en línea para que el día que se afine el oro se afine en un
+     ese tamaÃ±o (WCAG pide 3:1 al texto grande, no 4.5:1). Existe como CLASE y
+     no como estilo en lÃ­nea para que el dÃ­a que se afine el oro se afine en un
      sitio y no en veinte.
 
-     ⚠️ Solo en texto ≥24 px, o ≥18.66 px en negrita. En una etiqueta pequeña
-     no cumple: ahí va `.eyebrow` o `color: var(--gold)`. */
+     âš ï¸ Solo en texto â‰¥24 px, o â‰¥18.66 px en negrita. En una etiqueta pequeÃ±a
+     no cumple: ahÃ­ va `.eyebrow` o `color: var(--gold)`. */
   .acento { color: var(--gold-grande); }
 
-  /* ── LA MARCA, escrita igual en las cuatro webs ───────────────────────
+  /* â”€â”€ LA MARCA, escrita igual en las cuatro webs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
      
-     ── Lo que pasaba ──
+     â”€â”€ Lo que pasaba â”€â”€
      
-     «DINAMYT» salía distinto en cada sitio, y a veces distinto dentro de la
+     Â«DINAMYTÂ» salÃ­a distinto en cada sitio, y a veces distinto dentro de la
      misma app. Auditado el 5 de septiembre de 2026:
      
          portal, barra de la portada   oro, 1.125 rem
          Campeonatos, barra            color del texto (negro en claro)
-         Campeonatos, pantalla pública «DINA» del color del texto + «MYT» oro
+         Campeonatos, pantalla pÃºblica Â«DINAÂ» del color del texto + Â«MYTÂ» oro
          Campeonatos, resultados       color del texto
-         Membresías, barra             no decía DINAMYT: decía «Mi Club»
+         MembresÃ­as, barra             no decÃ­a DINAMYT: decÃ­a Â«Mi ClubÂ»
      
      Cinco tratamientos para una palabra, y es la palabra que tiene que decir
-     «esto es la misma casa» al saltar de una app a otra. Se elige el del
-     portal —oro— porque es la portada, la primera pantalla que ve cualquiera.
+     Â«esto es la misma casaÂ» al saltar de una app a otra. Se elige el del
+     portal â€”oroâ€” porque es la portada, la primera pantalla que ve cualquiera.
      
-     ── La regla ──
+     â”€â”€ La regla â”€â”€
      
-     **DINAMYT va SIEMPRE en oro y de una sola pieza**, y detrás va el nombre
-     de la aplicación, más pequeño y en gris. El portal no lleva sufijo: él ES
+     **DINAMYT va SIEMPRE en oro y de una sola pieza**, y detrÃ¡s va el nombre
+     de la aplicaciÃ³n, mÃ¡s pequeÃ±o y en gris. El portal no lleva sufijo: Ã©l ES
      DINAMYT.
      
-         <span class="marca">DINAMYT<span class="marca-app">Membresías</span></span>
+         <span class="marca">DINAMYT<span class="marca-app">MembresÃ­as</span></span>
      
-     El oro es `--gold-grande`, que es el que le corresponde a este tamaño (ver
-     `.acento`). El tamaño lo pone quien la usa, y todo lo de dentro escala en
+     El oro es `--gold-grande`, que es el que le corresponde a este tamaÃ±o (ver
+     `.acento`). El tamaÃ±o lo pone quien la usa, y todo lo de dentro escala en
      `em`: la misma marca vale en una barra de 1.125 rem y en una portada de
      3 rem sin tocar nada.
      
-     ⚠️ Esto deroga la regla anterior («la palabra va entera del color del
-     texto, con el escudo dorado al lado»). Se cambió a propósito: aquel oro
-     solo en el escudo se perdía en el modo claro, donde el escudo es pequeño y
-     la palabra ocupa diez veces más. */
+     âš ï¸ Esto deroga la regla anterior (Â«la palabra va entera del color del
+     texto, con el escudo dorado al ladoÂ»). Se cambiÃ³ a propÃ³sito: aquel oro
+     solo en el escudo se perdÃ­a en el modo claro, donde el escudo es pequeÃ±o y
+     la palabra ocupa diez veces mÃ¡s. */
   .marca {
     display: inline-flex;
-    align-items: baseline;
-    gap: 0.4em;
+    /* â”€â”€ En COLUMNA, no en fila â”€â”€
+       En fila, Â«DINAMYT CampeonatosÂ» medÃ­a casi el doble que Â«DINAMYTÂ» solo,
+       asÃ­ que la barra de cada app empezaba con un bloque de ancho distinto y
+       en el telÃ©fono se comÃ­a el sitio de los enlaces. Apilado, la marca ocupa
+       SIEMPRE lo mismo de ancho â€”lo que mida Â«DINAMYTÂ»â€” y el nombre de la app
+       cae debajo, que es ademÃ¡s donde se lee como lo que es: una precisiÃ³n de
+       la marca, no una segunda palabra al mismo nivel. */
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
     min-width: 0;
     font-family: var(--font-display), system-ui, sans-serif;
     font-weight: 800;
     font-stretch: 118%;
     text-transform: uppercase;
     letter-spacing: -0.015em;
-    line-height: 1;
+    line-height: 0.98;
     color: var(--gold-grande);
     white-space: nowrap;
   }
-  /* El nombre de la app: más pequeño, en gris y sin el ancho extra de la
-     display — es una aclaración, no una segunda marca. */
+  /* El nombre de la app: debajo, mÃ¡s pequeÃ±o, en gris y sin el ancho extra de
+     la display â€” es una aclaraciÃ³n, no una segunda marca.
+     
+     El interletrado de 0.14em es lo que hace que una palabra pequeÃ±a debajo de
+     una grande se lea como un pie y no como un recorte: llena el ancho de la
+     de arriba sin competir con ella. Es el mismo recurso de `.eyebrow`. */
+  /* La marca de una CABECERA DE PAGINA, que solo tiene sentido cuando no hay
+     barra arriba. Con sesiÃ³n abierta la barra ya dice dÃ³nde estÃ¡s; repetirlo en
+     el tÃ­tulo de la pantalla es decirlo dos veces, una encima de la otra.
+     Quien pone `data-barra` en el `<body>` es la barra misma. */
+  /* `!important` a propÃ³sito, y es de los pocos que se justifican: el
+     componente `Logo` de Campeonatos lleva su `display` en un `style=` en
+     lÃ­nea, y un estilo en lÃ­nea gana a cualquier regla que no lo lleve. */
+  body[data-barra='si'] .solo-sin-barra { display: none !important; }
+
   .marca-app {
-    font-family: var(--font-body), system-ui, sans-serif;
+    display: block;
+    margin-top: 0.18em;
+    font-family: var(--font-mono), ui-monospace, monospace;
     font-stretch: normal;
-    font-size: 0.68em;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    font-size: 0.46em;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    line-height: 1;
     color: var(--text-muted);
   }
 
-  /* ── Franja de cinturones (firma del ecosistema) ────────────────────── */
+  /* â”€â”€ Franja de cinturones (firma del ecosistema) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .cinturon {
     height: 4px;
     border: 0;
@@ -606,7 +630,7 @@ input[type="password"]::-ms-clear { display: none; }
     );
   }
 
-  /* ── Botones ────────────────────────────────────────────────────────── */
+  /* â”€â”€ Botones â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .btn {
     display: inline-flex;
     align-items: center;
@@ -632,7 +656,7 @@ input[type="password"]::-ms-clear { display: none; }
     border-color: rgba(255, 255, 255, 0.14);
   }
   /* El hover sube al verde vivo en vez de aclarar con `filter`. Aclarar un
-     verde profundo lo LAVA —le quita croma— y el botón parecía desactivarse al
+     verde profundo lo LAVA â€”le quita cromaâ€” y el botÃ³n parecÃ­a desactivarse al
      pasar por encima, que es lo contrario de lo que tiene que decir. */
   .btn-gold:hover:not(:disabled) {
     background: var(--accion-hover);
@@ -647,7 +671,7 @@ input[type="password"]::-ms-clear { display: none; }
   }
   .btn-outline { background: transparent; border-color: var(--border-strong); color: var(--text); }
   .btn-outline:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
-  /* Acción destructiva (cerrar sesión, eliminar): SIEMPRE distinta del resto */
+  /* AcciÃ³n destructiva (cerrar sesiÃ³n, eliminar): SIEMPRE distinta del resto */
   .btn-danger {
     background: transparent;
     border-color: var(--danger);
@@ -659,27 +683,27 @@ input[type="password"]::-ms-clear { display: none; }
   }
   .btn-sm { padding: 0.3rem 0.65rem; font-size: 0.75rem; }
 
-  /* ── LA BARRA DE ARRIBA ──────────────────────────────────────────────
-     Se quedaba oscura con el modo claro puesto, y se veía exactamente como lo
-     que era: una franja de tinta pegada encima de una página blanca, con los
+  /* â”€â”€ LA BARRA DE ARRIBA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+     Se quedaba oscura con el modo claro puesto, y se veÃ­a exactamente como lo
+     que era: una franja de tinta pegada encima de una pÃ¡gina blanca, con los
      botones de contorno dibujados para fondo oscuro dentro. Estaba escrita a
      mano en la portada del portal (`style={{ background: 'rgba(14,14,21,0.85)' }}`),
      que es donde un color deja de responder al tema.
 
-     ── La raya blanca del celular ──
+     â”€â”€ La raya blanca del celular â”€â”€
 
-     Y traía un segundo defecto, el que se veía en Android: al ir translúcida
-     con `backdrop-filter`, el primer píxel de arriba mezclaba con el fondo
-     CLARO de la página y dejaba una línea pálida sobre la barra. Se nota
-     sobre todo al arrastrar de más (el rebote del scroll), que es cuando esa
-     franja crece. Un tono de la MISMA familia que la página —blanco en claro,
-     tinta en oscuro— hace que esa mezcla no se vea, porque ya no hay dos
+     Y traÃ­a un segundo defecto, el que se veÃ­a en Android: al ir translÃºcida
+     con `backdrop-filter`, el primer pÃ­xel de arriba mezclaba con el fondo
+     CLARO de la pÃ¡gina y dejaba una lÃ­nea pÃ¡lida sobre la barra. Se nota
+     sobre todo al arrastrar de mÃ¡s (el rebote del scroll), que es cuando esa
+     franja crece. Un tono de la MISMA familia que la pÃ¡gina â€”blanco en claro,
+     tinta en oscuroâ€” hace que esa mezcla no se vea, porque ya no hay dos
      colores que mezclar.
 
-     ⚠️ El `background` va también sin alfa como respaldo: los navegadores que
-     no soportan `backdrop-filter` (Firefox con la opción apagada, WebViews
-     viejas de Android) enseñarían el contenido de debajo desplazándose a
-     través de la barra. */
+     âš ï¸ El `background` va tambiÃ©n sin alfa como respaldo: los navegadores que
+     no soportan `backdrop-filter` (Firefox con la opciÃ³n apagada, WebViews
+     viejas de Android) enseÃ±arÃ­an el contenido de debajo desplazÃ¡ndose a
+     travÃ©s de la barra. */
   .barra-superior {
     position: sticky;
     top: 0;
@@ -695,31 +719,31 @@ input[type="password"]::-ms-clear { display: none; }
     }
   }
 
-  /* ── Tarjetas ───────────────────────────────────────────────────────── */
+  /* â”€â”€ Tarjetas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
-  /* ⚠️ **El relleno es parte de la tarjeta**, y no lo era.
+  /* âš ï¸ **El relleno es parte de la tarjeta**, y no lo era.
      
-     `.card` daba fondo, borde y esquinas, y el hueco de dentro lo ponía cada
+     `.card` daba fondo, borde y esquinas, y el hueco de dentro lo ponÃ­a cada
      pantalla a mano. Contado el 5 de septiembre de 2026, tarjeta por tarjeta:
 
-         Membresías    62 tarjetas ·   0 sin relleno
-         portal        43 tarjetas ·   1 sin relleno
-         Academy       54 tarjetas ·   0 sin relleno
-         Campeonatos  154 tarjetas ·  95 SIN RELLENO
+         MembresÃ­as    62 tarjetas Â·   0 sin relleno
+         portal        43 tarjetas Â·   1 sin relleno
+         Academy       54 tarjetas Â·   0 sin relleno
+         Campeonatos  154 tarjetas Â·  95 SIN RELLENO
 
-     O sea que en Campeonatos **la mayoría de las tarjetas tenían el texto
+     O sea que en Campeonatos **la mayorÃ­a de las tarjetas tenÃ­an el texto
      pegado al borde**. No era un descuido puntual: era que la clase no lo
-     traía y allí nadie había cogido la costumbre de escribirlo. Es lo que se
-     reportó como «hay muchos apartados que no tienen espacios», y aparecía en
+     traÃ­a y allÃ­ nadie habÃ­a cogido la costumbre de escribirlo. Es lo que se
+     reportÃ³ como Â«hay muchos apartados que no tienen espaciosÂ», y aparecÃ­a en
      el panel, en jueces, en competidores, en importar resultados y en los
-     estados de los tatamis — en todos por el mismo motivo.
+     estados de los tatamis â€” en todos por el mismo motivo.
 
-     Ponerlo aquí lo arregla en los cinco sitios a la vez y no toca ninguna
-     tarjeta que ya lo tuviera: las de Membresías, el portal y Academy lo
-     llevan en línea o en una utilidad de Tailwind, y las dos cosas ganan a una
+     Ponerlo aquÃ­ lo arregla en los cinco sitios a la vez y no toca ninguna
+     tarjeta que ya lo tuviera: las de MembresÃ­as, el portal y Academy lo
+     llevan en lÃ­nea o en una utilidad de Tailwind, y las dos cosas ganan a una
      clase de `@layer components`. Para una tarjeta que de verdad quiera el
-     contenido a ras del borde —una cabecera de color, una imagen— se pide
-     explícitamente con `p-0` o `padding: 0`. */
+     contenido a ras del borde â€”una cabecera de color, una imagenâ€” se pide
+     explÃ­citamente con `p-0` o `padding: 0`. */
   .card {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -733,7 +757,7 @@ input[type="password"]::-ms-clear { display: none; }
     border-color: var(--gold-dim);
   }
 
-  /* ── Badges ─────────────────────────────────────────────────────────── */
+  /* â”€â”€ Badges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
   .badge {
     display: inline-flex;
     align-items: center;
@@ -752,8 +776,8 @@ input[type="password"]::-ms-clear { display: none; }
   .badge-gold { background: var(--gold-soft); border-color: var(--gold-dim); color: var(--gold); }
   .badge-danger { background: rgba(255, 85, 119, 0.12); border-color: var(--danger); color: var(--danger); }
   /* Las otras dos de la familia. Faltaban, y por eso cada app se inventaba la
-     suya: Campeonatos tenía `.badge-green` y `.badge-gray` con sus propios
-     colores, y el «pendiente» naranja se escribía a mano con estilos en línea
+     suya: Campeonatos tenÃ­a `.badge-green` y `.badge-gray` con sus propios
+     colores, y el Â«pendienteÂ» naranja se escribÃ­a a mano con estilos en lÃ­nea
      en dos sitios distintos. */
   .badge-info { background: rgba(77, 159, 255, 0.12); border-color: var(--info); color: var(--info); }
   .badge-warn { background: rgba(255, 157, 46, 0.12); border-color: var(--warn); color: var(--warn); }
@@ -764,25 +788,25 @@ input[type="password"]::-ms-clear { display: none; }
 }
 
 @layer components {
-  /* ── LA PANTALLA DE ENTRAR ──────────────────────────────────────────────────
-     Las cuatro la tenían distinta, y es la que más se nota: es la primera que
-     ve cualquiera, y la única que ven por igual el alumno y el maestro.
+  /* â”€â”€ LA PANTALLA DE ENTRAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+     Las cuatro la tenÃ­an distinta, y es la que mÃ¡s se nota: es la primera que
+     ve cualquiera, y la Ãºnica que ven por igual el alumno y el maestro.
 
-       · El portal ponía el logo a **72 px y FUERA** de la tarjeta, con la
-         palabra «DINAMYT» debajo en oro.
-       · Academy y Membresías, a **56 px y dentro**, con antetítulo y título.
-       · Campeonatos usaba otro componente entero (`<Logo stacked>`), con otra
-         tipografía y otro tamaño.
+       Â· El portal ponÃ­a el logo a **72 px y FUERA** de la tarjeta, con la
+         palabra Â«DINAMYTÂ» debajo en oro.
+       Â· Academy y MembresÃ­as, a **56 px y dentro**, con antetÃ­tulo y tÃ­tulo.
+       Â· Campeonatos usaba otro componente entero (`<Logo stacked>`), con otra
+         tipografÃ­a y otro tamaÃ±o.
 
-     Con estas clases la pantalla es UNA: mismo logo, mismo tamaño, misma
-     posición y la misma caja de 380 px. Los valores son los de Membresías.
+     Con estas clases la pantalla es UNA: mismo logo, mismo tamaÃ±o, misma
+     posiciÃ³n y la misma caja de 380 px. Los valores son los de MembresÃ­as.
 
-     ⚠️ Van con prefijo `eco-` a propósito. Campeonatos ya tenía sus propias
-     `.login-logo`, `.login-card` y `.login-wrapper` —definidas en un `<style>`
-     dentro de su página—, y su `.login-logo` es un CONTENEDOR, no la imagen.
-     Sin el prefijo, esta regla lo habría encogido a 56×56 y le habría roto la
+     âš ï¸ Van con prefijo `eco-` a propÃ³sito. Campeonatos ya tenÃ­a sus propias
+     `.login-logo`, `.login-card` y `.login-wrapper` â€”definidas en un `<style>`
+     dentro de su pÃ¡ginaâ€”, y su `.login-logo` es un CONTENEDOR, no la imagen.
+     Sin el prefijo, esta regla lo habrÃ­a encogido a 56Ã—56 y le habrÃ­a roto la
      portada entera. Cuatro apps compartiendo hoja de estilos es exactamente
-     donde un nombre genérico se convierte en un fallo a distancia. */
+     donde un nombre genÃ©rico se convierte en un fallo a distancia. */
   .eco-login {
     min-height: 100vh;
     display: flex;
@@ -809,38 +833,38 @@ input[type="password"]::-ms-clear { display: none; }
   .eco-login-campo { margin: 0.3rem 0 0.9rem; }
 }
 
-/* ════════════════════════════════════════════════════════════════════════════
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
    LA BARRA DE ARRIBA, PARA LAS CUATRO WEBS
-   ════════════════════════════════════════════════════════════════════════════
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-   Vino de Membresías tal cual, que es la app modelo. Está aquí porque
-   Campeonatos tenía la SUYA —`.appmenu*`— y no era una variación del mismo
-   diseño: era otra barra. Sin marca a la izquierda, sin enlaces, solo un botón
-   «MENU» en oro y mayúsculas flotando a la derecha, con borde dorado de 1.5 px
+   Vino de MembresÃ­as tal cual, que es la app modelo. EstÃ¡ aquÃ­ porque
+   Campeonatos tenÃ­a la SUYA â€”`.appmenu*`â€” y no era una variaciÃ³n del mismo
+   diseÃ±o: era otra barra. Sin marca a la izquierda, sin enlaces, solo un botÃ³n
+   Â«MENUÂ» en oro y mayÃºsculas flotando a la derecha, con borde dorado de 1.5 px
    y un panel de esquinas distintas. La barra de arriba es lo primero que se
-   mira al entrar, así que era la pieza que más hacía sentir que Campeonatos
-   era otra aplicación.
+   mira al entrar, asÃ­ que era la pieza que mÃ¡s hacÃ­a sentir que Campeonatos
+   era otra aplicaciÃ³n.
 
-   ── Va SIN CAPA, y es a propósito ──
+   â”€â”€ Va SIN CAPA, y es a propÃ³sito â”€â”€
 
-   Como en Membresías, donde nació. La barra tiene que ganar a `.card`, a
+   Como en MembresÃ­as, donde naciÃ³. La barra tiene que ganar a `.card`, a
    `.btn` y a cualquier utilidad que caiga encima suyo: es el chasis de la
    pantalla, no un componente que se coloca dentro. Meterla en
-   `@layer components` la dejaría discutiendo con el contenido.
+   `@layer components` la dejarÃ­a discutiendo con el contenido.
 
-   ── La estructura que espera ──
+   â”€â”€ La estructura que espera â”€â”€
 
        <header class="navbar">
          <div class="navbar-inner">
            <a class="navbar-marca">        logo + DINAMYT
-           <nav class="navbar-links">      los enlaces del día a día
+           <nav class="navbar-links">      los enlaces del dÃ­a a dÃ­a
            <div class="navbar-derecha">
              <button class="navbar-toggle">  foto/nombre + las tres rayas
              <div class="navbar-panel">      el mapa completo
 
-   Arriba solo van los enlaces del día a día; el resto vive en el panel. Y la
-   identidad —nombre, rol, club— tiene su propio sitio: el botón del menú.
-   ════════════════════════════════════════════════════════════════════════════ */
+   Arriba solo van los enlaces del dÃ­a a dÃ­a; el resto vive en el panel. Y la
+   identidad â€”nombre, rol, clubâ€” tiene su propio sitio: el botÃ³n del menÃº.
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
 .navbar {
   position: sticky;
@@ -848,9 +872,9 @@ input[type="password"]::-ms-clear { display: none; }
   z-index: 30;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
-  /* La sombra dice que la barra está ENCIMA y que lo demás pasa por debajo.
+  /* La sombra dice que la barra estÃ¡ ENCIMA y que lo demÃ¡s pasa por debajo.
      Sin ella, al bajar por un formulario largo el borde de una tarjeta llegaba
-     a ras de la barra y parecía que la estaba tocando o empujando. */
+     a ras de la barra y parecÃ­a que la estaba tocando o empujando. */
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
 }
 .navbar-inner {
@@ -867,8 +891,8 @@ input[type="password"]::-ms-clear { display: none; }
   align-items: center;
   gap: 0.5rem;
 }
-/* El tamaño es el de la portada del portal (`text-lg`), que es el que se
-   eligió como bueno. Iba sobre `span` a secas, así que también encogía al
+/* El tamaÃ±o es el de la portada del portal (`text-lg`), que es el que se
+   eligiÃ³ como bueno. Iba sobre `span` a secas, asÃ­ que tambiÃ©n encogÃ­a al
    nombre de la app que ahora va dentro. */
 .navbar-marca > .marca { font-size: 1.125rem; }
 .navbar-marca > span:not(.marca) { font-size: 1rem; white-space: nowrap; }
@@ -893,7 +917,7 @@ input[type="password"]::-ms-clear { display: none; }
   gap: 0.5rem;
 }
 
-/* ── Botón del menú: foto + nombre de pila + las tres rayas ──
+/* â”€â”€ BotÃ³n del menÃº: foto + nombre de pila + las tres rayas â”€â”€
    Las rayas se vuelven una X al abrir. El nombre se recorta con puntos
    suspensivos: un nombre de pila largo estrecha el chip, nunca la barra. */
 .navbar-toggle {
@@ -939,7 +963,7 @@ input[type="password"]::-ms-clear { display: none; }
 .navbar-rayas[data-abierto='true'] span:nth-child(2) { opacity: 0; }
 .navbar-rayas[data-abierto='true'] span:nth-child(3) { top: 5px; transform: rotate(-45deg); }
 
-/* ── El panel ── */
+/* â”€â”€ El panel â”€â”€ */
 .navbar-panel {
   position: absolute;
   top: calc(100% + 6px);
@@ -957,7 +981,7 @@ input[type="password"]::-ms-clear { display: none; }
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
   animation: aparecer 0.15s ease;
 }
-/* La identidad completa. Aquí SÍ hay sitio: el nombre parte de línea y el
+/* La identidad completa. AquÃ­ SÃ hay sitio: el nombre parte de lÃ­nea y el
    club se lee entero, por largo que sea. */
 .navbar-panel-quien {
   display: flex;
@@ -1008,7 +1032,7 @@ input[type="password"]::-ms-clear { display: none; }
 .navbar-sep { height: 1px; margin: 0.35rem 0; background: var(--border); }
 .navbar-panel-links { display: flex; flex-direction: column; gap: 0.15rem; }
 
-/* ── Idiomas ── */
+/* â”€â”€ Idiomas â”€â”€ */
 .navbar-idiomas { display: flex; gap: 0.35rem; padding: 0.15rem 0.55rem 0.35rem; }
 .navbar-idioma {
   flex: 1;
@@ -1039,20 +1063,20 @@ input[type="password"]::-ms-clear { display: none; }
 }
 
 
-/* De aquí para arriba caben los enlaces principales en línea. Por debajo, la
-   barra se queda en marca + campana + chip, y TODO lo demás está a un toque
-   dentro del menú. */
+/* De aquÃ­ para arriba caben los enlaces principales en lÃ­nea. Por debajo, la
+   barra se queda en marca + campana + chip, y TODO lo demÃ¡s estÃ¡ a un toque
+   dentro del menÃº. */
 @media (min-width: 860px) {
   .navbar-links { display: flex; }
   .navbar-toggle-nombre { display: block; }
   /* Lo que ya se ve arriba no se repite dentro. Y si al alumno o al superadmin
-     no les queda nada que repetir, se va también el rótulo: un «Ir a» sobre
-     una lista vacía es peor que no ponerlo. */
+     no les queda nada que repetir, se va tambiÃ©n el rÃ³tulo: un Â«Ir aÂ» sobre
+     una lista vacÃ­a es peor que no ponerlo. */
   .navbar-panel-links .navbar-item[data-principal='true'] { display: none; }
   .navbar-panel-nav[data-solo-principales='true'] { display: none; }
   .navbar-panel { right: calc((100vw - 1180px) / 2 + 1rem); }
 }
-/* Por debajo de 1180 + márgenes, el contenedor ya no está centrado: el panel
+/* Por debajo de 1180 + mÃ¡rgenes, el contenedor ya no estÃ¡ centrado: el panel
    vuelve a colgar del borde de la ventana. */
 @media (min-width: 860px) and (max-width: 1212px) {
   .navbar-panel { right: 1rem; }

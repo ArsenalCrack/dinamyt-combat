@@ -179,7 +179,7 @@ export default function CampeonatoPublicoFichaPage() {
   return (
     <div className="ficha-page">
       <div className="ficha-topbar">
-        <Logo fontSize="clamp(1.3rem, 3.5vw, 1.7rem)" />
+        <Logo className="solo-sin-barra" fontSize="1.5rem" />
         <button className="btn btn-sm btn-ghost" onClick={() => router.push("/campeonatos")}>
           {t("pub.camp.volverLista")}
         </button>
@@ -458,7 +458,7 @@ const ESTILOS = `
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   }
   .ficha-titulo {
-    font-family: var(--font-display); font-size: clamp(1.4rem, 3.2vw, 1.8rem);
+    font-family: var(--font-display); font-size: 1.5rem;
     font-weight: 800; font-stretch: 118%; text-transform: uppercase;
     color: var(--text); letter-spacing: -0.015em; line-height: 0.98;
     overflow-wrap: anywhere; margin: 0;

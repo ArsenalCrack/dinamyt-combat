@@ -144,6 +144,29 @@ export function aplicarTema(tema: Tema, guardar = true) {
 }
 
 
+
+/**
+ * `true` si esta persona ya eligio modo EN ESTE navegador.
+ *
+ * Lo mira `AplicarApariencia` antes de imponer el de la cuenta. Sin esto, la
+ * respuesta del servidor —o peor, el tema que viaja dentro del PASE, que se
+ * firmo al entrar y puede ser de hace media hora— revertia la eleccion que se
+ * acababa de hacer, y de paso la escribia en la cookie compartida, con lo que
+ * el valor viejo se repartia a las otras tres webs.
+ *
+ * Es el orden que hace falta y no habia:
+ *
+ *     cookie  (lo ultimo que se eligio EN ESTE navegador, en cualquier app)
+ *       > cuenta  (lo ultimo que se eligio en CUALQUIER dispositivo)
+ *         > pase  (una foto de la cuenta del momento de entrar)
+ *
+ * La cuenta sigue sirviendo, y para lo que de verdad sirve: el dispositivo
+ * NUEVO, donde todavia no hay cookie.
+ */
+export function hayModoElegido(): boolean {
+  return temaDeLaCookie() !== null;
+}
+
 /**
  * Cambia de modo y devuelve el que quedo.
  *

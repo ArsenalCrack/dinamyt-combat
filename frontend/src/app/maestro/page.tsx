@@ -237,9 +237,9 @@ export default function MaestroPage() {
         marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid var(--border)", flexWrap: "wrap", gap: 10,
       }}>
         {/* Antetitulo + titulo, como en Membresias. La marca la pone la barra. */}
+        {/* Sin antetitulo: la barra ya dice donde estamos. */}
         <div>
-          <p className="eyebrow">{t("app.antetitulo")}</p>
-          <h1 className="display" style={{ fontSize: "1.5rem", marginTop: 4 }}>
+          <h1 className="display" style={{ fontSize: "1.5rem" }}>
             {t("maestro.panel")}
           </h1>
           <p className="muted" style={{ fontSize: "0.85rem", marginTop: 2 }}>

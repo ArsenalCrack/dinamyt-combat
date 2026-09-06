@@ -330,9 +330,12 @@ export default function AdminPage() {
         {/* La marca ya esta en la barra de arriba (`AppMenu`), asi que aqui va
             lo que va en Membresias: antetitulo + titulo de la pantalla. Antes
             se repetia «DINAMYT» dos veces en la misma vista. */}
+        {/* Sin antetitulo: la barra de arriba ya dice «DINAMYT Campeonatos».
+            Escribirlo otra vez aqui dejaba la pantalla diciendo tres veces
+            donde esta. Es la cabecera de Membresias: titulo + una linea gris
+            debajo. */}
         <div>
-          <p className="eyebrow">{t("app.antetitulo")}</p>
-          <h1 className="display" style={{ fontSize: "1.5rem", marginTop: 4 }}>
+          <h1 className="display" style={{ fontSize: "1.5rem" }}>
             {t("admin.panel")}
           </h1>
           <p className="muted" style={{ fontSize: "0.85rem", marginTop: 2 }}>

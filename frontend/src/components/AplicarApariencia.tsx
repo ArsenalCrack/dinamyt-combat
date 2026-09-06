@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { aplicarTema, escucharTemaDelSistema, type Tema } from "@/lib/theme";
+import { aplicarTema, escucharTemaDelSistema, hayModoElegido, type Tema } from "@/lib/theme";
 import { leerAparienciaDeLaCuenta } from "@/lib/api";
 import { haySesionProbable } from "@/lib/sesion";
-import { useI18n } from "@/lib/i18n";
+import { hayIdiomaElegido, useI18n } from "@/lib/i18n";
 
 /**
  * El tema y el idioma, al dia en TODAS las pantallas.
@@ -53,14 +53,18 @@ export function AplicarApariencia() {
       const eco = await leerAparienciaDeLaCuenta();
       if (!vigente || !eco) return;
 
+      // ⚠️ Solo si este navegador NO tiene ya una eleccion. Sin esta guarda,
+      // esta funcion era la que borraba el idioma: se elegia ingles en el menu
+      // —que hasta ahora ni siquiera lo guardaba en la cuenta—, y al primer
+      // `visibilitychange` el servidor contestaba `es-CO` y la pantalla volvia
+      // a espaniol sola. Se reporto como «el idioma no cambia».
       if (
-        eco.theme === "claro" ||
-        eco.theme === "oscuro" ||
-        eco.theme === "sistema"
+        !hayModoElegido() &&
+        (eco.theme === "claro" || eco.theme === "oscuro" || eco.theme === "sistema")
       ) {
         aplicarTema(eco.theme as Tema);
       }
-      if (eco.locale) {
+      if (!hayIdiomaElegido() && eco.locale) {
         setIdioma(eco.locale.toLowerCase().startsWith("en") ? "en" : "es");
       }
     }

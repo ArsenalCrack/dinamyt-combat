@@ -77,9 +77,9 @@ export default function JuezPage() {
         marginBottom: 24, paddingBottom: 16, borderBottom: "1px solid var(--border)"
       }}>
         {/* Antetitulo + titulo, como en Membresias. La marca la pone la barra. */}
+        {/* Sin antetitulo: la barra ya dice donde estamos. */}
         <div>
-          <p className="eyebrow">{t("app.antetitulo")}</p>
-          <h1 className="display" style={{ fontSize: "1.5rem", marginTop: 4 }}>
+          <h1 className="display" style={{ fontSize: "1.5rem" }}>
             {t("juez.bienvenido")} {user.nombre}
           </h1>
         </div>

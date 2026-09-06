@@ -187,6 +187,29 @@ export default function AppMenu() {
     pathname.startsWith("/tatami");
   const visible = !!user && !oculta;
 
+  /**
+   * Que la PAGINA sepa que hay barra.
+   *
+   * Las pantallas publicas —campeonatos, la ficha de un campeonato, los
+   * resultados— llevan la marca en su propia cabecera, porque se abren sin
+   * entrar y ahi la barra no sale. Pero un maestro con la sesion abierta las ve
+   * CON barra, y entonces «DINAMYT Campeonatos» salia dos veces, una encima de
+   * la otra.
+   *
+   * Con esta marca en el `<body>`, esas cabeceras esconden su copia por CSS
+   * (`.solo-sin-barra`, en el archivo compartido). Se hace asi y no leyendo la
+   * sesion en cada pagina porque leerla obliga a un efecto —el servidor no ve
+   * `localStorage`— y eso pinta la marca y la quita un instante despues.
+   */
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (visible) document.body.dataset.barra = 'si';
+    else delete document.body.dataset.barra;
+    return () => {
+      delete document.body.dataset.barra;
+    };
+  }, [visible]);
+
   if (!visible || !user) return null;
 
   const inicio = user.rol === "admin" ? "/admin" : user.rol === "maestro" ? "/maestro" : "/juez";
@@ -302,7 +325,7 @@ export default function AppMenu() {
             {temaEfectivo(tema) === "oscuro" ? t("menu.modoClaro") : t("menu.modoOscuro")}
           </button>
 
-          <p className="navbar-etiqueta">🌐 {t("menu.idioma")}</p>
+          <p className="navbar-etiqueta">{t("menu.idioma")}</p>
           <div className="navbar-idiomas" role="group" aria-label={t("menu.idioma")}>
             {IDIOMAS.map((l) => (
               <button
@@ -311,7 +334,17 @@ export default function AppMenu() {
                 className="navbar-idioma"
                 data-activo={idioma === l.codigo}
                 aria-pressed={idioma === l.codigo}
-                onClick={() => setIdioma(l.codigo)}
+                onClick={() => {
+                  setIdioma(l.codigo);
+                  // Y a la CUENTA, como el tema. Faltaba, y era la mitad del
+                  // fallo del idioma: se elegia ingles aqui, nunca llegaba a
+                  // `users.locale`, y al primer `visibilitychange`
+                  // `AplicarApariencia` leia `es-CO` del servidor y devolvia
+                  // la pantalla a espaniol sola.
+                  guardarAparienciaEnLaCuenta({
+                    locale: l.codigo === "en" ? "en-US" : "es-CO",
+                  });
+                }}
               >
                 {l.etiqueta}
               </button>

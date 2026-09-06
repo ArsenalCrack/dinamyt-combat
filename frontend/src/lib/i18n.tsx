@@ -23,6 +23,53 @@ export const IDIOMAS: { codigo: Idioma; etiqueta: string }[] = [
 
 const STORAGE_KEY = "dinamyt_lang";
 
+/**
+ * ── LA COOKIE DEL IDIOMA, que cruza las cuatro webs ──────────────────────────
+ *
+ * El mismo problema que el tema, y la misma solucion: `localStorage` es POR
+ * ORIGEN y las apps viven en subdominios distintos, asi que elegir ingles aqui
+ * no se notaba en las otras tres. La copia en `users.locale` solo llega cuando
+ * hay sesion y cuando contesta el servidor.
+ *
+ * Una cookie en el dominio padre (`.dinamyt.org`) la leen las cuatro, y viaja
+ * en el acto. Ver el bloque equivalente en el modulo del tema.
+ */
+const COOKIE_IDIOMA = 'dinamyt_idioma';
+
+function dominioDeLaCookie(): string {
+  if (typeof location === 'undefined') return '';
+  const host = location.hostname;
+  if (host === 'localhost' || /^[\d.]+$/.test(host)) return '';
+  const partes = host.split('.');
+  return partes.length > 2 ? `; domain=.${partes.slice(-2).join('.')}` : '';
+}
+
+/** Lo que eligio esta persona en CUALQUIERA de las cuatro webs, o `null`. */
+export function idiomaDeLaCookie(): Idioma | null {
+  if (typeof document === 'undefined') return null;
+  const m = new RegExp(`(?:^|; )${COOKIE_IDIOMA}=([^;]*)`).exec(document.cookie);
+  const v = m ? decodeURIComponent(m[1]) : null;
+  return v === 'es' || v === 'en' ? v : null;
+}
+
+function guardarIdiomaEnCookie(i: Idioma) {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${COOKIE_IDIOMA}=${i}; path=/; max-age=31536000; samesite=lax${dominioDeLaCookie()}`;
+}
+
+/**
+ * `true` si esta persona ya eligio idioma EN ESTE navegador.
+ *
+ * Lo mira `AplicarApariencia` antes de imponer el de la cuenta: sin esto, la
+ * respuesta del servidor —que puede ser mas vieja que el clic que se acaba de
+ * dar— revertia la eleccion. En Campeonatos eso se veia clavado: se elegia
+ * ingles y la pantalla volvia a espaniol sola, porque el idioma ni siquiera se
+ * estaba guardando en la cuenta y el servidor contestaba `es-CO` cada vez.
+ */
+export function hayIdiomaElegido(): boolean {
+  return idiomaDeLaCookie() !== null;
+}
+
 // ─── Diccionario base (español) ──────────────────────────────────────────────
 const es = {
   // Menú global
@@ -35,10 +82,12 @@ const es = {
   "app.nombreCorto": "Campeonatos",
   "menu.abrir": "Abrir menú",
   "menu.cerrar": "Cerrar menú",
-  "menu.inicio": "🏠 Inicio",
-  "menu.pantallaPublica": "📺 Pantalla pública",
-  "menu.modoClaro": "☀️ Modo claro",
-  "menu.modoOscuro": "🌙 Modo oscuro",
+  /* Sin emojis: los del menu eran cuatro y ninguno decia nada que la palabra
+     de al lado no dijera ya. Membresias no los lleva, y se lee mas limpio. */
+  "menu.inicio": "Inicio",
+  "menu.pantallaPublica": "Pantalla pública",
+  "menu.modoClaro": "Modo claro",
+  "menu.modoOscuro": "Modo oscuro",
   "menu.idioma": "Idioma",
   "menu.sesion": "Sesión",
   "menu.ecosistema": "Ir a DINAMYT",
@@ -49,7 +98,9 @@ const es = {
   "rol.juez": "Juez",
 
   // Cerrar sesión
-  "logout.boton": "Cerrar sesión",
+  /* «Salir», igual que en Membresias y en Academy. Decia «Cerrar sesion»
+     aqui y «Salir» alli: la misma accion con dos nombres. */
+  "logout.boton": "Salir",
   "logout.titulo": "¿Cerrar sesión?",
   "logout.mensaje":
     "Volverás a la pantalla de inicio de sesión. Los datos de los tatamis permanecen guardados en el servidor.",
@@ -1204,7 +1255,7 @@ const es = {
   "maestro.noEditar": "Esta solicitud ya fue enviada y no puede modificarse.",
 
   // ── Apartado público de campeonatos ──
-  "menu.campeonatos": "🥋 Campeonatos",
+  "menu.campeonatos": "Campeonatos",
   "pub.camp.titulo": "Campeonatos",
   "pub.camp.sub": "Información pública · Inscripciones a través de tu maestro",
   "pub.camp.cargando": "Cargando campeonatos…",
@@ -1263,10 +1314,10 @@ const en: Record<ClaveTexto, string> = {
   "app.nombreCorto": "Championships",
   "menu.abrir": "Open menu",
   "menu.cerrar": "Close menu",
-  "menu.inicio": "🏠 Home",
-  "menu.pantallaPublica": "📺 Public display",
-  "menu.modoClaro": "☀️ Light mode",
-  "menu.modoOscuro": "🌙 Dark mode",
+  "menu.inicio": "Home",
+  "menu.pantallaPublica": "Public display",
+  "menu.modoClaro": "Light mode",
+  "menu.modoOscuro": "Dark mode",
   "menu.idioma": "Language",
   "menu.sesion": "Session",
   "menu.ecosistema": "Go to DINAMYT",
@@ -1276,7 +1327,7 @@ const en: Record<ClaveTexto, string> = {
   "rol.superadmin": "Superadmin",
   "rol.juez": "Judge",
 
-  "logout.boton": "Log out",
+  "logout.boton": "Sign out",
   "logout.titulo": "Log out?",
   "logout.mensaje":
     "You will return to the sign-in screen. Tatami data remains saved on the server.",
@@ -2482,6 +2533,14 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     queueMicrotask(() => {
       if (cancelled) return;
+      // La cookie primero: trae lo que se acaba de elegir en OTRA de las
+      // cuatro webs, y `localStorage` no puede saberlo.
+      const compartido = idiomaDeLaCookie();
+      if (compartido) {
+        setIdiomaState(compartido);
+        document.documentElement.lang = compartido;
+        return;
+      }
       try {
         const guardado = localStorage.getItem(STORAGE_KEY);
         if (guardado === "en") {
@@ -2496,6 +2555,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   function setIdioma(i: Idioma) {
     setIdiomaState(i);
     document.documentElement.lang = i;
+    guardarIdiomaEnCookie(i);
     try {
       localStorage.setItem(STORAGE_KEY, i);
     } catch { /* modo incógnito: el idioma aplica solo a esta pestaña */ }
