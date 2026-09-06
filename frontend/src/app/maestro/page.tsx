@@ -19,7 +19,6 @@ import CompetidorFormFields, {
   formToPayload,
   type CompetidorFormState,
 } from "@/components/CompetidorFormFields";
-import Logo from "@/components/Logo";
 import { useI18n, type ClaveTexto } from "@/lib/i18n";
 import { aviso } from "@/lib/toast";
 
@@ -237,10 +236,14 @@ export default function MaestroPage() {
         display: "flex", justifyContent: "space-between", alignItems: "center",
         marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid var(--border)", flexWrap: "wrap", gap: 10,
       }}>
+        {/* Antetitulo + titulo, como en Membresias. La marca la pone la barra. */}
         <div>
-          <Logo fontSize="1.8rem" />
-          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: 2 }}>
-            {t("maestro.panel")} &middot; {user.nombre}
+          <p className="eyebrow">{t("app.antetitulo")}</p>
+          <h1 className="display" style={{ fontSize: "1.5rem", marginTop: 4 }}>
+            {t("maestro.panel")}
+          </h1>
+          <p className="muted" style={{ fontSize: "0.85rem", marginTop: 2 }}>
+            {user.nombre}
           </p>
         </div>
         {club && (

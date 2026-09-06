@@ -27,6 +27,10 @@ const STORAGE_KEY = "dinamyt_lang";
 const es = {
   // Menú global
   "menu.etiqueta": "Menú",
+  /** Rótulo del bloque de enlaces del panel, y `aria-label` de la barra. */
+  "menu.navegacion": "Ir a",
+  /** Antetitulo de las pantallas de panel. Dice EN QUE app estas. */
+  "app.antetitulo": "DINAMYT · Campeonatos",
   "menu.abrir": "Abrir menú",
   "menu.cerrar": "Cerrar menú",
   "menu.inicio": "🏠 Inicio",
@@ -1252,6 +1256,8 @@ export type ClaveTexto = keyof typeof es;
 // ─── English ─────────────────────────────────────────────────────────────────
 const en: Record<ClaveTexto, string> = {
   "menu.etiqueta": "Menu",
+  "menu.navegacion": "Go to",
+  "app.antetitulo": "DINAMYT · Championships",
   "menu.abrir": "Open menu",
   "menu.cerrar": "Close menu",
   "menu.inicio": "🏠 Home",

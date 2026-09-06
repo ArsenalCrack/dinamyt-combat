@@ -434,7 +434,32 @@ body {
    —«Cobrar →» lleva a #cobrar— dejaba el título del formulario debajo de la
    barra y parecía que el salto se había pasado de largo. */
 html { scroll-padding-top: 4.5rem; }
-a { color: inherit; text-decoration: none; }
+
+/* ── EL ENLACE VA EN `@layer base`, Y ESO ARREGLA TODOS LOS BOTONES ────────
+   Esta regla estaba SIN CAPA, y en CSS lo no capado gana siempre a lo capado
+   sin importar la especificidad. Los botones viven en `@layer components`, así
+   que pasaba esto en cada botón que además es un enlace:
+
+       .btn-gold { color: var(--accion-texto) }   ← en components: PERDÍA
+       a         { color: inherit }               ← sin capa: GANABA
+
+   Y «heredar» quiere decir heredar `--text`: **blanco en oscuro y casi negro
+   en claro**. O sea que el botón verde de «Crear mi cuenta», el de «Cobrar» y
+   el de «+ Nuevo alumno» —los tres son `<Link>`, es decir `<a>`— se ponían la
+   letra negra al pasar al modo claro, mientras que el mismo botón escrito como
+   `<button>` salía bien. Por eso parecía que unos verdes obedecían y otros no.
+
+   No es un caso raro: la mitad de los botones de acción del ecosistema navegan
+   a otra pantalla, así que son enlaces.
+
+   En `base` sigue haciendo su trabajo —un enlace suelto no sale azul y
+   subrayado— y pierde contra cualquier clase de componente, que es lo correcto.
+   De paso, las utilidades de Tailwind (`underline`, `text-*`) empiezan a
+   funcionar sobre enlaces: antes también las anulaba. */
+@layer base {
+  a { color: inherit; text-decoration: none; }
+}
+
 ::selection { background: var(--gold); color: #14141e; }
 
 /* ── Formularios (base por elemento) ────────────────────────────────────── */
@@ -699,3 +724,250 @@ input[type="password"]::-ms-clear { display: none; }
   .eco-login-etiqueta { font-size: 0.8rem; }
   .eco-login-campo { margin: 0.3rem 0 0.9rem; }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+   LA BARRA DE ARRIBA, PARA LAS CUATRO WEBS
+   ════════════════════════════════════════════════════════════════════════════
+
+   Vino de Membresías tal cual, que es la app modelo. Está aquí porque
+   Campeonatos tenía la SUYA —`.appmenu*`— y no era una variación del mismo
+   diseño: era otra barra. Sin marca a la izquierda, sin enlaces, solo un botón
+   «MENU» en oro y mayúsculas flotando a la derecha, con borde dorado de 1.5 px
+   y un panel de esquinas distintas. La barra de arriba es lo primero que se
+   mira al entrar, así que era la pieza que más hacía sentir que Campeonatos
+   era otra aplicación.
+
+   ── Va SIN CAPA, y es a propósito ──
+
+   Como en Membresías, donde nació. La barra tiene que ganar a `.card`, a
+   `.btn` y a cualquier utilidad que caiga encima suyo: es el chasis de la
+   pantalla, no un componente que se coloca dentro. Meterla en
+   `@layer components` la dejaría discutiendo con el contenido.
+
+   ── La estructura que espera ──
+
+       <header class="navbar">
+         <div class="navbar-inner">
+           <a class="navbar-marca">        logo + DINAMYT
+           <nav class="navbar-links">      los enlaces del día a día
+           <div class="navbar-derecha">
+             <button class="navbar-toggle">  foto/nombre + las tres rayas
+             <div class="navbar-panel">      el mapa completo
+
+   Arriba solo van los enlaces del día a día; el resto vive en el panel. Y la
+   identidad —nombre, rol, club— tiene su propio sitio: el botón del menú.
+   ════════════════════════════════════════════════════════════════════════════ */
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  /* La sombra dice que la barra está ENCIMA y que lo demás pasa por debajo.
+     Sin ella, al bajar por un formulario largo el borde de una tarjeta llegaba
+     a ras de la barra y parecía que la estaba tocando o empujando. */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+}
+.navbar-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 1rem;
+}
+.navbar-marca {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.navbar-marca span { font-size: 1rem; white-space: nowrap; }
+/* `min-width: 0` es lo que permite que los enlaces cedan ancho antes que
+   empujar el chip de identidad fuera de la pantalla. */
+.navbar-links { display: none; flex: 1 1 auto; min-width: 0; align-items: center; gap: 0.15rem; }
+.navbar-link {
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+.navbar-link:hover { color: var(--text); }
+.navbar-link[data-activo='true'] { background: var(--bg-elevated); color: var(--gold); }
+.navbar-derecha {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* ── Botón del menú: foto + nombre de pila + las tres rayas ──
+   Las rayas se vuelven una X al abrir. El nombre se recorta con puntos
+   suspensivos: un nombre de pila largo estrecha el chip, nunca la barra. */
+.navbar-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  height: 38px;
+  max-width: 12rem;
+  padding: 0 0.55rem;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.navbar-toggle-nombre {
+  display: none;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.navbar-toggle:hover,
+.navbar-toggle[aria-expanded='true'] { border-color: var(--gold); color: var(--gold); }
+.navbar-rayas { position: relative; width: 18px; height: 12px; flex-shrink: 0; }
+.navbar-rayas span {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 2px;
+  transition: transform 0.2s ease, opacity 0.2s ease, top 0.2s ease;
+}
+.navbar-rayas span:nth-child(1) { top: 0; }
+.navbar-rayas span:nth-child(2) { top: 5px; }
+.navbar-rayas span:nth-child(3) { top: 10px; }
+.navbar-rayas[data-abierto='true'] span:nth-child(1) { top: 5px; transform: rotate(45deg); }
+.navbar-rayas[data-abierto='true'] span:nth-child(2) { opacity: 0; }
+.navbar-rayas[data-abierto='true'] span:nth-child(3) { top: 5px; transform: rotate(-45deg); }
+
+/* ── El panel ── */
+.navbar-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0.75rem;
+  z-index: 40;
+  width: 250px;
+  max-width: calc(100vw - 1.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.6rem;
+  background: var(--bg-card);
+  border: 1px solid var(--gold-dim);
+  border-radius: 0.7rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  animation: aparecer 0.15s ease;
+}
+/* La identidad completa. Aquí SÍ hay sitio: el nombre parte de línea y el
+   club se lee entero, por largo que sea. */
+.navbar-panel-quien {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.55rem 0.7rem;
+  margin-bottom: 0.2rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+.navbar-panel-datos { min-width: 0; }
+.navbar-panel-quien b {
+  display: block;
+  font-weight: 700;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.navbar-panel-datos > span {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.3;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gold);
+  overflow-wrap: anywhere;
+}
+.navbar-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.5rem 0.55rem;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 0.45rem;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.navbar-item:hover,
+.navbar-item:focus-visible { background: var(--bg-elevated); outline: none; }
+.navbar-item[data-activo='true'] { color: var(--gold); }
+.navbar-sep { height: 1px; margin: 0.35rem 0; background: var(--border); }
+.navbar-panel-links { display: flex; flex-direction: column; gap: 0.15rem; }
+
+/* ── Idiomas ── */
+.navbar-idiomas { display: flex; gap: 0.35rem; padding: 0.15rem 0.55rem 0.35rem; }
+.navbar-idioma {
+  flex: 1;
+  padding: 0.4rem 0.5rem;
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.45rem;
+  color: var(--text-muted);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+.navbar-idioma:hover { color: var(--text); background: var(--bg-elevated); }
+.navbar-idioma[data-activo='true'] {
+  background: var(--gold-soft);
+  border-color: var(--gold-dim);
+  color: var(--gold);
+  font-weight: 800;
+}
+.navbar-etiqueta {
+  padding: 0.35rem 0.55rem 0;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+}
+
+
+/* De aquí para arriba caben los enlaces principales en línea. Por debajo, la
+   barra se queda en marca + campana + chip, y TODO lo demás está a un toque
+   dentro del menú. */
+@media (min-width: 860px) {
+  .navbar-links { display: flex; }
+  .navbar-toggle-nombre { display: block; }
+  /* Lo que ya se ve arriba no se repite dentro. Y si al alumno o al superadmin
+     no les queda nada que repetir, se va también el rótulo: un «Ir a» sobre
+     una lista vacía es peor que no ponerlo. */
+  .navbar-panel-links .navbar-item[data-principal='true'] { display: none; }
+  .navbar-panel-nav[data-solo-principales='true'] { display: none; }
+  .navbar-panel { right: calc((100vw - 1180px) / 2 + 1rem); }
+}
+/* Por debajo de 1180 + márgenes, el contenedor ya no está centrado: el panel
+   vuelve a colgar del borde de la ventana. */
+@media (min-width: 860px) and (max-width: 1212px) {
+  .navbar-panel { right: 1rem; }
+}
+
+

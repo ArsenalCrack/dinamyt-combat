@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { misTatamisAPI, type UserData } from "@/lib/api";
-import Logo from "@/components/Logo";
 import { useI18n, type ClaveTexto } from "@/lib/i18n";
 
 interface MiTatami {
@@ -77,11 +76,12 @@ export default function JuezPage() {
         display: "flex", justifyContent: "space-between", alignItems: "center",
         marginBottom: 24, paddingBottom: 16, borderBottom: "1px solid var(--border)"
       }}>
+        {/* Antetitulo + titulo, como en Membresias. La marca la pone la barra. */}
         <div>
-          <Logo fontSize="1.8rem" />
-          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: 2 }}>
+          <p className="eyebrow">{t("app.antetitulo")}</p>
+          <h1 className="display" style={{ fontSize: "1.5rem", marginTop: 4 }}>
             {t("juez.bienvenido")} {user.nombre}
-          </p>
+          </h1>
         </div>
       </div>
 

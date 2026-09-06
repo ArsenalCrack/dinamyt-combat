@@ -1,12 +1,50 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import LogoutButton from "@/components/LogoutButton";
 import { PORTAL_URL } from "@/lib/portal";
 import { aplicarTema, getTema, temaEfectivo, type Tema } from "@/lib/theme";
 import { guardarAparienciaEnLaCuenta } from "@/lib/api";
-import { IDIOMAS, useI18n } from "@/lib/i18n";
+import { IDIOMAS, useI18n, type ClaveTexto } from "@/lib/i18n";
+
+/**
+ * ════════════════════════════════════════════════════════════════════════════
+ * LA BARRA DE ARRIBA — la misma que Membresias, Academy y el portal
+ * ════════════════════════════════════════════════════════════════════════════
+ *
+ * ── Lo que habia antes, y por que se cambio ──
+ *
+ * Esta app tenia su propia barra (`.appmenu*`), y no era una variacion del
+ * mismo diseno: era otra barra. **Sin marca a la izquierda y sin enlaces**,
+ * solo un boton «MENU» en oro, en mayusculas y con borde dorado, flotando a la
+ * derecha de una franja vacia. Comparado con Membresias —marca, enlaces del dia
+ * a dia, y la identidad en un chip a la derecha— no se parecia en nada, y la
+ * barra de arriba es lo primero que se mira al entrar: era la pieza que mas
+ * hacia sentir que Campeonatos venia de otro sitio.
+ *
+ * Ahora usa `.navbar*`, que vive en `estilos-ecosistema.css` —el archivo
+ * compartido por las cuatro webs— y salio de Membresias tal cual. Misma
+ * estructura, mismas medidas, mismos estados.
+ *
+ * ── Lo que cambia ademas del aspecto ──
+ *
+ *   · **Hay marca.** Arriba a la izquierda, el escudo y «DINAMYT», y lleva al
+ *     inicio del rol. Antes no habia forma de volver al panel sin abrir el menu.
+ *   · **Hay enlaces.** Los del dia a dia se ven en la barra a partir de 860 px
+ *     y siguen estando dentro del panel en el telefono, donde el menu es la
+ *     unica navegacion que hay.
+ *   · **La identidad es el boton del menu**, con su inicial, su nombre de pila
+ *     y las tres rayas — en vez de la palabra «MENU».
+ *   · La barra es `sticky` y no `fixed`, asi que ya no hace falta reservarle
+ *     alto en el `body` (`has-appmenu`): el contenido no queda tapado solo.
+ *
+ * ── Donde NO sale ──
+ *
+ * En `/login` y en el tatami, que son pantallas inmersivas con su propia barra.
+ * Eso no cambia.
+ */
 
 /**
  * La cuadrícula de aplicaciones, dibujada y no escrita.
@@ -38,29 +76,58 @@ function IconoEcosistema() {
   );
 }
 
+/**
+ * La inicial dentro de un circulo, en el hueco donde Membresias pone la foto.
+ *
+ * Aqui no hay fotos —Campeonatos no guarda avatares—, pero el chip tiene que
+ * pesar lo mismo en la barra o el boton se ve descolgado. Son exactamente los
+ * numeros del respaldo de `Avatar` en Membresias (fondo elevado, borde dorado
+ * apagado, letra en oro), para que el chip se vea el mismo con y sin foto.
+ */
+function Inicial({ nombre, size = 24 }: { nombre: string; size?: number }) {
+  const letra = (nombre || "?").trim().charAt(0).toUpperCase() || "?";
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        fontWeight: 800,
+        fontSize: size * 0.38,
+        background: "var(--bg-elevated)",
+        border: "1.5px solid var(--gold-dim)",
+        color: "var(--gold)",
+        flexShrink: 0,
+      }}
+    >
+      {letra}
+    </span>
+  );
+}
+
 interface SesionUser {
   nombre?: string;
   rol?: "admin" | "juez" | "maestro";
 }
 
-/**
- * Barra superior global con menú hamburguesa. Va montada en el layout, así que
- * acompaña al usuario en casi toda la app (fija arriba, también en móvil): desde
- * cualquier página puede volver al inicio o cerrar sesión sin devolverse hasta
- * el panel principal. Es una BARRA (no un botón flotante) para que el contenido
- * pase por debajo sin chocar con los botones de cada página.
- *
- * Se OCULTA en: /login y en las pantallas inmersivas que ya tienen su propia
- * barra superior (el tatami del Juez Central/jueces, con "Volver" y
- * "Activar/Desactivar"). Ahí no aporta y chocaría.
- */
+/** Un enlace de la barra. `principal` = además se ve arriba en pantalla ancha. */
+interface Enlace {
+  href: string;
+  clave: ClaveTexto;
+  principal: boolean;
+}
+
 export default function AppMenu() {
   const pathname = usePathname();
   const router = useRouter();
   const { t, idioma, setIdioma } = useI18n();
   const [user, setUser] = useState<SesionUser | null>(null);
   const [open, setOpen] = useState(false);
-  // Arranca en "dark" (igual que el servidor) y se sincroniza al montar:
+  // Arranca en "sistema" (igual que el servidor) y se sincroniza al montar:
   // así el HTML del servidor y el primer render del cliente coinciden.
   const [tema, setTema] = useState<Tema>("sistema");
   const ref = useRef<HTMLDivElement | null>(null);
@@ -120,13 +187,6 @@ export default function AppMenu() {
     pathname.startsWith("/tatami");
   const visible = !!user && !oculta;
 
-  // Reservar el alto de la barra en el body para que el contenido no quede
-  // tapado (la barra es fija). Solo cuando la barra se muestra.
-  useEffect(() => {
-    document.body.classList.toggle("has-appmenu", visible);
-    return () => document.body.classList.remove("has-appmenu");
-  }, [visible]);
-
   if (!visible || !user) return null;
 
   const inicio = user.rol === "admin" ? "/admin" : user.rol === "maestro" ? "/maestro" : "/juez";
@@ -135,65 +195,125 @@ export default function AppMenu() {
     : user.rol === "maestro" ? t("rol.maestro")
     : t("rol.juez");
 
+  const nombre = user.nombre || t("menu.sesion");
+  const primerNombre = nombre.trim().split(/\s+/)[0];
+
+  const enlaces: Enlace[] = [
+    { href: inicio, clave: "menu.inicio", principal: true },
+    { href: "/campeonatos", clave: "menu.campeonatos", principal: true },
+    { href: "/pantalla", clave: "menu.pantallaPublica", principal: true },
+  ];
+
+  /** Si esta ruta es la que se está mirando. Igual que en Membresías. */
+  const activo = (href: string) =>
+    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+
   function ir(ruta: string) {
     setOpen(false);
     router.push(ruta);
   }
 
   return (
-    <header ref={ref} className="appmenu">
-      <button
-        type="button"
-        className="appmenu-toggle"
-        aria-label={open ? t("menu.cerrar") : t("menu.abrir")}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        onClick={() => setOpen((o) => !o)}
-      >
-        <span className="appmenu-bars" data-open={open} aria-hidden="true">
-          <span /><span /><span />
-        </span>
-        <span className="appmenu-toggle-label">{t("menu.etiqueta")}</span>
-      </button>
+    <header ref={ref} className="navbar">
+      <div className="navbar-inner">
+        {/* La marca lleva al inicio del rol. Antes no existía, y volver al
+            panel desde una pantalla cualquiera obligaba a abrir el menú. */}
+        <Link href={inicio} className="navbar-marca">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="DINAMYT" width={30} height={30} />
+          <span className="display">DINAMYT</span>
+        </Link>
+
+        <nav className="navbar-links" aria-label={t("menu.navegacion")}>
+          {enlaces.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="navbar-link"
+              data-activo={activo(l.href)}
+            >
+              {t(l.clave)}
+            </Link>
+          ))}
+        </nav>
+
+        <div className="navbar-derecha">
+          {/* El botón del menú ES la identidad: inicial, nombre de pila y las
+              tres rayas. Antes ponía «MENU» en mayúsculas y el nombre no salía
+              en ninguna parte hasta abrirlo. */}
+          <button
+            type="button"
+            className="navbar-toggle"
+            aria-label={open ? t("menu.cerrar") : t("menu.abrir")}
+            aria-expanded={open}
+            aria-haspopup="menu"
+            onClick={() => setOpen((o) => !o)}
+          >
+            <Inicial nombre={nombre} size={24} />
+            <span className="navbar-toggle-nombre">{primerNombre}</span>
+            <span className="navbar-rayas" data-abierto={open} aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </span>
+          </button>
+        </div>
+      </div>
 
       {open && (
-        <div className="appmenu-panel" role="menu">
-          <div className="appmenu-user">
-            <div className="appmenu-user-name">{user.nombre || t("menu.sesion")}</div>
-            <div className="appmenu-user-role">{rolLabel}</div>
+        <div className="navbar-panel" role="menu">
+          <div className="navbar-panel-quien">
+            <Inicial nombre={nombre} size={38} />
+            <span className="navbar-panel-datos">
+              <b>{nombre}</b>
+              <span>{rolLabel}</span>
+            </span>
           </div>
-          <button type="button" role="menuitem" className="appmenu-item" onClick={() => ir(inicio)}>
-            {t("menu.inicio")}
-          </button>
-          <button type="button" role="menuitem" className="appmenu-item" onClick={() => ir("/pantalla")}>
-            {t("menu.pantallaPublica")}
-          </button>
-          <button type="button" role="menuitem" className="appmenu-item" onClick={() => ir("/campeonatos")}>
-            {t("menu.campeonatos")}
-          </button>
-          <button type="button" role="menuitem" className="appmenu-item" onClick={cambiarTema}>
-            {temaEfectivo(tema) === "oscuro" ? t("menu.modoClaro") : t("menu.modoOscuro")}
-          </button>
-          <div className="appmenu-sep" />
-          {/* Selector de idioma: los disponibles, con el activo resaltado */}
-          <div className="appmenu-lang" role="group" aria-label={t("menu.idioma")}>
-            <span className="appmenu-lang-label">🌐 {t("menu.idioma")}</span>
-            <div className="appmenu-lang-btns">
-              {IDIOMAS.map((l) => (
+
+          {/* Todos los enlaces, no solo los que faltan: en móvil el menú es la
+              única navegación que hay. En PC, los que ya se ven arriba se
+              ocultan por CSS (`data-principal`). */}
+          <div className="navbar-panel-nav" data-solo-principales={enlaces.every((l) => l.principal)}>
+            <p className="navbar-etiqueta">{t("menu.navegacion")}</p>
+            <div className="navbar-panel-links">
+              {enlaces.map((l) => (
                 <button
-                  key={l.codigo}
+                  key={l.href}
                   type="button"
-                  className="appmenu-lang-btn"
-                  data-activo={idioma === l.codigo}
-                  aria-pressed={idioma === l.codigo}
-                  onClick={() => setIdioma(l.codigo)}
+                  role="menuitem"
+                  className="navbar-item"
+                  data-activo={activo(l.href)}
+                  data-principal={l.principal}
+                  onClick={() => ir(l.href)}
                 >
-                  {l.etiqueta}
+                  {t(l.clave)}
                 </button>
               ))}
             </div>
+            <div className="navbar-sep" />
           </div>
-          <div className="appmenu-sep" />
+
+          <button type="button" role="menuitem" className="navbar-item" onClick={cambiarTema}>
+            {temaEfectivo(tema) === "oscuro" ? t("menu.modoClaro") : t("menu.modoOscuro")}
+          </button>
+
+          <p className="navbar-etiqueta">🌐 {t("menu.idioma")}</p>
+          <div className="navbar-idiomas" role="group" aria-label={t("menu.idioma")}>
+            {IDIOMAS.map((l) => (
+              <button
+                key={l.codigo}
+                type="button"
+                className="navbar-idioma"
+                data-activo={idioma === l.codigo}
+                aria-pressed={idioma === l.codigo}
+                onClick={() => setIdioma(l.codigo)}
+              >
+                {l.etiqueta}
+              </button>
+            ))}
+          </div>
+
+          <div className="navbar-sep" />
 
           {/**
             * La puerta de vuelta al ecosistema.
@@ -212,16 +332,11 @@ export default function AppMenu() {
             * quedaba pegado en el historial del navegador y acababa metiendo
             * en la app equivocada a quien quería el portal. El destino es el
             * dashboard, y punto.
-            *
-            * ── Por qué aquí abajo ──
-            *
-            * Junto a «Salir» están las dos cosas que te sacan de esta app. El
-            * resto del menú son pantallas de aquí dentro.
             */}
           <a
             href={`${PORTAL_URL}/dashboard`}
             role="menuitem"
-            className="appmenu-item"
+            className="navbar-item"
             title={t("menu.ecosistemaTitulo")}
           >
             <IconoEcosistema />
@@ -232,10 +347,7 @@ export default function AppMenu() {
               «Ir a DINAMYT» y «Salir» hacen lo mismo desde lejos —los dos te
               sacan de esta app— pero uno te lleva a tu portal y el otro te
               cierra la sesión, y equivocarse cuesta volver a escribir la
-              contraseña. Pegados, al pasar el ratón los dos fondos se tocaban y
-              parecían un solo bloque; el de arriba además ES un `<a>` con
-              `:hover` propio. Ocho píxeles no son decoración: son el margen de
-              un dedo en un teléfono. */}
+              contraseña. */}
           <div style={{ height: 8 }} />
           <LogoutButton />
         </div>

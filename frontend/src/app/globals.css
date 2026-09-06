@@ -225,16 +225,9 @@ html[data-theme="light"] {
   --crono-pause: rgba(20, 20, 30, 0.30);
 }
 
-/* El boton primario conserva el dorado brillante de la marca en tema claro:
-   es fondo (con texto oscuro encima), no texto, asi que no rompe contraste. */
-html[data-theme="light"] .btn-primary {
-  background: linear-gradient(135deg, #F0B800 0%, #C89600 100%);
-  box-shadow: 0 4px 20px rgba(240, 184, 0, 0.35);
-}
-
-html[data-theme="light"] .btn-primary:hover {
-  background: linear-gradient(135deg, #FFD040 0%, #F0B800 100%);
-}
+/* El boton primario ya no cambia con el tema: es el mismo verde con la misma
+   letra blanca en claro y en oscuro, igual que en las otras tres webs. Lo que
+   habia aqui reponia el degradado dorado solo para el modo claro. */
 
 /* ═══════════════════ RESET ═══════════════════ */
 
@@ -386,19 +379,26 @@ h1, h2, h3, h4 {
 
 
 
+/* ── El boton primario ES el del ecosistema ───────────────────────────────
+
+   Era un degradado dorado con la letra en MAYUSCULAS, interletrado de 0.08em y
+   peso 800. Sale 53 veces en la app, asi que es LA accion de Campeonatos — y no
+   se parecia en nada a la de Membresias, que es un solido verde con letra
+   blanca y en minusculas. Puestas al lado no eran dos versiones del mismo
+   boton: eran dos productos.
+
+   Ahora es `.btn-gold` con otro nombre. El nombre se conserva porque lo
+   escriben cincuenta y tres sitios y renombrarlos no aporta nada. */
 .btn-primary {
-  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
-  color: var(--text-on-gold);
-  border: none;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  box-shadow: var(--shadow-gold);
+  background: var(--accion);
+  color: var(--accion-texto);
+  border-color: rgba(255, 255, 255, 0.14);
 }
 
-.btn-primary:hover {
-  background: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
-  box-shadow: 0 6px 24px rgba(240, 184, 0, 0.35);
+.btn-primary:hover:not(:disabled) {
+  background: var(--accion-hover);
+  box-shadow: 0 0 0 3px rgba(0, 135, 90, 0.3);
+  filter: none;
 }
 
 .btn-hong {
@@ -442,10 +442,13 @@ h1, h2, h3, h4 {
 
 
 
+/* El grande, con las proporciones del ecosistema. Era `14px 28px` y `1.1rem`,
+   una talla por encima del boton grande del portal (`0.75rem 1.5rem`, `1rem`).
+   El area tactil de 56 px se queda: esto se pulsa de pie en un tatami. */
 .btn-lg {
-  padding: 14px 28px;
+  padding: 0.75rem 1.5rem;
   min-height: var(--touch-pref);
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .btn-block {
@@ -478,13 +481,17 @@ h1, h2, h3, h4 {
   background: var(--chung-bg);
 }
 
+/* ── El titulo de una tarjeta ──
+   Era un rotulo dorado en mayusculas de 0.82rem con interletrado de 0.12em —el
+   patron del ANTETITULO (`.eyebrow`), no el de un titulo—, y salia 46 veces. En
+   Membresias el titulo de una tarjeta es lo que parece: negrita, del color del
+   texto y a tamano de titulo. El oro se reserva para marca y acentos; uno que
+   sale en cada tarjeta deja de decir nada. */
 .card-title {
   font-family: var(--font-body);
-  font-weight: 800;
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--gold);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text);
   margin-bottom: var(--space-sm);
 }
 
@@ -922,213 +929,26 @@ select.input:disabled {
   font-weight: 800;
 }
 
-/* ═══════════════════ BARRA / MENÚ HAMBURGUESA GLOBAL ═══════════════════ */
-/* Barra fija arriba (full-width). El contenido pasa por debajo: por eso el body
-   reserva su alto con .has-appmenu, en vez de un botón flotante que choca con
-   los botones de cada página. Incluye safe-area del notch. */
-:root {
-  --appmenu-h: 0px;
-}
+/* ═══════════════════ BARRA DE ARRIBA ═══════════════════
 
-body.has-appmenu {
-  --appmenu-h: calc(52px + env(safe-area-inset-top, 0px));
-  padding-top: var(--appmenu-h);
-}
+   Ya no vive aqui: son las `.navbar*` de `estilos-ecosistema.css`, las mismas
+   que Membresias, Academy y el portal. Ver `components/AppMenu.tsx`.
 
-.appmenu {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  height: var(--appmenu-h);
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: env(safe-area-inset-top, 0px) calc(env(safe-area-inset-right, 0px) + 12px) 0 16px;
-  /* Fondo sólido (no backdrop-filter): además de tapar limpio el contenido al
-     hacer scroll, evita crear un bloque contenedor que confinaría el diálogo
-     de confirmación de cierre de sesión (position: fixed) dentro de la barra. */
-  background: var(--bg-card);
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
-}
+   ── Lo que habia, y por que se fue entero ──
 
-.appmenu-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 38px;
-  padding: 0 12px;
-  background: var(--bg-elevated);
-  border: 1.5px solid var(--gold-border);
-  border-radius: var(--radius-sm);
-  color: var(--gold);
-  font: inherit;
-  font-weight: 700;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: var(--transition);
-}
+   Un bloque `.appmenu*` de ~200 lineas que dibujaba OTRA barra: `position:
+   fixed` (con `body.has-appmenu` reservandole alto), sin marca a la izquierda,
+   sin enlaces, y con un boton «MENU» en oro, en mayusculas, con interletrado y
+   borde dorado de 1.5 px flotando a la derecha de una franja vacia. Al lado de
+   la de Membresias —marca, enlaces, identidad en un chip— no se parecia en
+   nada, y es lo primero que se mira al entrar.
 
-.appmenu-toggle:hover,
-.appmenu-toggle:focus-visible {
-  background: var(--bg-hover);
-  border-color: var(--gold);
-  outline: none;
-}
+   `.has-appmenu` tampoco hace falta: la barra compartida es `sticky`, asi que
+   el contenido ya no queda tapado y no hay alto que reservar.
 
-.appmenu-toggle-label {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.appmenu-bars {
-  position: relative;
-  width: 20px;
-  height: 14px;
-}
-
-.appmenu-bars span {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: currentColor;
-  border-radius: 2px;
-  transition: transform 0.2s ease, opacity 0.2s ease, top 0.2s ease;
-}
-
-.appmenu-bars span:nth-child(1) { top: 0; }
-.appmenu-bars span:nth-child(2) { top: 6px; }
-.appmenu-bars span:nth-child(3) { top: 12px; }
-
-.appmenu-bars[data-open="true"] span:nth-child(1) { top: 6px; transform: rotate(45deg); }
-.appmenu-bars[data-open="true"] span:nth-child(2) { opacity: 0; }
-.appmenu-bars[data-open="true"] span:nth-child(3) { top: 6px; transform: rotate(-45deg); }
-
-.appmenu-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  min-width: 230px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 10px;
-  background: var(--bg-card);
-  border: 1.5px solid var(--gold-border);
-  border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-lg);
-  animation: fadeIn 0.15s ease-out;
-}
-
-.appmenu-user {
-  padding: 4px 10px 10px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid var(--border);
-}
-
-.appmenu-user-name {
-  font-weight: 800;
-  color: var(--text);
-  overflow-wrap: anywhere;
-}
-
-.appmenu-user-role {
-  margin-top: 2px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--gold);
-}
-
-.appmenu-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 10px;
-  text-align: left;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-xs);
-  color: var(--text);
-  font: inherit;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-/* Un `<a>` dentro del menú (la puerta al ecosistema) es un enlace de verdad
-   —cruza de dominio—, y sin esto llegaría subrayado: el resto de las filas son
-   botones y no lo están. */
-.appmenu-item { text-decoration: none; }
-
-.appmenu-item:hover,
-.appmenu-item:focus-visible {
-  background: var(--bg-hover);
-  outline: none;
-}
-
-.appmenu-sep {
-  height: 1px;
-  margin: 4px 0;
-  background: var(--border);
-}
-
-/* ── Selector de idioma dentro del menú ── */
-.appmenu-lang {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 6px 10px 8px;
-}
-
-.appmenu-lang-label {
-  font-size: 0.8rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
-}
-
-.appmenu-lang-btns {
-  display: flex;
-  gap: 6px;
-}
-
-.appmenu-lang-btn {
-  flex: 1;
-  padding: 8px 10px;
-  background: transparent;
-  border: 1.5px solid var(--border-light);
-  border-radius: var(--radius-xs);
-  color: var(--text);
-  font: inherit;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.appmenu-lang-btn:hover,
-.appmenu-lang-btn:focus-visible {
-  background: var(--bg-hover);
-  outline: none;
-}
-
-.appmenu-lang-btn[data-activo="true"] {
-  background: var(--gold-bg);
-  border-color: var(--gold-border);
-  color: var(--gold);
-  font-weight: 800;
-}
-
-/* El botón de cerrar sesión, dentro del menú, ocupa todo el ancho */
-.appmenu-panel .logout-btn {
+   Lo unico que se queda aqui es el boton de salir dentro del panel, que es de
+   esta app (Membresias sale por el portal). */
+.navbar-panel .logout-btn {
   width: 100%;
   justify-content: flex-start;
 }
@@ -1490,28 +1310,35 @@ body.has-appmenu {
 
 /* ═══════════════════ TABLA ═══════════════════ */
 
+/* ── Las tablas, con las medidas de Membresias ──
+   Alli el encabezado es MONO de marcador a 0.7rem y peso 500 —el mismo aire
+   que `.eyebrow`—, y la celda mide `0.6rem 0.5rem`. Aqui eran `10px 12px` con
+   el encabezado en negrita 800 a 0.8rem: la misma tabla salia mas gorda y con
+   el encabezado pesando mas que el contenido. */
 .table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
 }
 
-.table th {
-  padding: 10px 12px;
+.table th,
+.table td {
+  padding: 0.6rem 0.5rem;
   text-align: left;
-  font-weight: 800;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--text-muted);
   border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
 }
 
-.table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text);
+.table th {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 500;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
 }
+
+.table td { color: var(--text); }
 
 .table tr:last-child td { border-bottom: none; }
 .table tr:hover td { background: var(--bg-elevated); }

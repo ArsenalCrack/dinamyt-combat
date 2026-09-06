@@ -23,7 +23,6 @@ import CampoFecha from "@/components/CampoFecha";
 import ClubesInput from "@/components/ClubesInput";
 import { useConfirmDialog } from "@/components/ConfirmDialog";
 import ImportarPaquetePanel from "@/components/ImportarPaquetePanel";
-import Logo from "@/components/Logo";
 import PaisCiudadSelect from "@/components/PaisCiudadSelect";
 import { useI18n, type ClaveTexto } from "@/lib/i18n";
 import { enMayusculas } from "@/lib/texto";
@@ -328,10 +327,16 @@ export default function AdminPage() {
         display: "flex", justifyContent: "space-between", alignItems: "center",
         marginBottom: 24, paddingBottom: 16, borderBottom: "1px solid var(--border)"
       }}>
+        {/* La marca ya esta en la barra de arriba (`AppMenu`), asi que aqui va
+            lo que va en Membresias: antetitulo + titulo de la pantalla. Antes
+            se repetia «DINAMYT» dos veces en la misma vista. */}
         <div>
-          <Logo fontSize="1.8rem" />
-          <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginTop: 2 }}>
-            {t("admin.panel")} &middot; {user.nombre}
+          <p className="eyebrow">{t("app.antetitulo")}</p>
+          <h1 className="display" style={{ fontSize: "1.5rem", marginTop: 4 }}>
+            {t("admin.panel")}
+          </h1>
+          <p className="muted" style={{ fontSize: "0.85rem", marginTop: 2 }}>
+            {user.nombre}
           </p>
         </div>
       </div>
@@ -429,7 +434,7 @@ export default function AdminPage() {
       {tab === "campeonatos" && (
         <div className="animate-fade">
           <div className="admin-section-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
-            <h2 style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "1.1rem", color: "var(--gold)" }}>
+            <h2 style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "1.1rem" }}>
               {t("admin.tab.campeonatos")} ({campeonatos.length})
             </h2>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -610,7 +615,7 @@ export default function AdminPage() {
       {tab === "jueces" && (
         <div className="animate-fade">
           <div className="admin-section-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
-            <h2 style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "1.1rem", color: "var(--gold)" }}>
+            <h2 style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "1.1rem" }}>
               {t("admin.usuarios.titulo")} ({users.length})
             </h2>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
