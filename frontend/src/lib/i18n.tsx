@@ -41,7 +41,15 @@ function dominioDeLaCookie(): string {
   const host = location.hostname;
   if (host === 'localhost' || /^[\d.]+$/.test(host)) return '';
   const partes = host.split('.');
-  return partes.length > 2 ? `; domain=.${partes.slice(-2).join('.')}` : '';
+  // ⚠️ `>= 2` y no `> 2`. Aquí estaba el fallo de «el tema y el idioma no se
+  // sincronizan»: el portal vive en `dinamyt.org` —DOS etiquetas—, así que era
+  // la única de las cuatro webs que escribía esta cookie SIN dominio, y una
+  // cookie sin dominio es de ese host y de nadie más. Elegir el modo claro o el
+  // inglés EN EL PORTAL —que es justo donde está Configuración, o sea donde se
+  // elige de verdad— no llegaba a Membresías ni a Campeonatos. Al revés sí
+  // funcionaba, porque los subdominios tienen tres etiquetas: de ahí el «unas
+  // veces cruza y otras no».
+  return partes.length >= 2 ? `; domain=.${partes.slice(-2).join('.')}` : '';
 }
 
 /** Lo que eligio esta persona en CUALQUIERA de las cuatro webs, o `null`. */
@@ -54,7 +62,15 @@ export function idiomaDeLaCookie(): Idioma | null {
 
 function guardarIdiomaEnCookie(i: Idioma) {
   if (typeof document === 'undefined') return;
-  document.cookie = `${COOKIE_IDIOMA}=${i}; path=/; max-age=31536000; samesite=lax${dominioDeLaCookie()}`;
+  const dominio = dominioDeLaCookie();
+  // Y antes de escribir, se borra la copia SIN dominio que dejó la versión
+  // anterior en `dinamyt.org`. Si no, quedan DOS cookies con este nombre —la
+  // de host y la de dominio— y `document.cookie` devuelve las dos: el portal
+  // seguiría leyendo la vieja para siempre, que es el fallo de arriba con otro
+  // disfraz. Borrar sin dominio solo afecta a la de host: la identidad de una
+  // cookie es (nombre, dominio, ruta).
+  if (dominio) document.cookie = `${COOKIE_IDIOMA}=; path=/; max-age=0`;
+  document.cookie = `${COOKIE_IDIOMA}=${i}; path=/; max-age=31536000; samesite=lax${dominio}`;
 }
 
 /**
@@ -101,11 +117,6 @@ const es = {
   /* «Salir», igual que en Membresias y en Academy. Decia «Cerrar sesion»
      aqui y «Salir» alli: la misma accion con dos nombres. */
   "logout.boton": "Salir",
-  "logout.titulo": "¿Cerrar sesión?",
-  "logout.mensaje":
-    "Volverás a la pantalla de inicio de sesión. Los datos de los tatamis permanecen guardados en el servidor.",
-  "logout.cancelar": "Cancelar",
-  "logout.confirmar": "Cerrar sesión",
   "logout.cerrando": "Cerrando...",
 
   // Login
@@ -147,16 +158,19 @@ const es = {
   // La regla visual que acompaña a esta (que va en `.display`, en `.eyebrow`
   // y en `.microetiqueta`, y que todo lo demas va en minusculas) vive en
   // `app/estilos-ecosistema.css`, junto a `.microetiqueta`.
-  "login.tagline": "Sistema oficial de competencias de Hapkido",
-  "login.publica.titulo": "Pantalla pública",
-  "login.publica.desc1": "Ve el marcador en tiempo real de cualquier tatami.",
-  "login.publica.desc2": "Elige el campeonato y el tatami — no requiere cuenta.",
+  // La cabecera de la tarjeta de entrar: antetitulo en mono, y el titulo con
+  // la segunda palabra en oro. Las mismas cuatro claves —y el mismo reparto—
+  // que Membresias, Academy y el portal.
+  "login.eyebrow": "DINAMYT",
+  "login.titulo": "Entrar a",
+  "login.tituloAcento": "Campeonatos",
+  "login.subtitulo": "Accede con tu cuenta para puntuar o administrar el campeonato.",
+  "login.volverAlPortal": "Ir al portal DINAMYT",
+  // Lo publico, debajo del formulario: se ve sin cuenta y es lo que busca
+  // quien llega desde un cartel o un grupo de WhatsApp.
+  "login.publica.intro": "¿Vienes a ver el campeonato? No hace falta cuenta.",
   "login.publica.boton": "Elegir tatami",
-  "login.publica.nota": "Cualquier persona puede acceder",
-  "login.o": "O",
-  "login.jueces.titulo": "Jueces y admin",
-  "login.jueces.desc":
-    "Accede con tu cuenta para ingresar puntajes o administrar el campeonato.",
+  "login.o": "o",
   "login.correo": "Correo electrónico",
   "login.contrasena": "Contraseña",
   "login.entrar": "Iniciar sesión",
@@ -171,7 +185,6 @@ const es = {
   "pie.ayuda": "¿Necesitas ayuda?",
   "pie.derechos": "Todos los derechos reservados.",
   "pie.nota": "DINAMYT Campeonatos es una obra protegida por el derecho de autor.",
-  "login.footer": "DINAMYT v4.0 · Global Hapkido Association · Competencias en tiempo real",
 
   // Panel del juez
   "juez.bienvenido": "Bienvenido,",
@@ -1378,23 +1391,16 @@ const en: Record<ClaveTexto, string> = {
   "rol.juez": "Judge",
 
   "logout.boton": "Sign out",
-  "logout.titulo": "Log out?",
-  "logout.mensaje":
-    "You will return to the sign-in screen. Tatami data remains saved on the server.",
-  "logout.cancelar": "Cancel",
-  "logout.confirmar": "Log out",
   "logout.cerrando": "Logging out...",
 
-  "login.tagline": "Official Hapkido Competition System",
-  "login.publica.titulo": "Public display",
-  "login.publica.desc1": "Watch any tatami's scoreboard in real time.",
-  "login.publica.desc2": "Pick the championship and tatami — no account needed.",
+  "login.eyebrow": "DINAMYT",
+  "login.titulo": "Sign in to",
+  "login.tituloAcento": "Championships",
+  "login.subtitulo": "Sign in with your account to score or manage the championship.",
+  "login.volverAlPortal": "Go to the DINAMYT portal",
+  "login.publica.intro": "Here to watch? No account needed.",
   "login.publica.boton": "Choose tatami",
-  "login.publica.nota": "Anyone can access",
-  "login.o": "OR",
-  "login.jueces.titulo": "Judges & admin",
-  "login.jueces.desc":
-    "Sign in with your account to enter scores or manage the championship.",
+  "login.o": "or",
   "login.correo": "Email",
   "login.contrasena": "Password",
   "login.entrar": "Sign in",
@@ -1406,7 +1412,6 @@ const en: Record<ClaveTexto, string> = {
   "pie.ayuda": "Need help?",
   "pie.derechos": "All rights reserved.",
   "pie.nota": "DINAMYT Championships is a work protected by copyright.",
-  "login.footer": "DINAMYT v4.0 · Global Hapkido Association · Real-time competitions",
 
   "juez.bienvenido": "Welcome,",
   "juez.misTatamis": "My Assigned Tatamis",

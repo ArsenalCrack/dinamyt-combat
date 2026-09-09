@@ -46,7 +46,7 @@ export default function CampeonatosPublicoPage() {
   return (
     <div className="campub-page">
       <div className="campub-header">
-        <Logo className="solo-sin-barra" fontSize="1.5rem" />
+        <Logo alPortal className="solo-sin-barra" fontSize="1.5rem" />
         <div>
           <h1 className="campub-titulo">{t("pub.camp.titulo")}</h1>
           <p className="campub-sub">{t("pub.camp.sub")}</p>

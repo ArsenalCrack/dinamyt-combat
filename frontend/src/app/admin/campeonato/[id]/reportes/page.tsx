@@ -833,11 +833,13 @@ export default function ReportesCampeonatoPage() {
           font-size: 0.92rem;
           font-weight: 700;
         }
-        /* Etiqueta de campo, en minusculas como en el login y como en
-           Membresias. Es una COPIA de «.login-label» de «app/login/page.tsx»:
-           esta pantalla se escribio a partir de aquella y se trajo la clase
-           con el nombre puesto. Se deja el nombre —lo escriben varios sitios
-           de este archivo— pero no el grito. */
+        /* Etiqueta de campo, en minusculas como en Membresias y como en la
+           pantalla de entrar. Nacio como copia de la «.login-label» que vivia
+           en app/login/page.tsx; esa pantalla se rehizo con la tarjeta del
+           ecosistema y su clase se fue con ella, asi que ESTA YA NO ES UNA
+           COPIA DE NADA: es la unica, y por eso se queda escrita aqui. Mismos
+           valores que «.eco-login-etiqueta» del archivo compartido. El nombre
+           se conserva porque lo escriben cinco sitios de este archivo. */
         .login-label {
           font-size: 0.8rem;
           font-weight: 600;

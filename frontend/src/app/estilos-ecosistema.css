@@ -662,12 +662,27 @@ input[type="password"]::-ms-clear { display: none; }
     gap: 0.5rem;
   }
   .pie-marca img { border-radius: 0.25rem; }
+  /* ── Los enlaces van en FILA, y se parten solos ───────────────────────
+     Eran una columna: cuatro enlaces cortos —«Campeonatos», «Resultados»,
+     «DINAMYT», «Privacidad»— uno debajo del otro, más la dirección de
+     soporte, o sea cinco renglones para lo que cabe en dos. En el celular
+     el pie medía media pantalla y el aviso de derechos quedaba fuera de
+     cuadro.
+
+     El modelo es el pie del portal, que sí lo tenía bien: los enlaces
+     cortos comparten renglón y se parten cuando no caben (`flex-wrap`), y
+     lo único que se lleva su propia línea es el correo — que es largo, se
+     copia entero y partido por la mitad no se puede ni leer. */
   .pie-enlaces {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 0.7rem;
+    justify-content: center;
+    gap: 0.4rem 1.1rem;
   }
+  /* `flex-basis: 100%` = su propio renglón, debajo de los enlaces cortos.
+     A partir de `sm` se suelta y entra en la fila con los demás. */
+  .pie-enlaces > .pie-soporte { flex-basis: 100%; }
   .pie-enlaces a:hover { color: var(--text); }
   .pie-soporte {
     display: inline-flex;
@@ -686,11 +701,10 @@ input[type="password"]::-ms-clear { display: none; }
       gap: 1rem;
     }
     .pie-enlaces {
-      flex-direction: row;
-      flex-wrap: wrap;
       justify-content: flex-end;
       gap: 0.5rem 1.1rem;
     }
+    .pie-enlaces > .pie-soporte { flex-basis: auto; }
   }
   .pie-legal {
     margin-top: 1.1rem;
@@ -1075,6 +1089,37 @@ input[type="password"]::-ms-clear { display: none; }
   .eco-login-subtitulo { font-size: 0.85rem; margin-bottom: 1.25rem; }
   .eco-login-etiqueta { font-size: 0.8rem; }
   .eco-login-campo { margin: 0.3rem 0 0.9rem; }
+
+  /* ── La raya con la «o» en medio ──────────────────────────────────────
+     La misma que Membresías dibuja a mano con tres `<span>` y estilos en
+     línea encima de su botón de «Entrar con el portal». Está aquí porque
+     Campeonatos necesitaba exactamente la misma para separar el formulario
+     de sus tres enlaces públicos, y copiarla habría sido la tercera vez. */
+  .eco-login-sep {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1rem 0;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .eco-login-sep > span {
+    height: 1px;
+    flex: 1;
+    background: var(--border);
+  }
+  .eco-login-sep > em { font-style: normal; }
+
+  /* ── Lo que se ve SIN cuenta, debajo del formulario ───────────────────
+     Una columna de botones a ancho completo, no una rejilla: son tres
+     destinos distintos y de nombres largos («Ver campeonatos», «Ver
+     resultados»), y en una caja de 380 px puestos de lado se recortan. */
+  .eco-login-publico {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .eco-login-publico .btn { width: 100%; }
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -1306,6 +1351,22 @@ input[type="password"]::-ms-clear { display: none; }
   color: var(--text-muted);
 }
 
+
+/* ── EL MISMO MENÚ, SIN BARRA DE LA QUE COLGAR ─────────────────────────────
+   El portal no tiene `.navbar`: su panel es una página, y la identidad vive
+   en la cabecera de esa página. Reusa el chip y los renglones del menú —son
+   los mismos, y ese es el punto—, pero el desplegable cuelga de su propio
+   envoltorio en vez del borde de la ventana.
+
+   Las dos reglas ganan por especificidad (0,2,0 contra 0,1,0), incluidas las
+   de las medias-consultas de abajo que mueven el `right` del panel.
+
+   Y el nombre de pila se ve SIEMPRE: en la barra se esconde por debajo de 860
+   px porque ahí compite con los enlaces, y aquí no hay enlaces con los que
+   competir. */
+.menu-cuenta { position: relative; }
+.menu-cuenta > .navbar-panel { top: calc(100% + 6px); right: 0; }
+.menu-cuenta .navbar-toggle-nombre { display: block; }
 
 /* De aquí para arriba caben los enlaces principales en línea. Por debajo, la
    barra se queda en marca + campana + chip, y TODO lo demás está a un toque

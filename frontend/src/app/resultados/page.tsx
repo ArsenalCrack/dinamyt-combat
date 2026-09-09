@@ -118,7 +118,7 @@ export default function ResultadosPage() {
   return (
     <div className="resultados-page">
       <div className="resultados-header">
-        <Logo className="solo-sin-barra" fontSize="1.5rem" />
+        <Logo alPortal className="solo-sin-barra" fontSize="1.5rem" />
         <div>
           <h1 className="resultados-titulo">{t("res.titulo")}</h1>
           <p className="resultados-sub">{t("res.sub")}</p>

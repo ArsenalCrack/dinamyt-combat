@@ -25,7 +25,7 @@ export default function NoEncontrada() {
       <div className="e404-bg" aria-hidden="true" />
 
       <div className="e404-card card animate-slide">
-        <Logo stacked fontSize="clamp(1.6rem, 5vw, 2.2rem)" />
+        <Logo alPortal stacked fontSize="clamp(1.6rem, 5vw, 2.2rem)" />
 
         <div className="e404-codigo" aria-hidden="true">
           {t("e404.codigo")}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { aplicarTema, getTema, temaEfectivo, type Tema } from "@/lib/theme";
 import { guardarAparienciaEnLaCuenta } from "@/lib/api";
+import { haySesionProbable } from "@/lib/sesion";
 import { IDIOMAS, useI18n } from "@/lib/i18n";
 
 /**
@@ -29,6 +30,30 @@ export default function PublicControls() {
     return () => { cancelled = true; };
   }, []);
 
+  /**
+   * A la cuenta, pero SOLO con sesion.
+   *
+   * ── Por que la guarda ──
+   *
+   * `guardarAparienciaEnLaCuenta` va por `api`, y el interceptor de `api`
+   * entiende un 401 como «te caduco la sesion»: limpia y **recarga hacia el
+   * login**. Este control vive en las pantallas publicas —el marcador del
+   * tatami proyectado en una pared, los resultados, la propia pantalla de
+   * entrar—, donde casi nunca hay sesion. O sea que tocar el modo claro
+   * mientras se proyecta un combate podia mandar la pared al formulario de
+   * login. La peticion se ignoraba sola, pero la redireccion no.
+   *
+   * Sin sesion no se pierde nada: la eleccion ya viajo a las otras tres webs
+   * por la cookie compartida (ver `lib/theme.ts`), y en cuanto la persona
+   * entre, `AplicarApariencia` no la pisara porque la cookie manda sobre la
+   * cuenta. Lo que la cuenta anade es cruzar de DISPOSITIVO, y para eso hace
+   * falta saber quien es.
+   */
+  function guardarSiHaySesion(datos: { theme?: string; locale?: string }) {
+    if (!haySesionProbable()) return;
+    guardarAparienciaEnLaCuenta(datos);
+  }
+
   function cambiarTema() {
     // Dos estados en el boton, no tres: `sistema` es un punto de partida, no un
     // destino al que alguien quiera volver pulsando. Las tres escritas estan en
@@ -38,7 +63,7 @@ export default function PublicControls() {
     setTema(nuevo);
     // Y a la CUENTA, para que valga tambien en el portal, en Membresias y en
     // Academy: `localStorage` no cruza subdominios.
-    guardarAparienciaEnLaCuenta({ theme: nuevo });
+    guardarSiHaySesion({ theme: nuevo });
   }
 
   return (
@@ -56,7 +81,16 @@ export default function PublicControls() {
                 className="pubctl-lang"
                 data-activo={idioma === l.codigo}
                 aria-pressed={idioma === l.codigo}
-                onClick={() => setIdioma(l.codigo)}
+                onClick={() => {
+                  setIdioma(l.codigo);
+                  // Y a la cuenta, igual que el tema y igual que hace el menu
+                  // con sesion. Faltaba: el idioma elegido aqui viajaba a las
+                  // otras webs de ESTE navegador (la cookie compartida) pero no
+                  // al telefono de la misma persona.
+                  guardarSiHaySesion({
+                    locale: l.codigo === "en" ? "en-US" : "es-CO",
+                  });
+                }}
               >
                 {l.etiqueta}
               </button>

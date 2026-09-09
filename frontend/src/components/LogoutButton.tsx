@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { logoutAPI } from "@/lib/api";
 import { PORTAL_URL, urlDeSalida, urlSalirDelPortal } from "@/lib/portal";
@@ -41,45 +41,38 @@ function IconoSalir() {
 }
 
 /**
- * Botón de cerrar sesión con confirmación.
+ * Botón de cerrar sesión. **Igual que en Membresías y en el portal: sin
+ * preguntar.**
  *
- * ── Igual que en Membresías, salvo en una cosa ───────────────────────────────
+ * ── Por qué se quitó la pregunta ─────────────────────────────────────────────
  *
- * Mismo icono, mismo `btn btn-danger` de ancho completo alineado a la
- * izquierda, mismo sitio al final del menú. Lo único que no se copia es la
- * ausencia de pregunta: aquí se confirma, y se confirma a propósito. En
- * Membresías, salir sin querer cuesta volver a entrar; aquí puede pasar en
- * mitad de un combate, con el marcador en pantalla y el tatami esperando.
+ * Aquí había un diálogo modal —«¿Cerrar sesión?», con su fondo oscuro, su
+ * emoji y sus dos botones— y era la única de las cuatro webs que lo tenía. El
+ * razonamiento de entonces se sostenía por sí solo: salir sin querer en mitad
+ * de un combate, con el marcador en pantalla, cuesta más que salir sin querer
+ * de un roster.
  *
- * Accesible: `role="dialog"`, cierre con Escape, foco inicial en «Cancelar» —
- * el botón que no hace nada— y estado de carga mientras se cierra la sesión.
+ * Lo que no aguanta es mirarlo desde fuera del archivo. La misma persona abre
+ * Membresías y Campeonatos en la misma tarde, con la misma cuenta, y el mismo
+ * botón rojo, en el mismo sitio del mismo menú, se comporta distinto: en una
+ * sale, en la otra pregunta. Eso no se lee como «esta app es más cuidadosa»;
+ * se lee como que son dos programas distintos, que es justo lo que §4.9 existe
+ * para evitar.
+ *
+ * Y el peligro que la pregunta protegía es más pequeño de lo que parecía: para
+ * llegar a este botón hay que ABRIR EL MENÚ y bajar hasta el final, o sea dos
+ * gestos deliberados. El tatami —la pantalla donde de verdad dolería— ni
+ * siquiera dibuja la barra, así que este botón no está ahí.
+ *
+ * ── Lo que sí se queda ───────────────────────────────────────────────────────
+ *
+ * El estado de carga mientras el servidor cierra: sin él, pulsar y no ver nada
+ * durante medio segundo es exactamente el disfraz del «pulso Salir y no pasa
+ * nada» que esta app ya se comió tres veces.
  */
 export default function LogoutButton({ label }: { label?: string }) {
   const { t } = useI18n();
-  const [confirming, setConfirming] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-  const cancelRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!confirming) return;
-    cancelRef.current?.focus();
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setConfirming(false);
-    }
-    window.addEventListener("keydown", onKey);
-
-    // La pantalla de detrás no se mueve mientras se pregunta. Sin esto, el
-    // gesto de desplazar sobre el fondo oscuro seguía recorriendo el panel: se
-    // leía la pregunta encima de un tatami y al cancelar se estaba en otro
-    // sitio. En el celular es peor, porque el pulgar cae justo ahí.
-    const scrollPrevio = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = scrollPrevio;
-    };
-  }, [confirming]);
 
   /**
    * Salir de verdad, de una sola pulsación, y de las DOS sesiones.
@@ -111,16 +104,16 @@ export default function LogoutButton({ label }: { label?: string }) {
    * ── Y por qué `replace` y no `href` ──
    *
    * `href` EMPUJA una entrada al historial, así que la consola de la que se
-   * acaba de salir se queda una flecha atrás. Se volvía a ella —con el diálogo
-   * de «¿cerrar sesión?» todavía abierto, porque el navegador restaura la
-   * página del bfcache tal como estaba— y ahí ninguna acción funcionaba: la
-   * sesión estaba cerrada de verdad y cada petición contestaba 401. Una
-   * pantalla muerta que parece viva es peor que no poder volver.
+   * acaba de salir se queda una flecha atrás. Se volvía a ella —restaurada del
+   * bfcache tal como estaba— y ahí ninguna acción funcionaba: la sesión estaba
+   * cerrada de verdad y cada petición contestaba 401. Una pantalla muerta que
+   * parece viva es peor que no poder volver.
    *
    * `replace` sustituye la entrada: la flecha atrás lleva a donde se estaba
    * ANTES de entrar a la consola, que es lo que la persona espera.
    */
   async function handleLogout() {
+    if (loggingOut) return;
     setLoggingOut(true);
     // La cookie de sesión es httpOnly: solo el backend puede borrarla, así
     // que limpiar aquí a secas dejaría la sesión viva en el servidor.
@@ -130,72 +123,20 @@ export default function LogoutButton({ label }: { label?: string }) {
   }
 
   return (
-    <>
-      {/* ── Por qué ya no es un botón «neutro que se pone rojo al pasar» ─────
-          Porque en Membresías y en el portal este botón es rojo desde el
-          principio, y es el único del menú que lo es: eso es lo que dice de un
-          vistazo cuál de los cinco no hay que tocar sin mirar. Aquí salía en
-          gris hasta que lo rozabas — o sea, en un teléfono, nunca. */}
-      <button
-        type="button"
-        className="btn btn-danger"
-        style={{ width: "100%", justifyContent: "flex-start", gap: 7 }}
-        onClick={() => setConfirming(true)}
-        aria-haspopup="dialog"
-      >
-        <IconoSalir />
-        <span>{label ?? t("logout.boton")}</span>
-      </button>
-
-      {confirming && (
-        <div
-          className="overlay"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="logout-dialog-title"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !loggingOut) setConfirming(false);
-          }}
-        >
-          <div className="overlay-box" style={{ maxWidth: 400, padding: "28px 24px" }}>
-            <div style={{ fontSize: "2rem", marginBottom: 8 }} aria-hidden="true">👋</div>
-            <h2
-              id="logout-dialog-title"
-              style={{
-                fontSize: "1.15rem", fontWeight: 800,
-                letterSpacing: "0.04em", marginBottom: 8,
-              }}
-            >
-              {t("logout.titulo")}
-            </h2>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.9rem", marginBottom: 22 }}>
-              {t("logout.mensaje")}
-            </p>
-            <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
-              <button
-                ref={cancelRef}
-                type="button"
-                className="btn"
-                onClick={() => setConfirming(false)}
-                disabled={loggingOut}
-                style={{ minWidth: 130 }}
-              >
-                {t("logout.cancelar")}
-              </button>
-              <button
-                type="button"
-                className="btn btn-danger"
-                onClick={handleLogout}
-                disabled={loggingOut}
-                style={{ minWidth: 150, fontWeight: 800 }}
-              >
-                {loggingOut ? t("logout.cerrando") : t("logout.confirmar")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-    </>
+    /* ── Por qué ya no es un botón «neutro que se pone rojo al pasar» ─────
+       Porque en Membresías y en el portal este botón es rojo desde el
+       principio, y es el único del menú que lo es: eso es lo que dice de un
+       vistazo cuál de los cinco no hay que tocar sin mirar. Aquí salía en
+       gris hasta que lo rozabas — o sea, en un teléfono, nunca. */
+    <button
+      type="button"
+      className="btn btn-danger"
+      style={{ width: "100%", justifyContent: "flex-start", gap: 7 }}
+      onClick={() => void handleLogout()}
+      disabled={loggingOut}
+    >
+      <IconoSalir />
+      <span>{loggingOut ? t("logout.cerrando") : label ?? t("logout.boton")}</span>
+    </button>
   );
 }

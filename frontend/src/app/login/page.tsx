@@ -5,11 +5,45 @@ import { useRouter } from "next/navigation";
 import { abrirSesionConToken, getMeAPI, loginAPI, logoutAPI } from "@/lib/api";
 import { guardarToken, guardarUsuario, limpiarSesion } from "@/lib/sesion";
 import CampoContrasena from "@/components/CampoContrasena";
-import Logo from "@/components/Logo";
-import { IDIOMAS, useI18n } from "@/lib/i18n";
+import PublicControls from "@/components/PublicControls";
+import { useI18n } from "@/lib/i18n";
 import { PORTAL_URL } from "@/lib/portal";
 import { LIM } from "@/lib/limites";
-import { aplicarAparienciaDelPase, aplicarTema, getTema, temaEfectivo, type Tema } from "@/lib/theme";
+import { aplicarAparienciaDelPase } from "@/lib/theme";
+
+/**
+ * ════════════════════════════════════════════════════════════════════════════
+ * LA PANTALLA DE ENTRAR — la misma que el portal, Membresías y Academy
+ * ════════════════════════════════════════════════════════════════════════════
+ *
+ * ── Lo que había, y por qué no valía ─────────────────────────────────────────
+ *
+ * Una rejilla de 900 px con DOS tarjetas del mismo tamaño —«Pantalla pública»
+ * a la izquierda, «Jueces y admin» a la derecha— separadas por una raya
+ * vertical con una «O» en medio, y noventa líneas de `<style>` propias dentro
+ * del archivo. No se parecía a ninguna de las otras tres webs, que son todas
+ * la misma tarjeta de 380 px con el logo dentro (`.eco-login*`, en el archivo
+ * compartido). Y lo peor: **de las dos mitades, la que de verdad es esta
+ * pantalla —el formulario— ocupaba la mitad de un lado.**
+ *
+ * Ahora es la caja de siempre: logo, antetítulo, título con la segunda palabra
+ * en oro, los dos campos y el botón. Lo público no desaparece —se ve sin
+ * cuenta y es lo que busca quien llega desde un cartel— pero pasa a ser lo que
+ * es: tres enlaces debajo del formulario, detrás de una raya.
+ *
+ * ── El logo lleva a DINAMYT ──────────────────────────────────────────────────
+ *
+ * Como en Membresías y en Academy: ninguna app del ecosistema es un callejón
+ * sin salida. Antes el logo de aquí no era un enlace a nada, así que quien
+ * aterrizaba en este formulario sin cuenta de Campeonatos no tenía a dónde ir.
+ *
+ * ── Y el tema y el idioma son el globo 🌐 ────────────────────────────────────
+ *
+ * El mismo `PublicControls` de las pantallas públicas y el mismo `.pubctl` que
+ * el portal usa en su login. Antes esta pantalla tenía su propia fila de
+ * botones de idioma abajo del todo (`.login-idiomas`), que era el cuarto sitio
+ * distinto donde se elegía lo mismo.
+ */
 
 /** Dónde aterriza cada rol al entrar. Lo comparten el formulario y el salto
  *  desde DINAMYT: dos copias de esto es cómo un rol acaba entrando a la
@@ -20,26 +54,16 @@ function destinoDe(rol: string) {
   return "/juez";
 }
 
+/** Lo que tarda el aviso de «cerraste tu sesión» en irse solo. Ver abajo. */
+const MS_AVISO_SALIDA = 9000;
+
 export default function LoginPage() {
   const router = useRouter();
-  const { t, idioma, setIdioma } = useI18n();
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  // Tema (sin sesión no hay menú global): arranca "dark" como el servidor y
-  // se sincroniza al montar para no desajustar la hidratación.
-  const [tema, setTema] = useState<Tema>("sistema");
-  useEffect(() => {
-    let cancelled = false;
-    queueMicrotask(() => { if (!cancelled) setTema(getTema()); });
-    return () => { cancelled = true; };
-  }, []);
-  function cambiarTema() {
-    const nuevo: Tema = temaEfectivo(tema) === "claro" ? "oscuro" : "claro";
-    aplicarTema(nuevo);
-    setTema(nuevo);
-  }
 
   // ── Se llega aquí SALIENDO, y eso lo cambia todo ─────────────────────────
   //
@@ -75,9 +99,38 @@ export default function LoginPage() {
   /** Dos remates y se para: cerrar en bucle sería peor que no cerrar. */
   const remates = useRef(0);
 
+  /**
+   * El aviso se enseña… y se va.
+   *
+   * ── Qué pasaba ──
+   *
+   * Se ponía al montar y no lo quitaba nadie. Quien salía se quedaba con
+   * «Cerraste tu sesión» clavado encima del formulario para siempre: al minuto
+   * ya no es un aviso, es parte del diseño, y encima contradice lo que la
+   * persona está haciendo, que es volver a entrar. Recargando volvía, porque el
+   * `?salida=` seguía en la barra.
+   *
+   * ── Las tres cosas que lo cierran ──
+   *
+   *   · Un reloj: a los nueve segundos ya se leyó.
+   *   · La dirección, que se limpia **navegando** (`router.replace`) y no con
+   *     `history.replaceState`. Ese atajo es el que dejó a Membresías con el
+   *     router mudo dos veces seguidas —el estado del historial guarda dentro
+   *     la URL, y tocarlo a mano las descuadra—, y `?salida` sí es parte de la
+   *     ruta que Next gestiona. Navegar es lo único que Next entiende.
+   *   · Y teclear (ver `alTeclear`): quien escribe su contraseña ya no está
+   *     saliendo.
+   *
+   * El remate de abajo no se entera de nada de esto: mira `enSalida.current`,
+   * que es un `ref` y no la barra de direcciones.
+   */
   useEffect(() => {
+    if (!enSalida.current) return;
     setAvisoSalida(enSalida.current);
-  }, []);
+    const reloj = setTimeout(() => setAvisoSalida(null), MS_AVISO_SALIDA);
+    router.replace("/login");
+    return () => clearTimeout(reloj);
+  }, [router]);
 
   /**
    * Se salió, pero el servidor todavía reconoce la sesión: se cierra otra vez.
@@ -183,12 +236,23 @@ export default function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    // Quien teclea su contraseña aquí ya no está saliendo: está entrando. Sin
-    // levantar la marca, el remate de arriba cerraría la sesión recién abierta.
+  /**
+   * Teclear es entrar, y entrar no es salir.
+   *
+   * Levanta la marca en cuanto alguien toca un campo: sin esto el remate de
+   * arriba cerraría la sesión que este formulario está a punto de abrir, y el
+   * aviso de «cerraste tu sesión» seguiría encima de la contraseña que se está
+   * escribiendo.
+   */
+  function alTeclear() {
+    if (!enSalida.current && !avisoSalida) return;
     enSalida.current = null;
     setAvisoSalida(null);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    alTeclear();
     setError("");
     setLoading(true);
     try {
@@ -206,468 +270,183 @@ export default function LoginPage() {
     }
   }
 
-
   return (
-    <div className="login-page">
-      {/* Fondo con gradiente */}
-      <div className="login-bg" aria-hidden="true" />
+    <main className="eco-login">
+      <form onSubmit={handleSubmit} className="card eco-login-caja">
+        {/* El logo lleva al portal, la convención del ecosistema: ninguna app
+            es un callejón sin salida. Solo cuando hay portal al que ir: en el
+            modo local —el del día del evento, sin internet— se queda como
+            estaba, porque el enlace no llevaría a ninguna parte. */}
+        {PORTAL_URL ? (
+          <a href={PORTAL_URL} title={t("login.volverAlPortal")}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="DINAMYT" className="eco-login-logo" />
+          </a>
+        ) : (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img src="/logo.png" alt="DINAMYT" className="eco-login-logo" />
+        )}
 
-      <div className="login-wrapper animate-slide">
-        {/* Logo central */}
-        <div className="login-logo">
-          <Logo stacked fontSize="clamp(2rem, 6vw, 2.8rem)" />
-          <p className="login-tagline">{t("login.tagline")}</p>
-          <p className="login-sub">Global Hapkido Association · GHA</p>
-        </div>
+        <p className="eyebrow eco-login-eyebrow">{t("login.eyebrow")}</p>
+        <h1 className="display eco-login-titulo">
+          {t("login.titulo")} <span className="acento">{t("login.tituloAcento")}</span>
+        </h1>
+        <p className="muted eco-login-subtitulo">
+          {saltando ? t("comun.cargando") : t("login.subtitulo")}
+        </p>
 
         {/* Volviendo de DINAMYT: mientras se canjea el pase no se enseña el
             formulario, o parece que el salto no funcionó y la persona escribe
             su contraseña encima. */}
-        {saltando && (
-          <p className="login-card-desc" style={{ textAlign: "center" }} role="status">
-            {t("comun.cargando")}
-          </p>
-        )}
-
-        {/* Se acaba de salir: se dice QUÉ se cerró. Sin esta línea, salir y
-            aparecer en el formulario de entrar se lee como que no funcionó —
-            que es exactamente la duda que traía el botón viejo. */}
-        {avisoSalida && (
-          <p
-            className="login-card-desc"
-            role="status"
-            style={{ textAlign: "center", maxWidth: 560, margin: "0 auto" }}
-          >
-            {t(avisoSalida === "portal" ? "login.sesionCerradaDinamyt" : "login.sesionCerrada")}
-          </p>
-        )}
-
-        {/* Y si el pase no abre esta consola —un alumno, un club sin plan—, se
-            dice por qué AQUÍ arriba, no dentro del formulario: lo que tiene
-            que hacer no es escribir una contraseña, es volver al portal. */}
-        {avisoSalto && (
-          <div
-            className="login-error animate-fade"
-            role="alert"
-            style={{ maxWidth: 560, margin: "0 auto 1rem" }}
-          >
-            {avisoSalto}{" "}
-            <a
-              href={PORTAL_URL}
-              style={{ color: "var(--gold)", textDecoration: "underline" }}
-            >
-              Volver a DINAMYT
-            </a>
-          </div>
-        )}
-
-        {/* GRID: Pantalla Publica | Separator | Login */}
-        <div className="login-grid" hidden={saltando}>
-
-          {/* ── PANTALLA PUBLICA ── */}
-          <div className="login-card login-card-public animate-fade">
-            <div className="login-card-icon" aria-hidden="true">📺</div>
-            <h2 className="login-card-title">{t("login.publica.titulo")}</h2>
-            <p className="login-card-desc">
-              {t("login.publica.desc1")}<br />
-              {t("login.publica.desc2")}
-            </p>
-            {/* El boton principal de la tarjeta. Era el unico boton de las
-                cuatro webs escrito en MAYUSCULAS —«ELEGIR TATAMI»— y estaba
-                justo encima de «Ver resultados» y «Ver campeonatos», que van en
-                minusculas: tres botones seguidos, dos idiomas tipograficos. Se
-                queda con el peso y el tamano, que es lo que de verdad lo hacia
-                el principal. */}
-            <button
-              type="button"
-              className="btn btn-lg login-btn-public"
-              onClick={() => router.push("/pantalla")}
-              style={{
-                width: "100%",
-                fontWeight: 800,
-                fontSize: "1rem",
+        {!saltando && (
+          <>
+            <label className="muted eco-login-etiqueta" htmlFor="login-email">
+              {t("login.correo")}
+            </label>
+            <input
+              id="login-email"
+              type="email"
+              className="input"
+              style={{ margin: "0.3rem 0 0.9rem" }}
+              maxLength={LIM.correo}
+              placeholder="juez@dinamyt.com"
+              value={email}
+              onChange={(e) => {
+                alTeclear();
+                setEmail(e.target.value);
               }}
-              id="public-access-btn"
-            >
-              {t("login.publica.boton")}
-            </button>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => router.push("/resultados")}
-              style={{ width: "100%", borderColor: "var(--gold-border)", color: "var(--gold)", fontWeight: 700 }}
-              id="public-results-btn"
-            >
-              {t("res.verResultados")}
-            </button>
-            <button
-              type="button"
-              className="btn"
-              onClick={() => router.push("/campeonatos")}
-              style={{ width: "100%", borderColor: "var(--gold-border)", color: "var(--gold)", fontWeight: 700 }}
-              id="public-champs-btn"
-            >
-              {t("pub.camp.boton")}
-            </button>
-            <p className="login-card-note">{t("login.publica.nota")}</p>
-          </div>
+              required
+              autoComplete="username"
+            />
 
-          {/* ── SEPARADOR ── */}
-          <div className="login-separator" aria-hidden="true">
-            <div className="login-separator-line" />
-            <span className="login-separator-label">{t("login.o")}</span>
-            <div className="login-separator-line" />
-          </div>
+            <label className="muted eco-login-etiqueta" htmlFor="login-password">
+              {t("login.contrasena")}
+            </label>
+            {/* Sin `maxLength` a propósito: es el único campo de contraseña que
+                no fija una nueva, sino que comprueba la que ya existe. Recortar
+                aquí dejaría fuera a quien tenga una más larga de lo que hoy se
+                permite crear. */}
+            {/* El margen va en `style` y no en una clase: `CampoContrasena`
+                reparte el estilo —los márgenes al envoltorio, el resto al
+                campo— porque el ojo se centra respecto al envoltorio, y su
+                `className` sustituye a `.input` en vez de sumarse. */}
+            <CampoContrasena
+              id="login-password"
+              style={{ margin: "0.3rem 0 1.1rem" }}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => {
+                alTeclear();
+                setPassword(e.target.value);
+              }}
+              required
+              autoComplete="current-password"
+            />
 
-          {/* ── LOGIN JUECES / ADMIN ── */}
-          <div className="login-card login-card-auth animate-fade" style={{ animationDelay: "0.1s" }}>
-            <div className="login-card-icon" aria-hidden="true">🏅</div>
-            <h2 className="login-card-title">{t("login.jueces.titulo")}</h2>
-            <p className="login-card-desc">
-              {t("login.jueces.desc")}
+            {/* Se acaba de salir: se dice QUÉ se cerró, y se deja de decir a los
+                nueve segundos. Sin esta línea, salir y aparecer en el
+                formulario de entrar se lee como que no funcionó — que es
+                exactamente la duda que traía el botón viejo. */}
+            {avisoSalida && !error && (
+              <p
+                className="muted"
+                role="status"
+                style={{ marginBottom: "0.8rem", fontSize: "0.85rem" }}
+              >
+                {t(
+                  avisoSalida === "portal"
+                    ? "login.sesionCerradaDinamyt"
+                    : "login.sesionCerrada",
+                )}
+              </p>
+            )}
+
+            {error && (
+              <p
+                className="msg-error"
+                role="alert"
+                style={{ marginBottom: "0.8rem", fontSize: "0.85rem" }}
+              >
+                {error}
+              </p>
+            )}
+
+            {/* Y si el pase no abre esta consola —un alumno, un club sin plan—,
+                se dice por qué: lo que tiene que hacer no es escribir una
+                contraseña, es volver al portal. */}
+            {avisoSalto && (
+              <p
+                className="msg-error"
+                role="alert"
+                style={{ marginBottom: "0.8rem", fontSize: "0.85rem" }}
+              >
+                {avisoSalto}{" "}
+                <a href={PORTAL_URL} style={{ color: "var(--gold)" }}>
+                  {t("login.volverAlPortal")}
+                </a>
+              </p>
+            )}
+
+            <button
+              type="submit"
+              className="btn btn-primary"
+              style={{ width: "100%" }}
+              disabled={loading}
+              id="login-submit"
+            >
+              {loading ? t("login.verificando") : t("login.entrar")}
+            </button>
+
+            {/* ── Lo público, que no pide cuenta ──────────────────────────
+                Estaba en una tarjeta del mismo tamaño que el formulario, a su
+                izquierda, y esta pantalla parecía dos pantallas. Es lo que
+                busca quien llega desde un cartel o un grupo de WhatsApp, así
+                que no se esconde — pero va debajo y en outline, porque quien
+                abre `/login` casi siempre viene a entrar. */}
+            <div className="eco-login-sep" aria-hidden="true">
+              <span />
+              <em>{t("login.o")}</em>
+              <span />
+            </div>
+
+            <p className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.7rem" }}>
+              {t("login.publica.intro")}
             </p>
 
-            <form onSubmit={handleSubmit} className="login-form">
-              <div className="login-field">
-                <label className="login-label" htmlFor="login-email">{t("login.correo")}</label>
-                <input
-                  type="email"
-                  className="input"
-                  maxLength={LIM.correo}
-                  placeholder="juez@dinamyt.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  autoComplete="email"
-                  id="login-email"
-                />
-              </div>
-
-              <div className="login-field">
-                <label className="login-label" htmlFor="login-password">{t("login.contrasena")}</label>
-                <CampoContrasena
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  autoComplete="current-password"
-                  id="login-password"
-                />
-              </div>
-
-              {error && (
-                <div className="login-error animate-fade" role="alert">
-                  {error}
-                </div>
-              )}
-
+            <div className="eco-login-publico">
               <button
-                type="submit"
-                className="btn btn-primary btn-lg"
-                style={{ width: "100%" }}
-                disabled={loading}
-                id="login-submit"
+                type="button"
+                className="btn btn-outline"
+                onClick={() => router.push("/pantalla")}
+                id="public-access-btn"
               >
-                {loading ? t("login.verificando") : t("login.entrar")}
+                {t("login.publica.boton")}
               </button>
-            </form>
-          </div>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => router.push("/campeonatos")}
+                id="public-champs-btn"
+              >
+                {t("pub.camp.boton")}
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => router.push("/resultados")}
+                id="public-results-btn"
+              >
+                {t("res.verResultados")}
+              </button>
+            </div>
+          </>
+        )}
+      </form>
 
-        </div>
-
-      </div>
-
-      {/* Aquí no hay menú global (se oculta en /login): selector propio de
-          idioma + toggle de tema */}
-      <div className="login-idiomas" role="group" aria-label={t("menu.idioma")}>
-        {IDIOMAS.map((l) => (
-          <button
-            key={l.codigo}
-            type="button"
-            className="login-idioma-btn"
-            data-activo={idioma === l.codigo}
-            aria-pressed={idioma === l.codigo}
-            onClick={() => setIdioma(l.codigo)}
-          >
-            {l.etiqueta}
-          </button>
-        ))}
-        <button
-          type="button"
-          className="login-idioma-btn"
-          onClick={cambiarTema}
-          title={temaEfectivo(tema) === "oscuro" ? t("menu.modoClaro") : t("menu.modoOscuro")}
-        >
-          {temaEfectivo(tema) === "oscuro" ? "☀️" : "🌙"}
-        </button>
-      </div>
-
-      <p className="login-footer">{t("login.footer")}</p>
-
-      <style>{`
-        .login-page {
-          min-height: 100dvh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .login-bg {
-          position: absolute;
-          inset: 0;
-          background:
-            radial-gradient(ellipse 80% 50% at 20% 30%, rgba(240,184,0,0.06) 0%, transparent 60%),
-            radial-gradient(ellipse 60% 40% at 80% 70%, rgba(0,85,255,0.05) 0%, transparent 60%);
-          pointer-events: none;
-          z-index: 0;
-        }
-
-        .login-wrapper {
-          position: relative;
-          z-index: 1;
-          width: 100%;
-          max-width: 900px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 32px;
-        }
-
-        .login-logo {
-          text-align: center;
-        }
-
-        .login-tagline {
-          font-family: var(--font-body);
-          font-size: 1.05rem;
-          font-weight: 600;
-          color: var(--text-muted);
-          letter-spacing: 0.04em;
-          margin-top: 6px;
-        }
-
-        /* ── Por que ya no va en MAYUSCULAS ────────────────────────────
-           Porque es un NOMBRE PROPIO —«Global Hapkido Association»— y los
-           nombres no se gritan. Aqui salia como GLOBAL HAPKIDO ASSOCIATION
-           debajo del logo, con lo que la pantalla de entrar tenia tres lineas
-           en mayusculas seguidas (la marca, el lema y esta) y ninguna
-           destacaba sobre las otras.
-
-           La regla del ecosistema, la misma que sigue Membresias entera:
-           MAYUSCULAS solo en el titular («.display»), en el antetitulo
-           («.eyebrow», que es MONO y con mucho interletrado) y en las
-           cabeceras de tabla. Lo demas, como se escribe. */
-        .login-sub {
-          font-size: 0.85rem;
-          color: var(--text-dim);
-          letter-spacing: 0.01em;
-          margin-top: 2px;
-        }
-
-        .login-grid {
-          display: grid;
-          grid-template-columns: 1fr auto 1fr;
-          gap: 0;
-          width: 100%;
-          align-items: start;
-        }
-
-        .login-card {
-          background: var(--bg-card);
-          border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          padding: 32px 28px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .login-card-public {
-          border-color: var(--chung-border);
-        }
-
-        /* CTA de pantalla pública: navy sólido en oscuro; en claro ese navy
-           chocaría con el texto azul del tema, así que usa el tinte chung */
-        .login-btn-public {
-          background: linear-gradient(135deg, #1c2e5e 0%, #0d1d42 100%);
-          border: 2px solid var(--chung-border);
-          color: var(--chung-light);
-        }
-
-        html[data-theme="light"] .login-btn-public {
-          background: var(--chung-bg-strong);
-        }
-
-        .login-card-auth {
-          border-color: var(--gold-border);
-        }
-
-        .login-card-icon {
-          font-size: 2.2rem;
-          line-height: 1;
-        }
-
-        /* Interletrado NEGATIVO y la letra de titular, como en las otras tres
-           webs. El +0.06em venia de Bebas Neue, que es condensada y necesita
-           aire; Archivo es ancha y con ese valor la palabra se desparrama.
-           Ver .display en estilos-ecosistema.css. */
-        .login-card-title {
-          font-family: var(--font-display);
-          font-size: 1.25rem;
-          font-weight: 800;
-          font-stretch: 118%;
-          color: var(--text);
-          text-transform: uppercase;
-          letter-spacing: -0.015em;
-        }
-
-        .login-card-desc {
-          font-size: 0.92rem;
-          color: var(--text-muted);
-          line-height: 1.5;
-        }
-
-        .login-card-note {
-          font-size: 0.82rem;
-          color: var(--text-dim);
-          text-align: center;
-          margin-top: auto;
-        }
-
-        .login-public-form {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .login-separator {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 0 24px;
-          gap: 8px;
-          padding-top: 80px;
-        }
-
-        .login-separator-line {
-          flex: 1;
-          width: 1px;
-          background: var(--border);
-          min-height: 60px;
-        }
-
-        .login-separator-label {
-          font-size: 0.875rem;
-          font-weight: 800;
-          color: var(--text-dim);
-          letter-spacing: 0.1em;
-          padding: 8px 0;
-        }
-
-        .login-form {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-        }
-
-        .login-field {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        /* ── Las etiquetas de un formulario no gritan ──────────────────
-           «CORREO» y «CONTRASEÑA» en negrita 800 y mayusculas pesaban mas que
-           el titulo de la tarjeta que las contiene. En Membresias la misma
-           etiqueta es «.muted» a 0.8 rem y en minusculas — se lee igual de
-           bien y deja que lo importante sea el campo, no su nombre. */
-        .login-label {
-          font-size: 0.82rem;
-          font-weight: 600;
-          color: var(--text-muted);
-        }
-
-        .login-error {
-          background: rgba(255,68,68,0.10);
-          border: 1px solid rgba(255,68,68,0.30);
-          border-radius: var(--radius-sm);
-          padding: 10px 14px;
-          color: var(--red-alert);
-          font-size: 0.92rem;
-          text-align: center;
-        }
-
-        .login-idiomas {
-          position: relative;
-          z-index: 1;
-          margin-top: 24px;
-          display: flex;
-          gap: 8px;
-          justify-content: center;
-        }
-
-        .login-idioma-btn {
-          padding: 7px 18px;
-          background: transparent;
-          border: 1.5px solid var(--border-light);
-          border-radius: var(--radius-sm);
-          color: var(--text-muted);
-          font: inherit;
-          font-weight: 600;
-          font-size: 0.9rem;
-          cursor: pointer;
-          transition: var(--transition);
-        }
-
-        .login-idioma-btn:hover,
-        .login-idioma-btn:focus-visible {
-          background: var(--bg-elevated);
-          color: var(--text);
-          outline: none;
-        }
-
-        .login-idioma-btn[data-activo="true"] {
-          background: var(--gold-bg);
-          border-color: var(--gold-border);
-          color: var(--gold);
-          font-weight: 800;
-        }
-
-        /* El pie es la letra pequena de la pantalla: la version y de quien
-           es. Gritarla la subia al mismo tono que el boton de entrar. */
-        .login-footer {
-          position: relative;
-          z-index: 1;
-          margin-top: 20px;
-          color: var(--text-dim);
-          font-size: 0.8rem;
-          letter-spacing: 0.01em;
-          text-align: center;
-        }
-
-        /* Responsive */
-        @media (max-width: 700px) {
-          .login-grid {
-            grid-template-columns: 1fr;
-            gap: 0;
-          }
-          .login-separator {
-            flex-direction: row;
-            padding: 16px 0;
-          }
-          .login-separator-line {
-            flex: 1;
-            width: auto;
-            height: 1px;
-            min-height: auto;
-          }
-        }
-      `}</style>
-    </div>
+      {/* Sin sesión no hay barra: el tema y el idioma viven en el globo, el
+          mismo de las pantallas públicas y el mismo que el portal usa en su
+          login. */}
+      <PublicControls />
+    </main>
   );
 }

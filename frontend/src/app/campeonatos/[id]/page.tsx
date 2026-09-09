@@ -179,7 +179,7 @@ export default function CampeonatoPublicoFichaPage() {
   return (
     <div className="ficha-page">
       <div className="ficha-topbar">
-        <Logo className="solo-sin-barra" fontSize="1.5rem" />
+        <Logo alPortal className="solo-sin-barra" fontSize="1.5rem" />
         <button className="btn btn-sm btn-ghost" onClick={() => router.push("/campeonatos")}>
           {t("pub.camp.volverLista")}
         </button>
