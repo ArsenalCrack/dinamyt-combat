@@ -352,7 +352,7 @@ export default function ReportesCampeonatoPage() {
 
         {/* Reporte general del campeonato */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
-          <span style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-muted)" }}>
+          <span className="microetiqueta">
             {t("rep.general")}
           </span>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -396,7 +396,7 @@ export default function ReportesCampeonatoPage() {
           </label>
 
           {/* Publicar en la web: exporta un .json para importarlo en el sitio online */}
-          <span style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em", color: "var(--text-muted)", marginTop: 6 }}>
+          <span className="microetiqueta" style={{ marginTop: 6 }}>
             Publicar en línea
           </span>
           <button
@@ -431,7 +431,7 @@ export default function ReportesCampeonatoPage() {
             <span style={{ fontFamily: "var(--font-display)", fontSize: "1.8rem", lineHeight: 1, color: "var(--gold)" }}>
               {data.total}
             </span>
-            <span style={{ fontSize: "0.78rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginTop: 4 }}>
+            <span className="microetiqueta" style={{ marginTop: 4 }}>
               {t("rep.registros")}
             </span>
           </div>
@@ -465,9 +465,8 @@ export default function ReportesCampeonatoPage() {
               }}>
                 {cat.cantidad}
               </span>
-              <span style={{
-                fontSize: "0.78rem", fontWeight: 800, textTransform: "uppercase",
-                letterSpacing: "0.06em", color: "var(--text-muted)", marginTop: 4,
+              <span className="microetiqueta" style={{
+                marginTop: 4,
                 maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
               }}>
                 {cat.nombre}
@@ -482,7 +481,7 @@ export default function ReportesCampeonatoPage() {
               <span style={{ fontFamily: "var(--font-display)", fontSize: "1.8rem", lineHeight: 1, color: "var(--green)" }}>
                 {seleccion.size}
               </span>
-              <span style={{ fontSize: "0.78rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginTop: 4 }}>
+              <span className="microetiqueta" style={{ marginTop: 4 }}>
                 {t("rep.seleccionados")}
               </span>
             </div>
@@ -697,9 +696,7 @@ export default function ReportesCampeonatoPage() {
                           {c.tipo === "figuras" ? `🥇 ${ganadorNombre(c)}` : ganadorNombre(c)}
                         </span>
                         {c.tipo !== "figuras" && c.ganador !== "empate" && (
-                          <span style={{
-                            fontSize: "0.78rem", fontWeight: 800,
-                            textTransform: "uppercase", letterSpacing: "0.08em",
+                          <span className="microetiqueta" style={{
                             color: c.ganador === "hong" ? "var(--hong-light)" : "var(--chung-light)",
                           }}>
                             {c.ganador === "hong" ? t("rep.rojo") : t("rep.azul")}
@@ -836,11 +833,14 @@ export default function ReportesCampeonatoPage() {
           font-size: 0.92rem;
           font-weight: 700;
         }
+        /* Etiqueta de campo, en minusculas como en el login y como en
+           Membresias. Es una COPIA de «.login-label» de «app/login/page.tsx»:
+           esta pantalla se escribio a partir de aquella y se trajo la clase
+           con el nombre puesto. Se deja el nombre —lo escriben varios sitios
+           de este archivo— pero no el grito. */
         .login-label {
           font-size: 0.8rem;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.10em;
+          font-weight: 600;
           color: var(--text-muted);
         }
         @media (max-width: 600px) {
@@ -861,10 +861,7 @@ function PodioFiguras({ ranking }: { ranking: RankingItem[] }) {
     puesto === 1 ? "🥇" : puesto === 2 ? "🥈" : puesto === 3 ? "🥉" : `${puesto ?? "-"}°`;
   return (
     <div>
-      <div style={{
-        fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase",
-        letterSpacing: "0.1em", color: "var(--text-muted)", marginBottom: 8,
-      }}>
+      <div className="microetiqueta" style={{ marginBottom: 8 }}>
         {t("podio.titulo")}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

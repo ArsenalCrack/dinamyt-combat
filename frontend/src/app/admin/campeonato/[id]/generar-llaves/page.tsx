@@ -501,10 +501,7 @@ function EditorModalidad({
 function TituloNivel({ texto, hint }: { texto: string; hint?: string }) {
   return (
     <div style={{ marginBottom: 6 }}>
-      <div style={{
-        fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase",
-        letterSpacing: "0.08em", color: "var(--text-muted)",
-      }}>{texto}</div>
+      <div className="microetiqueta">{texto}</div>
       {hint && <div style={{ fontSize: "0.82rem", color: "var(--text-dim)", marginTop: 2 }}>{hint}</div>}
     </div>
   );

@@ -202,7 +202,7 @@ export default function CampeonatoPublicoFichaPage() {
           {resumen.map((r) => (
             <div key={r.etiqueta} className="ficha-stat">
               <span className="ficha-stat-num">{r.valor}</span>
-              <span className="ficha-stat-lbl">{r.etiqueta}</span>
+              <span className="microetiqueta ficha-stat-lbl">{r.etiqueta}</span>
             </div>
           ))}
         </div>
@@ -242,7 +242,7 @@ export default function CampeonatoPublicoFichaPage() {
                 [t("pub.camp.estado"), t(`camp.estado.${c.estado}` as ClaveTexto)],
               ] as [string, string][]).map(([etiqueta, valor]) => (
                 <div key={etiqueta} className="ficha-dato">
-                  <dt>{etiqueta}</dt>
+                  <dt className="microetiqueta">{etiqueta}</dt>
                   <dd>{valor}</dd>
                 </div>
               ))}
@@ -293,7 +293,7 @@ export default function CampeonatoPublicoFichaPage() {
                 {detalle.tatamis.map((tat) => (
                   <div key={tat.id} className="ficha-tatami" data-inactivo={!tat.activo}>
                     <span className="ficha-tatami-num">{tat.numero}</span>
-                    <span className="ficha-tatami-lbl">{t("camp.tatami")}</span>
+                    <span className="microetiqueta">{t("camp.tatami")}</span>
                     {!tat.activo && (
                       <span className="badge badge-gray">{t("pub.camp.tatamiInactivo")}</span>
                     )}
@@ -481,10 +481,11 @@ const ESTILOS = `
     font-family: var(--font-display); font-size: 1.6rem; line-height: 1;
     color: var(--gold);
   }
-  .ficha-stat-lbl {
-    font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
-    letter-spacing: 0.08em; color: var(--text-muted); text-align: center;
-  }
+  /* El nombre de un dato es «.microetiqueta» (mono, peso 500), y no una
+     palabra en negrita 800 y mayusculas: asi pesaba mas «INSCRITOS» que el
+     numero que estaba nombrando. Ver «.microetiqueta» en
+     «estilos-ecosistema.css». */
+  .ficha-stat-lbl { text-align: center; }
   .ficha-tabs {
     display: flex; gap: 6px; flex-wrap: wrap;
     border-bottom: 1px solid var(--border); padding-bottom: 8px;
@@ -510,10 +511,7 @@ const ESTILOS = `
     padding: 10px 12px; border: 1px solid var(--border);
     border-radius: var(--radius-sm); min-width: 0;
   }
-  .ficha-dato dt {
-    font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
-    letter-spacing: 0.08em; color: var(--text-muted); margin-bottom: 2px;
-  }
+  .ficha-dato dt { margin-bottom: 2px; }
   .ficha-dato dd {
     margin: 0; font-size: 0.95rem; font-weight: 600; overflow-wrap: anywhere;
   }
@@ -557,10 +555,6 @@ const ESTILOS = `
   .ficha-tatami-num {
     font-family: var(--font-display); font-size: 1.8rem; line-height: 1;
     color: var(--chung-light);
-  }
-  .ficha-tatami-lbl {
-    font-size: 0.75rem; font-weight: 800; text-transform: uppercase;
-    letter-spacing: 0.08em; color: var(--text-muted);
   }
   @media (max-width: 560px) {
     .ficha-fila-insc { grid-template-columns: 1fr; }

@@ -109,30 +109,68 @@ const es = {
   "logout.cerrando": "Cerrando...",
 
   // Login
-  "login.tagline": "Sistema Oficial de Competencias Hapkido",
-  "login.publica.titulo": "Pantalla Publica",
+  // ════════════════════════════════════════════════════════════════════════
+  //  COMO SE ESCRIBE EN ESTA APP
+  // ════════════════════════════════════════════════════════════════════════
+  //
+  // ── Frase capital, no Title Case ────────────────────────────────────────
+  //
+  // «Crear campeonato», no «Crear Campeonato». Mayuscula en la primera palabra
+  // y en los nombres propios; el resto en minusculas. Es como se escribe en
+  // español —el Title Case es una convencion del ingles— y es lo que hace
+  // Membresias en toda su interfaz.
+  //
+  // Se auditó el 5 de septiembre de 2026 y salieron sesenta y nueve textos en
+  // Title Case: «Pantalla Publica», «Correo Electronico», «Iniciar Sesion»,
+  // «Panel de Administracion», «Nuevo Campeonato», «Criterios de Puntuación»…
+  // Puestas al lado de Membresias, las dos apps no parecian escritas por la
+  // misma gente, y esa es la mitad de la sensacion de «esto viene de otro
+  // sitio». La otra mitad eran las tildes que faltaban en esas mismas
+  // palabras.
+  //
+  // ── Lo que SI va con mayuscula ──────────────────────────────────────────
+  //
+  //   · Los nombres propios: DINAMYT, Hapkido, Excel, Nequi.
+  //   · Los nombres de rol y de esquina de la competencia: «Juez Central»,
+  //     «Hong», «Chung», «Knock Down». Son el vocabulario del deporte, no
+  //     decoracion, y se leen igual en la planilla de papel.
+  //
+  // ── Y el tatami es OTRO registro ────────────────────────────────────────
+  //
+  // Todo lo de `tat.*` y las alertas a pantalla completa (`alert.*`) va en
+  // MAYUSCULAS a proposito: se proyecta en una pared y se lee a diez metros,
+  // de pie, con ruido. Ahi las mayusculas son legibilidad y no enfasis, y por
+  // eso no se tocaron. Lo que se corrigio de `tat.*` son los textos de la
+  // MESA —los formularios y los botones del Juez Central—, que se miran de
+  // cerca en una tablet como cualquier otro formulario.
+  //
+  // La regla visual que acompaña a esta (que va en `.display`, en `.eyebrow`
+  // y en `.microetiqueta`, y que todo lo demas va en minusculas) vive en
+  // `app/estilos-ecosistema.css`, junto a `.microetiqueta`.
+  "login.tagline": "Sistema oficial de competencias de Hapkido",
+  "login.publica.titulo": "Pantalla pública",
   "login.publica.desc1": "Ve el marcador en tiempo real de cualquier tatami.",
   "login.publica.desc2": "Elige el campeonato y el tatami — no requiere cuenta.",
-  "login.publica.boton": "Elegir Tatami",
+  "login.publica.boton": "Elegir tatami",
   "login.publica.nota": "Cualquier persona puede acceder",
   "login.o": "O",
-  "login.jueces.titulo": "Jueces y Admin",
+  "login.jueces.titulo": "Jueces y admin",
   "login.jueces.desc":
     "Accede con tu cuenta para ingresar puntajes o administrar el campeonato.",
-  "login.correo": "Correo Electronico",
-  "login.contrasena": "Contrasena",
-  "login.entrar": "Iniciar Sesion",
-  "login.verificando": "Verificando...",
-  "login.errorConexion": "Error de conexion con el servidor",
+  "login.correo": "Correo electrónico",
+  "login.contrasena": "Contraseña",
+  "login.entrar": "Iniciar sesión",
+  "login.verificando": "Verificando…",
+  "login.errorConexion": "Error de conexión con el servidor",
   // Se aterriza aquí viniendo de «Salir». La frase dice de CUÁNTAS sesiones se
   // salió: en el modo local no hay ningún DINAMYT que cerrar.
   "login.sesionCerrada": "Cerraste tu sesión.",
   "login.sesionCerradaDinamyt": "Cerraste tu sesión de Campeonatos y la de DINAMYT.",
-  "login.footer": "DINAMYT v4.0 · Global Hapkido ASSOCIATION · Competencias en tiempo real",
+  "login.footer": "DINAMYT v4.0 · Global Hapkido Association · Competencias en tiempo real",
 
   // Panel del juez
   "juez.bienvenido": "Bienvenido,",
-  "juez.misTatamis": "Mis Tatamis Asignados",
+  "juez.misTatamis": "Mis tatamis asignados",
   "juez.instruccion": "Toca tu tatami para entrar con el rol que te asignó el administrador.",
   "juez.entrar": "Entrar →",
   "juez.tatami": "Tatami",
@@ -149,7 +187,7 @@ const es = {
   "rol.j4": "Juez Esquina 4",
 
   // Pantalla pública (selección de tatami)
-  "pantalla.sub": "Pantalla Pública · Acceso libre, sin cuenta",
+  "pantalla.sub": "Pantalla pública · acceso libre, sin cuenta",
   "pantalla.cargando": "Cargando campeonatos...",
   "pantalla.errorConexion": "No se pudo conectar con el servidor.",
   "pantalla.sinCampeonatos": "No hay campeonatos activos en este momento.",
@@ -158,7 +196,7 @@ const es = {
   "pantalla.pasoTatami": "2. Tatami",
   "pantalla.sinTatamis": "Este campeonato no tiene tatamis activos.",
   "pantalla.tatami": "Tatami",
-  "pantalla.loginJuez": "Iniciar sesion como juez",
+  "pantalla.loginJuez": "Iniciar sesión como juez",
 
   // Acceso directo por QR
   "acceso.incompleto": "El código QR está incompleto. Pide al administrador que genere uno nuevo.",
@@ -225,19 +263,19 @@ const es = {
     "Los jueces, maestros y pantallas públicas dejarán de poder usar la aplicación hasta que lo desactives. Tú seguirás entrando con normalidad.",
 
   // Panel de administración (principal)
-  "admin.panel": "Panel de Administracion",
+  "admin.panel": "Panel de administración",
   "admin.tab.campeonatos": "Campeonatos",
   "admin.tab.jueces": "Jueces / Usuarios",
   "admin.tab.competidores": "Competidores",
-  "admin.camp.nuevo": "+ Nuevo Campeonato",
+  "admin.camp.nuevo": "+ Nuevo campeonato",
   "admin.camp.buscar": "Buscar campeonato por nombre...",
   "admin.camp.filtroAria": "Filtrar campeonatos por estado",
   "admin.filtro.todos": "Todos",
   "admin.filtro.activos": "Activos",
   "admin.filtro.inactivos": "Inactivos",
-  "admin.camp.crear.titulo": "Crear Campeonato",
+  "admin.camp.crear.titulo": "Crear campeonato",
   "admin.camp.nombre": "Nombre del campeonato",
-  "admin.camp.desc": "Descripcion (opcional)",
+  "admin.camp.desc": "Descripción (opcional)",
   "admin.camp.tatamisLabel": "Tatamis:",
   "admin.camp.max10": "máximo 10",
   "admin.camp.creando": "Creando…",
@@ -252,11 +290,11 @@ const es = {
   "admin.camp.errorCrear":
     "Error al crear el campeonato. Si el servidor estaba dormido puede tardar ~1 min en despertar: revisa la lista antes de reintentar.",
   "admin.usuarios.titulo": "Usuarios",
-  "admin.usuarios.nuevo": "+ Crear Usuario",
-  "admin.usuarios.crear.titulo": "Crear Usuario",
+  "admin.usuarios.nuevo": "+ Crear usuario",
+  "admin.usuarios.crear.titulo": "Crear usuario",
   "admin.usuarios.nombre": "Nombre completo",
   "admin.usuarios.correo": "Correo electronico",
-  "admin.usuarios.contrasena": "Contrasena",
+  "admin.usuarios.contrasena": "Contraseña",
   "admin.usuarios.soloJueces":
     "El nuevo usuario se creará como juez de tu equipo. Solo el superadministrador puede crear administradores.",
   "admin.usuarios.buscar": "Buscar por nombre o correo...",
@@ -291,7 +329,7 @@ const es = {
   "camp.reportes": "Reportes",
   "camp.llaves": "Llaves",
   "camp.generarLlaves": "⚡ Generar llaves",
-  "camp.editar.titulo": "Editar Campeonato",
+  "camp.editar.titulo": "Editar campeonato",
   "camp.actualizado": "Campeonato actualizado",
   "camp.errorActualizar": "Error al actualizar el campeonato",
   "camp.eliminar.titulo": "Eliminar campeonato",
@@ -335,7 +373,7 @@ const es = {
   "camp.asignar.seleccionado": "Seleccionado: {nombre} ({email})",
   "camp.asignar.sinResultados": "No hay jueces disponibles con esa búsqueda.",
   "camp.asignar.boton": "Asignar",
-  "camp.asignar.abrir": "+ Asignar Juez",
+  "camp.asignar.abrir": "+ Asignar juez",
   "camp.asignar.completo":
     "Todos los roles de este tatami ya están asignados. Quita una asignación para liberar un rol.",
   "camp.asignar.ok": "Juez asignado correctamente",
@@ -346,7 +384,14 @@ const es = {
 
   // ── Alertas y modales compartidos (AlertSystem / ConfirmDialog) ──
   "alert.confirmar": "Confirmar",
-  "alert.entendido": "ENTENDIDO",
+  // ── Por que estos tres estan en minusculas y los del tatami no ─────────
+  // Porque no son del tatami. Estos salen en el modal normal de la app —el
+  // mismo que dice «Confirmar» y «Cancelar» al lado—, y ahi «ENTENDIDO» junto
+  // a «Cancelar» se leia como dos botones de dos programas distintos. Lo que
+  // se grita es el marcador (`tat.*` y las alertas a pantalla completa): eso
+  // se proyecta en una pared y se lee a diez metros, y ahi las mayusculas son
+  // legibilidad, no enfasis.
+  "alert.entendido": "Entendido",
   "alert.cerrar": "CERRAR",
   "alert.volver": "Volver",
   "alert.esperandoCierre": "ESPERANDO CIERRE DEL JUEZ CENTRAL",
@@ -479,8 +524,8 @@ const es = {
   "tat.jc.descartarBtn": "Descartar",
   "tat.jc.cerradoBanner1": "🏆 Combate finalizado — Ganó",
   "tat.jc.cerradoBanner2": "Guarda con NUEVO COMBATE o descarta con REINICIO TOTAL.",
-  "tat.jc.nombreHong": "Nombre Hong (Requerido)",
-  "tat.jc.nombreChung": "Nombre Chung (Requerido)",
+  "tat.jc.nombreHong": "Nombre Hong (requerido)",
+  "tat.jc.nombreChung": "Nombre Chung (requerido)",
   "tat.jc.ingresaNombres": "⚠️ Ingresa los nombres antes de iniciar el cronómetro",
   "tat.jc.pausa": "PAUSA",
   "tat.jc.iniciar": "INICIAR",
@@ -523,7 +568,7 @@ const es = {
   "tat.jc.deshacerHong": "↩ Deshacer Hong",
   "tat.jc.deshacerChung": "↩ Deshacer Chung",
   "tat.guardarNuevoBtn": "Guardar + Nuevo",
-  "tat.jc.reinicioTotal": "Reinicio Total",
+  "tat.jc.reinicioTotal": "Reinicio total",
   "tat.jc.historial.titulo": "Puntos del combate · anular",
   "tat.jc.anular.titulo": "ANULAR PUNTO",
   "tat.jc.anular.mensaje":
@@ -531,7 +576,7 @@ const es = {
   "tat.jc.anular.confirmar": "ANULAR",
   "tat.jc.anularBtn": "Anular",
   "tat.jc.historial.nota":
-    "Anula un punto o falta específico, no solo el último. Las decisiones de ganador no se anulan aquí (usa Reinicio Total si el combate quedó mal cerrado).",
+    "Anula un punto o falta específico, no solo el último. Las decisiones de ganador no se anulan aquí (usa Reinicio total si el combate quedó mal cerrado).",
   "tat.jc.log.titulo": "Registro del combate",
   "tat.jc.log.nota":
     "Hora real · tiempo del cronómetro (⏱ corriendo / ⏸ en pausa) · acción. Registro completo desde el inicio del combate; se archiva al usar GUARDAR + NUEVO.",
@@ -544,7 +589,7 @@ const es = {
   "tat.fig.eligeCategoria": "⚠️ Elige una categoría para agregar competidores y comenzar.",
   "tat.fig.descPlaceholder": "Descripción pública (opc.) — ej: Intermedios 15-17 años",
   "tat.fig.jcTatami": "Juez Central · Tatami {n}",
-  "tat.fig.cerrarPuntuacion": "Cerrar Puntuación",
+  "tat.fig.cerrarPuntuacion": "Cerrar puntuación",
   "tat.fig.errorCategoria": "Ingresa el nombre de la categoría usando solo letras y espacios.",
   "tat.fig.completas": "Puntuaciones completas — podio visible",
   "tat.fig.podioAparece": "El podio aparece al completar todas las puntuaciones",
@@ -572,7 +617,7 @@ const es = {
   "tat.fig.eliminar.notas": " Se perderán las puntuaciones que ya le registraron los jueces.",
   "tat.fig.eliminar.confirmar": "ELIMINAR",
   "tat.fig.agregaComp": "Agrega competidores para comenzar",
-  "tat.fig.criterios": "Criterios de Puntuación",
+  "tat.fig.criterios": "Criterios de puntuación",
   "tat.fig.empatePuesto": "Empate en el puesto {n} — deben desempatar",
   "tat.fig.reevaluarBtn": "Reevaluar",
   "tat.fig.reevaluar.titulo": "REEVALUAR EMPATE",
@@ -627,7 +672,7 @@ const es = {
   "tat.pant.puntuacionesCurso": "Puntuaciones en curso",
   "tat.pant.todasRegistradas": "Todas las puntuaciones registradas — esperando podio",
   "tat.pant.esperandoSiguiente": "Esperando al siguiente competidor",
-  "tat.pant.catEspecial": "Categoría Especial",
+  "tat.pant.catEspecial": "Categoría especial",
   "tat.pant.compartenPuesto": "Comparten puesto",
   "tat.pant.desempatePendiente": "Desempate pendiente",
   "tat.pant.proximo": "Próximo",
@@ -880,7 +925,7 @@ const es = {
   "gen.omitidas": "{n} sección(es) omitida(s)",
   "gen.incluir": "Incluir en la generación",
   "gen.genero": "Género",
-  "gen.generoSeparado": "Masculino y Femenino por separado",
+  "gen.generoSeparado": "Masculino y femenino por separado",
   "gen.generoMixto": "Mixto (una sola rama)",
   "gen.cinturones": "Cinturones",
   "gen.cinturonesHint":
@@ -908,7 +953,7 @@ const es = {
   "gen.llaveGenerada": "Llave ya generada ({estado})",
 
   // ── Llaves y grupos ──
-  "llv.titulo": "Llaves y Grupos —",
+  "llv.titulo": "Llaves y grupos —",
   "llv.desc":
     "Crea llaves de combate (eliminación) o grupos de figuras, asígnalos a un tatami —o déjalos en el pool para asignar después— y actívalos desde el panel del Juez Central. Cada llave muestra su estado: pendiente, activa o terminada.",
   "llv.estado.pendiente": "Pendiente",
@@ -961,7 +1006,7 @@ const es = {
   "llv.notaCombate":
     "El sistema sortea las posiciones y asigna los byes automáticamente. Editar competidores vuelve a sortear el cuadro. Sin tatami la llave queda en el pool.",
   "llv.crearGrupo": "Crear grupo ({n})",
-  "llv.crearSortear": "Crear y Sortear ({n})",
+  "llv.crearSortear": "Crear y sortear ({n})",
   "llv.vacio":
     "No hay llaves ni grupos creados. Crea uno con la lista de competidores; las de combate generan el cuadro con sorteo y los grupos de figuras se puntúan desde el tatami.",
   "llv.sinFiltros": "No hay llaves que coincidan con los filtros.",
@@ -1012,7 +1057,7 @@ const es = {
   "podio.titulo": "Podio de la categoría",
 
   // ── Panel de llaves en el tatami ──
-  "lp.titulo": "Combates de Eliminación",
+  "lp.titulo": "Combates de eliminación",
   "lp.mostrarPuntuacion": "Mostrar puntuación",
   "lp.mostrarArbol": "Mostrar árbol",
   "lp.titleMarcador": "La pantalla pública pasará a mostrar el marcador de puntos",
@@ -1026,7 +1071,7 @@ const es = {
   "lp.soltar.titulo": "SOLTAR COMBATE",
   "lp.soltar.mensaje":
     "¿Liberar este combate de eliminación? El marcador quedará suelto y el combate seguirá pendiente en la llave.",
-  "lp.soltarLabel": "SOLTAR",
+  "lp.soltarLabel": "Soltar",
   "lp.soltarBtn": "Soltar",
   "lp.campeonLabel": "🏆 Campeón:",
   "lp.pendientesN": "{n} combate(s) pendiente(s)",
@@ -1034,12 +1079,12 @@ const es = {
   "lp.activar.titulo": "ACTIVAR COMBATE DE ELIMINACIÓN",
   "lp.activar.mensaje":
     "{llave} · {ronda}: {c1} (Rojo) vs {c2} (Azul). Los nombres se cargarán en el marcador con el tiempo pausado.",
-  "lp.activarLabel": "ACTIVAR",
+  "lp.activarLabel": "Activar",
   "lp.activarBtn": "Activar",
   "lp.enCola": "⏳ {n} llave(s) más en cola en este tatami — aparecerán al terminar la actual.",
 
   // ── Grupos de figuras en el tatami ──
-  "gf.titulo": "Grupos de Figuras en cola",
+  "gf.titulo": "Grupos de figuras en cola",
   "gf.enCurso": "En curso: {nombre}",
   "gf.alGuardar": "Al guardar la categoría (\"Nueva categoría\") este grupo queda terminado.",
   "gf.soltar.titulo": "SOLTAR GRUPO DE FIGURAS",
@@ -1070,8 +1115,8 @@ const es = {
   "rep.todosTatamis": "Todos los tatamis",
   "rep.puntuacion": "Puntuación",
   "rep.todas": "Todas",
-  "rep.puntCombate": "Puntuación Combate",
-  "rep.puntIndividual": "Puntuación Individual",
+  "rep.puntCombate": "Puntuación combate",
+  "rep.puntIndividual": "Puntuación individual",
   "rep.categoria": "Categoría",
   "rep.todasCategorias": "Todas las categorías",
   "rep.desde": "Desde",
@@ -1106,7 +1151,7 @@ const es = {
   "rep.podioLlave": "Podio de la llave",
   "rep.ronda.r1": "Ronda 1",
   "rep.ronda.r2": "Ronda 2",
-  "rep.ronda.oro": "Punto de Oro",
+  "rep.ronda.oro": "Punto de oro",
   "rep.ronda.figuras": "Figuras",
   "rep.errorGenerar": "No se pudo generar el reporte.",
 
@@ -1336,23 +1381,23 @@ const en: Record<ClaveTexto, string> = {
   "logout.cerrando": "Logging out...",
 
   "login.tagline": "Official Hapkido Competition System",
-  "login.publica.titulo": "Public Display",
+  "login.publica.titulo": "Public display",
   "login.publica.desc1": "Watch any tatami's scoreboard in real time.",
   "login.publica.desc2": "Pick the championship and tatami — no account needed.",
-  "login.publica.boton": "Choose Tatami",
+  "login.publica.boton": "Choose tatami",
   "login.publica.nota": "Anyone can access",
   "login.o": "OR",
-  "login.jueces.titulo": "Judges & Admin",
+  "login.jueces.titulo": "Judges & admin",
   "login.jueces.desc":
     "Sign in with your account to enter scores or manage the championship.",
   "login.correo": "Email",
   "login.contrasena": "Password",
-  "login.entrar": "Sign In",
-  "login.verificando": "Verifying...",
+  "login.entrar": "Sign in",
+  "login.verificando": "Verifying…",
   "login.errorConexion": "Could not connect to the server",
   "login.sesionCerrada": "You have been signed out.",
   "login.sesionCerradaDinamyt": "You have been signed out of Championships and DINAMYT.",
-  "login.footer": "DINAMYT v4.0 · Global Hapkido ASSOCIATION · Real-time competitions",
+  "login.footer": "DINAMYT v4.0 · Global Hapkido Association · Real-time competitions",
 
   "juez.bienvenido": "Welcome,",
   "juez.misTatamis": "My Assigned Tatamis",
@@ -1560,7 +1605,7 @@ const en: Record<ClaveTexto, string> = {
   "camp.abrirJC": "Open as Center Judge",
 
   "alert.confirmar": "Confirm",
-  "alert.entendido": "GOT IT",
+  "alert.entendido": "Got it",
   "alert.cerrar": "CLOSE",
   "alert.volver": "Back",
   "alert.esperandoCierre": "WAITING FOR CENTER JUDGE TO CLOSE",
@@ -2221,7 +2266,7 @@ const en: Record<ClaveTexto, string> = {
   "lp.soltar.titulo": "RELEASE MATCH",
   "lp.soltar.mensaje":
     "Release this elimination match? The scoreboard becomes free and the match stays pending in the bracket.",
-  "lp.soltarLabel": "RELEASE",
+  "lp.soltarLabel": "Release",
   "lp.soltarBtn": "Release",
   "lp.campeonLabel": "🏆 Champion:",
   "lp.pendientesN": "{n} pending match(es)",
@@ -2229,7 +2274,7 @@ const en: Record<ClaveTexto, string> = {
   "lp.activar.titulo": "ACTIVATE ELIMINATION MATCH",
   "lp.activar.mensaje":
     "{llave} · {ronda}: {c1} (Red) vs {c2} (Blue). The names will be loaded on the scoreboard with the timer paused.",
-  "lp.activarLabel": "ACTIVATE",
+  "lp.activarLabel": "Activate",
   "lp.activarBtn": "Activate",
   "lp.enCola": "⏳ {n} more bracket(s) queued on this tatami — they appear when the current one ends.",
 

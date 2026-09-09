@@ -292,14 +292,20 @@ export default function CompetidorFormFields({
           gap: 10px;
         }
         .comp-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+        /* ── Etiqueta de campo: minusculas ─────────────────────────────
+           «font-weight: 800» + MAYUSCULAS en la sans del cuerpo hace que el
+           NOMBRE del campo pese mas que lo que hay dentro. En un formulario de
+           doce campos eso es doce palabras gritando y ningun dato destacando.
+           En Membresias la misma etiqueta es «.muted» a 0.8 rem, en minusculas.
+           Ver «.microetiqueta» en «estilos-ecosistema.css» para la regla
+           entera: MAYUSCULAS solo en titular, antetitulo y nombre de dato. */
         .comp-label {
-          font-size: 0.8rem; font-weight: 800; text-transform: uppercase;
-          letter-spacing: 0.08em; color: var(--text-muted);
+          font-size: 0.8rem; font-weight: 600;
+          color: var(--text-muted);
         }
-        .comp-hint {
-          font-weight: 600; text-transform: none; letter-spacing: 0;
-          color: var(--text-dim);
-        }
+        /* La aclaracion entre parentesis de una etiqueta. Ya no tiene que
+           deshacer las mayusculas ni el interletrado de su madre: no los hay. */
+        .comp-hint { font-weight: 400; color: var(--text-dim); }
         .comp-especial {
           display: flex; align-items: flex-start; gap: 8px;
           font-size: 0.9rem; cursor: pointer;

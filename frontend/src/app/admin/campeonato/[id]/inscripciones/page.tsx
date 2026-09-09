@@ -346,10 +346,7 @@ export default function InscripcionesPage() {
 
   const selectorModalidades = (lista: string[], setLista: (l: string[]) => void) => (
     <div>
-      <div style={{
-        fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase",
-        letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 6,
-      }}>
+      <div className="microetiqueta" style={{ marginBottom: 6 }}>
         {t("ins.modalidades")}
       </div>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>

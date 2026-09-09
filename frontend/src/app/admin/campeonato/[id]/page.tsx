@@ -481,10 +481,7 @@ export default function CampeonatoDetailPage() {
             {t("sync.exportarCampeonato.desc")}
           </p>
           <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
-            <legend style={{
-              fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase",
-              letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 6,
-            }}>
+            <legend className="microetiqueta" style={{ marginBottom: 6 }}>
               {t("sync.incluir")}
             </legend>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -711,11 +708,10 @@ export default function CampeonatoDetailPage() {
                           </span>
                         )}
                       </div>
-                      <span style={{
-                        marginTop: 4, display: "inline-block", padding: "2px 8px", borderRadius: "var(--radius-sm)",
-                        fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase",
+                      <span className="badge" style={{
+                        marginTop: 4,
                         background: "var(--chung-bg)", color: "var(--chung-light)",
-                        border: "1px solid var(--chung-border)",
+                        borderColor: "var(--chung-border)",
                       }}>{a.rol_tatami}</span>
                       <div style={{ color: "var(--text-dim)", fontSize: "0.8rem", marginTop: 4 }}>
                         {t("camp.asignado")} {a.asignado_at ? new Date(a.asignado_at).toLocaleDateString("es-CO") : "—"}

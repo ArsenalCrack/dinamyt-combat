@@ -34,7 +34,10 @@ export default function PanelColapsable({
           color, cursor: "pointer", font: "inherit", textAlign: "left",
         }}
       >
-        <span style={{ fontWeight: 800, fontSize: "0.875rem", textTransform: "uppercase", letterSpacing: "0.06em", flex: 1 }}>
+        {/* Titulo de seccion en frase capital. En MAYUSCULAS y a peso 800
+            pesaba igual que el titulo de la tarjeta que lo contiene, y un
+            desplegable no compite con la pantalla en la que vive. */}
+        <span style={{ fontWeight: 700, fontSize: "0.95rem", flex: 1 }}>
           {icono ? `${icono} ` : ""}{titulo}
         </span>
         {badge && <span className="badge badge-gray">{badge}</span>}

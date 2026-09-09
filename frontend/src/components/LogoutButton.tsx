@@ -6,13 +6,53 @@ import { logoutAPI } from "@/lib/api";
 import { PORTAL_URL, urlDeSalida, urlSalirDelPortal } from "@/lib/portal";
 
 /**
+ * El símbolo de encendido de «Salir», dibujado en vez de escrito.
+ *
+ * ── Por qué este dibujo y no el de antes ─────────────────────────────────────
+ *
+ * Aquí había una puerta con una flecha saliendo. No estaba mal — pero era la
+ * única de las cuatro webs con ese dibujo: el portal, Membresías y Academy usan
+ * el símbolo de encendido, y el menú de esta app es, línea por línea, el mismo
+ * que el de Membresías. Dos iconos para la misma acción en dos apps que se
+ * abren una al lado de la otra es de las cosas que hacen que el ecosistema se
+ * sienta como tres programas y no como uno.
+ *
+ * Es literalmente el mismo `path` que `IconoSalir` en `NavBar.tsx` de
+ * Membresías y en el panel del portal, con el mismo grosor de trazo.
+ */
+function IconoSalir() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      aria-hidden="true"
+      focusable="false"
+      style={{ flexShrink: 0 }}
+    >
+      <path d="M12 2.8v9.4" />
+      <path d="M6.3 6.3a8 8 0 1 0 11.4 0" />
+    </svg>
+  );
+}
+
+/**
  * Botón de cerrar sesión con confirmación.
- * Buenas prácticas aplicadas:
- * - Icono + etiqueta visible (no solo icono).
- * - Estilo neutro en reposo, peligro solo al pasar el cursor (no alarma).
- * - Diálogo de confirmación para evitar cierres accidentales en pleno torneo.
- * - Accesible: role="dialog", cierre con Escape, foco inicial en "Cancelar".
- * - Estado de carga mientras se cierra la sesión.
+ *
+ * ── Igual que en Membresías, salvo en una cosa ───────────────────────────────
+ *
+ * Mismo icono, mismo `btn btn-danger` de ancho completo alineado a la
+ * izquierda, mismo sitio al final del menú. Lo único que no se copia es la
+ * ausencia de pregunta: aquí se confirma, y se confirma a propósito. En
+ * Membresías, salir sin querer cuesta volver a entrar; aquí puede pasar en
+ * mitad de un combate, con el marcador en pantalla y el tatami esperando.
+ *
+ * Accesible: `role="dialog"`, cierre con Escape, foco inicial en «Cancelar» —
+ * el botón que no hace nada— y estado de carga mientras se cierra la sesión.
  */
 export default function LogoutButton({ label }: { label?: string }) {
   const { t } = useI18n();
@@ -91,21 +131,19 @@ export default function LogoutButton({ label }: { label?: string }) {
 
   return (
     <>
+      {/* ── Por qué ya no es un botón «neutro que se pone rojo al pasar» ─────
+          Porque en Membresías y en el portal este botón es rojo desde el
+          principio, y es el único del menú que lo es: eso es lo que dice de un
+          vistazo cuál de los cinco no hay que tocar sin mirar. Aquí salía en
+          gris hasta que lo rozabas — o sea, en un teléfono, nunca. */}
       <button
         type="button"
-        className="btn btn-sm logout-btn"
+        className="btn btn-danger"
+        style={{ width: "100%", justifyContent: "flex-start", gap: 7 }}
         onClick={() => setConfirming(true)}
         aria-haspopup="dialog"
       >
-        <svg
-          width="15" height="15" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" strokeWidth="2.2"
-          strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
-        >
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-          <polyline points="16 17 21 12 16 7" />
-          <line x1="21" y1="12" x2="9" y2="12" />
-        </svg>
+        <IconoSalir />
         <span>{label ?? t("logout.boton")}</span>
       </button>
 
@@ -158,22 +196,6 @@ export default function LogoutButton({ label }: { label?: string }) {
         </div>
       )}
 
-      <style>{`
-        .logout-btn {
-          gap: 7px;
-          color: var(--text-muted);
-        }
-        .logout-btn:hover,
-        .logout-btn:focus-visible {
-          background: rgba(255, 68, 68, 0.10);
-          border-color: rgba(255, 68, 68, 0.35);
-          color: var(--red-alert);
-        }
-        .logout-btn:focus-visible {
-          outline: 2px solid var(--red-alert);
-          outline-offset: 2px;
-        }
-      `}</style>
     </>
   );
 }

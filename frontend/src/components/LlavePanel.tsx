@@ -101,7 +101,9 @@ export default function LlavePanel({
           border: "1px solid var(--gold-border)", borderRadius: "var(--radius-sm)",
         }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 800, color: "var(--gold)", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            {/* Igual que en «GrupoFigurasPanel»: lleva el nombre de la llave y
+                el de la ronda, que ya vienen escritos como toca. */}
+            <div style={{ fontWeight: 800, color: "var(--gold)", fontSize: "0.95rem" }}>
               {combateLlave.nombre} · {combateLlave.ronda_nombre}
             </div>
             <div style={{ fontSize: "0.9rem", marginTop: 2 }}>

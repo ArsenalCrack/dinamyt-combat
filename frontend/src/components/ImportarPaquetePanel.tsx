@@ -121,10 +121,7 @@ export default function ImportarPaquetePanel({ conModo = false, onImportado }: P
 
       {conModo && (
         <fieldset style={{ border: "none", padding: 0, margin: 0 }}>
-          <legend style={{
-            fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase",
-            letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 6,
-          }}>
+          <legend className="microetiqueta" style={{ marginBottom: 6 }}>
             {t("sync.modo")}
           </legend>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

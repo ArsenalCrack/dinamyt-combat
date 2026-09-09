@@ -86,11 +86,7 @@ export default function PantallaAccess() {
           <div style={{ display: "flex", flexDirection: "column", gap: 16, textAlign: "left" }}>
             {/* Paso 1: Campeonato */}
             <div>
-              <label style={{
-                fontSize: "0.85rem", fontWeight: 800, textTransform: "uppercase",
-                letterSpacing: "0.08em", color: "var(--text-muted)",
-                display: "block", marginBottom: 6,
-              }}>{t("pantalla.pasoCampeonato")}</label>
+              <label className="microetiqueta" style={{ display: "block", marginBottom: 6 }}>{t("pantalla.pasoCampeonato")}</label>
               {campeonatos.length === 1 ? (
                 <div style={{
                   padding: "12px 14px", borderRadius: "var(--radius-sm)",
@@ -116,11 +112,7 @@ export default function PantallaAccess() {
             {/* Paso 2: Tatami */}
             {campSeleccionado && (
               <div className="animate-fade">
-                <label style={{
-                  fontSize: "0.85rem", fontWeight: 800, textTransform: "uppercase",
-                  letterSpacing: "0.08em", color: "var(--text-muted)",
-                  display: "block", marginBottom: 6,
-                }}>{t("pantalla.pasoTatami")}</label>
+                <label className="microetiqueta" style={{ display: "block", marginBottom: 6 }}>{t("pantalla.pasoTatami")}</label>
                 {campSeleccionado.tatamis.length === 0 ? (
                   <p style={{ color: "var(--text-dim)", fontSize: "0.9rem" }}>
                     {t("pantalla.sinTatamis")}
@@ -147,7 +139,7 @@ export default function PantallaAccess() {
                           fontFamily: "var(--font-display)", fontSize: "1.6rem",
                           color: "var(--chung-light)", lineHeight: 1,
                         }}>{tat.numero}</span>
-                        <span style={{ fontSize: "0.78rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                        <span className="microetiqueta">
                           {t("pantalla.tatami")}
                         </span>
                       </button>

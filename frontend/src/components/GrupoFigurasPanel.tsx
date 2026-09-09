@@ -65,7 +65,10 @@ export default function GrupoFigurasPanel({
           border: "1px solid var(--chung-border)", borderRadius: "var(--radius-sm)",
         }}>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 800, color: "var(--chung-light)", fontSize: "0.9rem", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+            {/* Titulo de panel, no micro-etiqueta: lleva dentro el NOMBRE del
+                grupo, y un nombre propio en mayusculas forzadas se lee peor.
+                Ver la regla en «.microetiqueta» (estilos-ecosistema.css). */}
+            <div style={{ fontWeight: 800, color: "var(--chung-light)", fontSize: "0.95rem" }}>
               {t("gf.enCurso", { nombre: grupoActivo.nombre })}
             </div>
             <div style={{ fontSize: "0.8rem", color: "var(--text-dim)", marginTop: 2 }}>

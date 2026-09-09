@@ -48,11 +48,16 @@ function ConfirmDialog({
     >
       <div className="overlay-box" style={{ maxWidth: 420, padding: "28px 24px" }}>
         <div style={{ fontSize: "2rem", marginBottom: 8 }} aria-hidden="true">{icono}</div>
+        {/* El titulo de una pregunta es una FRASE —«¿Eliminar a Ana Maria
+            Perez?»— y una frase entera en mayusculas se lee mas despacio, que
+            es justo lo contrario de lo que hace falta en un dialogo que pide
+            una decision. Son las mismas medidas que «.confirmar-titulo» del
+            portal. */}
         <h2
           id="confirm-dialog-title"
           style={{
-            fontSize: "1.1rem", fontWeight: 800, letterSpacing: "0.05em",
-            textTransform: "uppercase", color, marginBottom: 10,
+            fontSize: "1.05rem", fontWeight: 700, lineHeight: 1.35,
+            color, marginBottom: 10,
           }}
         >
           {opciones.titulo}

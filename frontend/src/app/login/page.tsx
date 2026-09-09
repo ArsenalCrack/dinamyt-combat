@@ -272,6 +272,12 @@ export default function LoginPage() {
               {t("login.publica.desc1")}<br />
               {t("login.publica.desc2")}
             </p>
+            {/* El boton principal de la tarjeta. Era el unico boton de las
+                cuatro webs escrito en MAYUSCULAS —«ELEGIR TATAMI»— y estaba
+                justo encima de «Ver resultados» y «Ver campeonatos», que van en
+                minusculas: tres botones seguidos, dos idiomas tipograficos. Se
+                queda con el peso y el tamano, que es lo que de verdad lo hacia
+                el principal. */}
             <button
               type="button"
               className="btn btn-lg login-btn-public"
@@ -280,8 +286,6 @@ export default function LoginPage() {
                 width: "100%",
                 fontWeight: 800,
                 fontSize: "1rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
               }}
               id="public-access-btn"
             >
@@ -446,11 +450,21 @@ export default function LoginPage() {
           margin-top: 6px;
         }
 
+        /* ── Por que ya no va en MAYUSCULAS ────────────────────────────
+           Porque es un NOMBRE PROPIO —«Global Hapkido Association»— y los
+           nombres no se gritan. Aqui salia como GLOBAL HAPKIDO ASSOCIATION
+           debajo del logo, con lo que la pantalla de entrar tenia tres lineas
+           en mayusculas seguidas (la marca, el lema y esta) y ninguna
+           destacaba sobre las otras.
+
+           La regla del ecosistema, la misma que sigue Membresias entera:
+           MAYUSCULAS solo en el titular («.display»), en el antetitulo
+           («.eyebrow», que es MONO y con mucho interletrado) y en las
+           cabeceras de tabla. Lo demas, como se escribe. */
         .login-sub {
           font-size: 0.85rem;
           color: var(--text-dim);
-          text-transform: uppercase;
-          letter-spacing: 0.12em;
+          letter-spacing: 0.01em;
           margin-top: 2px;
         }
 
@@ -567,11 +581,14 @@ export default function LoginPage() {
           gap: 6px;
         }
 
+        /* ── Las etiquetas de un formulario no gritan ──────────────────
+           «CORREO» y «CONTRASEÑA» en negrita 800 y mayusculas pesaban mas que
+           el titulo de la tarjeta que las contiene. En Membresias la misma
+           etiqueta es «.muted» a 0.8 rem y en minusculas — se lee igual de
+           bien y deja que lo importante sea el campo, no su nombre. */
         .login-label {
           font-size: 0.82rem;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.10em;
+          font-weight: 600;
           color: var(--text-muted);
         }
 
@@ -621,14 +638,15 @@ export default function LoginPage() {
           font-weight: 800;
         }
 
+        /* El pie es la letra pequena de la pantalla: la version y de quien
+           es. Gritarla la subia al mismo tono que el boton de entrar. */
         .login-footer {
           position: relative;
           z-index: 1;
           margin-top: 20px;
           color: var(--text-dim);
           font-size: 0.8rem;
-          letter-spacing: 0.1em;
-          text-transform: uppercase;
+          letter-spacing: 0.01em;
           text-align: center;
         }
 

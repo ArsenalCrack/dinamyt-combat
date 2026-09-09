@@ -367,10 +367,11 @@ export default function AdminPage() {
             display: "flex", alignItems: "center", gap: 10,
             flexWrap: "wrap", marginBottom: 10,
           }}>
-            <span style={{
-              padding: "4px 10px", borderRadius: "var(--radius-sm)",
-              fontSize: "0.82rem", fontWeight: 700,
-              textTransform: "uppercase", letterSpacing: "0.08em",
+            {/* La forma la pone «.badge» del ecosistema —mono, peso 600,
+                pildora— y aqui solo se dicen los COLORES, que son los de este
+                estado. Estaba escrita a mano en la sans del cuerpo a peso 700,
+                asi que la misma insignia se veia distinta en cada app. */}
+            <span className="badge" style={{
               background: mant.activo ? "rgba(255,68,68,0.10)" : "var(--green-bg)",
               color: mant.activo ? "var(--red-alert)" : "var(--green)",
               border: `1px solid ${mant.activo ? "rgba(255,68,68,0.35)" : "rgba(0,196,106,.25)"}`,
@@ -785,9 +786,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                    <span style={{
-                      padding: "4px 10px", borderRadius: "var(--radius-sm)", fontSize: "0.82rem",
-                      fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em",
+                    <span className="badge" style={{
                       background: u.rol === "admin" ? "var(--gold-bg)" : u.rol === "maestro" ? "var(--green-bg)" : "var(--chung-bg)",
                       color: u.rol === "admin" ? "var(--gold)" : u.rol === "maestro" ? "var(--green)" : "var(--chung-light)",
                       border: `1px solid ${u.rol === "admin" ? "var(--gold-border)" : u.rol === "maestro" ? "rgba(0,196,106,.35)" : "var(--chung-border)"}`,

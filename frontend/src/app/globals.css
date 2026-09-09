@@ -941,12 +941,10 @@ select.input:disabled {
    `.has-appmenu` tampoco hace falta: la barra compartida es `sticky`, asi que
    el contenido ya no queda tapado y no hay alto que reservar.
 
-   Lo unico que se queda aqui es el boton de salir dentro del panel, que es de
-   esta app (Membresias sale por el portal). */
-.navbar-panel .logout-btn {
-  width: 100%;
-  justify-content: flex-start;
-}
+   Y el boton de salir del panel tampoco necesita ya regla propia: usa
+   `btn btn-danger` con su ancho y su alineacion en linea, igual que el de
+   Membresias, asi que la clase `.logout-btn` que se estilaba aqui desaparecio
+   con ella. Ver `components/LogoutButton.tsx`. */
 
 /* Pantalla de figuras del Juez Central (la barra global no se muestra aquí). */
 .tatami-fig-root {
@@ -1283,15 +1281,21 @@ select.input:disabled {
   margin: var(--space-md) 0;
 }
 
+/* Nombra la seccion que abre, asi que es una micro-etiqueta y va con su
+   receta: mono, 0.7 rem y peso 500. En negrita 700 y a 0.875 rem en la sans del
+   cuerpo, la palabra del separador pesaba lo mismo que un titulo de seccion —y
+   un separador no es un titulo. Ver `.microetiqueta` en
+   `estilos-ecosistema.css`. */
 .divider-label {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
   color: var(--text-dim);
-  font-size: 0.875rem;
-  font-weight: 700;
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.7rem;
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   margin: var(--space-md) 0;
 }
 

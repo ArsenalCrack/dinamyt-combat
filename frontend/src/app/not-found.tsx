@@ -130,11 +130,16 @@ export default function NoEncontrada() {
           flex-direction: column;
           gap: 4px;
         }
+        /* Esto SI nombra un dato —la direccion de debajo—, asi que se queda
+           en mayusculas, pero con la receta del ecosistema: mono y peso 500.
+           En negrita 800 y en la sans del cuerpo pesaba mas que la propia
+           direccion, que es lo que la persona vino a leer. */
         .e404-ruta-label {
-          font-size: 0.72rem;
-          font-weight: 800;
+          font-family: var(--font-mono), ui-monospace, monospace;
+          font-size: 0.7rem;
+          font-weight: 500;
           text-transform: uppercase;
-          letter-spacing: 0.1em;
+          letter-spacing: 0.08em;
           color: var(--text-dim);
         }
         .e404-ruta-valor {

@@ -146,6 +146,39 @@ export function aplicarTema(tema: Tema, guardar = true) {
 
 
 /**
+ * Vuelve a aplicar lo que diga la cookie compartida, sin escribir nada.
+ *
+ * ── El agujero que tapa ──────────────────────────────────────────────────────
+ *
+ * La cookie `dinamyt_tema` ya reparte la eleccion a las cuatro webs, pero solo
+ * se LEE al arrancar la pagina: el script anti-parpadeo y `getTema()`. Una
+ * pestania que lleva abierta desde hace rato no vuelve a mirarla nunca.
+ *
+ * Y `AplicarApariencia` no lo arreglaba, aunque lo pareciera: al volver a la
+ * pestania preguntaba al servidor, si — pero la respuesta pasa por
+ * `hayModoElegido()`, que es cierto en cuanto exista la cookie. O sea que en
+ * cualquier navegador donde alguien haya elegido modo alguna vez, esa consulta
+ * no podia aplicar nada. La sincronizacion existia y estaba tapiada por su
+ * propia guarda.
+ *
+ * Asi se veia: se pone modo claro en el portal, se cambia a la pestania de esta
+ * app que llevaba abierta toda la tarde, y sigue oscura. Recargando se arregla,
+ * que es exactamente lo que hace pensar «unas veces se recuerda y otras no».
+ *
+ * ── Por que `guardar: false` ─────────────────────────────────────────────────
+ *
+ * Porque aqui no se ha elegido nada: se esta repintando lo que ya se eligio en
+ * otra web. Volver a escribir la cookie no cambiaria su valor, pero si le
+ * renovaria el ano de vida cada vez que alguien mira una pestania — y sobre
+ * todo confundiria dos cosas que conviene no confundir: ESCRIBIR la cookie es
+ * el gesto de elegir, y esto no es un gesto de nadie.
+ */
+export function refrescarDesdeLaCookie(): void {
+  const compartido = temaDeLaCookie();
+  if (compartido) aplicarTema(compartido, false);
+}
+
+/**
  * `true` si esta persona ya eligio modo EN ESTE navegador.
  *
  * Lo mira `AplicarApariencia` antes de imponer el de la cuenta. Sin esto, la

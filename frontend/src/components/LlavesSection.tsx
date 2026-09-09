@@ -513,10 +513,7 @@ export default function LlavesSection({ campeonatoId }: { campeonatoId: number }
 
           {/* Competidores */}
           <div className="card" style={{ background: "var(--bg-elevated)", padding: 12 }}>
-            <div style={{
-              fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase",
-              letterSpacing: "0.1em", color: "var(--text-muted)", marginBottom: 8,
-            }}>
+            <div className="microetiqueta" style={{ marginBottom: 8 }}>
               {t("llv.competidoresMin", { n: competidores.length, min: MIN_COMPETIDORES })}
             </div>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: competidores.length ? 10 : 0 }}>
@@ -772,10 +769,7 @@ function LlaveCard({
           {/* ── Mover competidores a otra llave pendiente del mismo tipo ── */}
           {editable && destinosMover.length > 0 && (llave.estructura.competidores || []).length > 0 && (
             <div style={{ marginTop: 12 }}>
-              <div style={{
-                fontSize: "0.78rem", fontWeight: 800, textTransform: "uppercase",
-                letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 6,
-              }}>
+              <div className="microetiqueta" style={{ marginBottom: 6 }}>
                 {t("llv.mover.competidores")}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

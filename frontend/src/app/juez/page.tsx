@@ -120,10 +120,8 @@ export default function JuezPage() {
                         {tat.campeonato_nombre}
                       </div>
                     )}
-                    <span style={{
-                      display: "inline-block", marginTop: 6,
-                      padding: "4px 10px", borderRadius: "var(--radius-sm)", fontSize: "0.82rem",
-                      fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em",
+                    <span className="badge" style={{
+                      marginTop: 6,
                       background: tat.mi_rol === "arbitro" ? "var(--gold-bg)" : "var(--chung-bg)",
                       color: tat.mi_rol === "arbitro" ? "var(--gold)" : "var(--chung-light)",
                       border: `1px solid ${tat.mi_rol === "arbitro" ? "var(--gold-border)" : "var(--chung-border)"}`,

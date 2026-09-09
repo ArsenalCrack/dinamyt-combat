@@ -143,7 +143,7 @@ export default function ClubesInput({
               <div className="clubes-fila">
                 <span className="clubes-nombre">{club.nombre}</span>
                 {i === 0 ? (
-                  <span className="clubes-badge">{t("form.clubesPrincipal")}</span>
+                  <span className="badge badge-gold clubes-badge">{t("form.clubesPrincipal")}</span>
                 ) : (
                   <button
                     type="button"
@@ -232,14 +232,20 @@ export default function ClubesInput({
 
       <style>{`
         .clubes-campo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        /* ── Etiqueta de campo: minusculas ─────────────────────────────
+           «font-weight: 800» + MAYUSCULAS en la sans del cuerpo hace que el
+           NOMBRE del campo pese mas que lo que hay dentro. En un formulario de
+           doce campos eso es doce palabras gritando y ningun dato destacando.
+           En Membresias la misma etiqueta es «.muted» a 0.8 rem, en minusculas.
+           Ver «.microetiqueta» en «estilos-ecosistema.css» para la regla
+           entera: MAYUSCULAS solo en titular, antetitulo y nombre de dato. */
         .clubes-label {
-          font-size: 0.8rem; font-weight: 800; text-transform: uppercase;
-          letter-spacing: 0.08em; color: var(--text-muted);
+          font-size: 0.8rem; font-weight: 600;
+          color: var(--text-muted);
         }
-        .clubes-hint {
-          font-weight: 600; text-transform: none; letter-spacing: 0;
-          color: var(--text-dim);
-        }
+        /* La aclaracion entre parentesis de una etiqueta. Ya no tiene que
+           deshacer las mayusculas ni el interletrado de su madre: no los hay. */
+        .clubes-hint { font-weight: 400; color: var(--text-dim); }
         .clubes-lista {
           list-style: none; margin: 0; padding: 0;
           display: flex; flex-direction: column; gap: 8px;
@@ -260,13 +266,12 @@ export default function ClubesInput({
           flex: 1; min-width: 0; font-weight: 700;
           overflow-wrap: anywhere;
         }
-        .clubes-badge {
-          flex-shrink: 0; padding: 2px 8px;
-          border-radius: var(--radius-xs);
-          font-size: 0.7rem; font-weight: 800;
-          text-transform: uppercase; letter-spacing: 0.06em;
-          color: var(--gold); border: 1px solid var(--gold-border);
-        }
+        /* La forma la pone «.badge badge-gold» del ecosistema —mono, peso
+           600, pildora—, que es la misma insignia que se ve en Membresias y en
+           el portal. Aqui estaba reinventada en la sans del cuerpo a peso 800,
+           asi que la palabra «PRINCIPAL» salia mas fuerte que el nombre del
+           club al que califica. Solo se conserva lo que es de esta lista. */
+        .clubes-badge { flex-shrink: 0; }
         /* 32px de lado: se pulsan con el pulgar en el celular del admin. */
         .clubes-accion {
           flex-shrink: 0; width: 32px; height: 32px;
@@ -287,8 +292,12 @@ export default function ClubesInput({
           background: var(--bg-card); border: 1px solid var(--gold-border);
           border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
         }
+        /* Nombra la lista de debajo, o sea es una micro-etiqueta: se queda
+           en mayusculas, pero en mono y peso 500 como todas. */
         .clubes-sugerencias-titulo {
-          padding: 4px 10px 6px; font-size: 0.7rem; font-weight: 800;
+          padding: 4px 10px 6px;
+          font-family: var(--font-mono), ui-monospace, monospace;
+          font-size: 0.7rem; font-weight: 500;
           text-transform: uppercase; letter-spacing: 0.08em;
           color: var(--text-dim);
         }

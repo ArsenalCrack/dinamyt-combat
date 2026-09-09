@@ -265,9 +265,13 @@ export default function ResultadosPage() {
         }
         .resultados-sub { color: var(--text-muted); font-size: 0.9rem; margin-top: 2px; }
         .resultados-msg { text-align: center; padding: 40px 0; color: var(--text-muted); }
+        /* Etiqueta de un desplegable, no nombre de un dato: minusculas. En
+           Membresias la misma etiqueta es .muted a 0.8 rem y se lee igual. Lo
+           que va en MAYUSCULAS es .display, .eyebrow y .microetiqueta, y esto
+           no es ninguno de los tres. */
         .resultados-label {
-          font-size: 0.8rem; font-weight: 800; text-transform: uppercase;
-          letter-spacing: 0.08em; color: var(--text-muted); display: block; margin-bottom: 6px;
+          font-size: 0.8rem; font-weight: 600;
+          color: var(--text-muted); display: block; margin-bottom: 6px;
         }
         .resultados-camp-unico {
           padding: 10px 14px; border-radius: var(--radius-sm);

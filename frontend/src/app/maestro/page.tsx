@@ -333,7 +333,7 @@ export default function MaestroPage() {
                     {infoOrigen(form.club)}
                     <CompetidorFormFields value={form} onChange={setForm} clubesPropios={nombresClubes} />
                     <div>
-                      <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 6 }}>
+                      <div className="microetiqueta" style={{ marginBottom: 6 }}>
                         {t("res.modCombate")} / {t("res.modFiguras")}
                       </div>
                       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -366,7 +366,7 @@ export default function MaestroPage() {
 
                 {/* Mis solicitudes en este campeonato */}
                 <div style={{ marginTop: 12 }}>
-                  <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 6 }}>
+                  <div className="microetiqueta" style={{ marginBottom: 6 }}>
                     {t("maestro.misSolicitudes")}
                   </div>
                   {suyas.length === 0 ? (
@@ -410,7 +410,7 @@ export default function MaestroPage() {
                                   {infoOrigen(reenvioForm.club)}
                                   <CompetidorFormFields value={reenvioForm} onChange={setReenvioForm} clubesPropios={nombresClubes} />
                                   <div>
-                                    <div style={{ fontSize: "0.8rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 6 }}>
+                                    <div className="microetiqueta" style={{ marginBottom: 6 }}>
                                       {t("res.modCombate")} / {t("res.modFiguras")}
                                     </div>
                                     <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
