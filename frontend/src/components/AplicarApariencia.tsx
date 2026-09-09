@@ -47,6 +47,24 @@ import { hayIdiomaElegido, idiomaDeLaCookie, useI18n } from "@/lib/i18n";
 export function AplicarApariencia() {
   const { setIdioma } = useI18n();
 
+  /**
+   * ── Por que aqui NO se firma la eleccion con la cuenta ───────────────────
+   *
+   * La cookie de apariencia lleva firma (`oscuro~<id>`) para que quien sale de
+   * una cuenta y entra en otra no herede su tema — ver «DE QUIEN ES LA
+   * ELECCION» en `lib/theme.ts`.
+   *
+   * Campeonatos no puede firmarla: su `UserData.id` es el numero de ESTA base,
+   * no el identificador del ecosistema, asi que compararlo con lo que firmo el
+   * portal daria falsos negativos. Se queda sin firmar (`anon`), que es la
+   * respuesta honesta: «esta eleccion es de este navegador, no consta de
+   * quien».
+   *
+   * No hace falta mas: **salir de aqui pasa por `PORTAL/salir`** (ver
+   * `LogoutButton`), y ahi el portal borra las dos cookies. Asi que el caso
+   * reportado —salir y entrar con otra cuenta— queda cubierto igual.
+   */
+
   // ── El tema del sistema, mientras la eleccion sea `sistema` ──────────────
   useEffect(() => escucharTemaDelSistema(), []);
 

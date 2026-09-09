@@ -1059,12 +1059,17 @@ input[type="password"]::-ms-clear { display: none; }
      Con estas clases la pantalla es UNA: mismo logo, mismo tamaño, misma
      posición y la misma caja de 380 px. Los valores son los de Membresías.
 
-     ⚠️ Van con prefijo `eco-` a propósito. Campeonatos ya tenía sus propias
+     ⚠️ Van con prefijo `eco-` a propósito. Campeonatos tenía sus propias
      `.login-logo`, `.login-card` y `.login-wrapper` —definidas en un `<style>`
-     dentro de su página—, y su `.login-logo` es un CONTENEDOR, no la imagen.
+     dentro de su página—, y su `.login-logo` era un CONTENEDOR, no la imagen.
      Sin el prefijo, esta regla lo habría encogido a 56×56 y le habría roto la
      portada entera. Cuatro apps compartiendo hoja de estilos es exactamente
-     donde un nombre genérico se convierte en un fallo a distancia. */
+     donde un nombre genérico se convierte en un fallo a distancia.
+
+     (Aquella pantalla ya se rehízo con estas clases y sus noventa líneas de
+     `<style>` se fueron con ella, así que hoy el choque no existiría. El
+     prefijo se queda igual: lo que lo justificaba no era esa pantalla, era que
+     `login` es un nombre que cualquiera de las cuatro puede volver a usar.) */
   .eco-login {
     min-height: 100vh;
     display: flex;
@@ -1364,9 +1369,10 @@ input[type="password"]::-ms-clear { display: none; }
    Y el nombre de pila se ve SIEMPRE: en la barra se esconde por debajo de 860
    px porque ahí compite con los enlaces, y aquí no hay enlaces con los que
    competir. */
-.menu-cuenta { position: relative; }
-.menu-cuenta > .navbar-panel { top: calc(100% + 6px); right: 0; }
-.menu-cuenta .navbar-toggle-nombre { display: block; }
+/* `.menu-cuenta` se fue con el chip suelto del panel del portal: ahora el
+   portal tiene BARRA como las otras tres, y el desplegable cuelga de ella. Ese
+   anclaje al chip (`right: 0`) era justo lo que dejaba medio desplegable fuera
+   de la pantalla en el teléfono. Ver `BarraPortal` en el portal. */
 
 /* De aquí para arriba caben los enlaces principales en línea. Por debajo, la
    barra se queda en marca + campana + chip, y TODO lo demás está a un toque

@@ -53,11 +53,56 @@ function dominioDeLaCookie(): string {
 }
 
 /** Lo que eligio esta persona en CUALQUIERA de las cuatro webs, o `null`. */
-export function idiomaDeLaCookie(): Idioma | null {
+/**
+ * La firma de la cookie: `en~<id>`. Es el mismo mecanismo que el del tema, y
+ * está por lo mismo — la cookie es del NAVEGADOR y no de la cuenta, así que sin
+ * firma quien salía de una cuenta y entraba en otra se encontraba el idioma de
+ * la anterior. Ver el bloque «DE QUIÉN ES LA ELECCIÓN» en el módulo del tema.
+ */
+const ANON = 'anon';
+
+/** Quién está dentro AHORA. Lo fija `AplicarApariencia` al montar. */
+let cuentaActual: string | null = null;
+
+export function fijarCuentaIdioma(id: string | null): void {
+  cuentaActual = id || null;
+}
+
+function brutoIdioma(): string | null {
   if (typeof document === 'undefined') return null;
   const m = new RegExp(`(?:^|; )${COOKIE_IDIOMA}=([^;]*)`).exec(document.cookie);
-  const v = m ? decodeURIComponent(m[1]) : null;
-  return v === 'es' || v === 'en' ? v : null;
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function partesIdioma(bruto: string | null): { valor: string; de: string } {
+  if (!bruto) return { valor: '', de: '' };
+  const i = bruto.indexOf('~');
+  return i === -1
+    ? { valor: bruto, de: ANON }
+    : { valor: bruto.slice(0, i), de: bruto.slice(i + 1) || ANON };
+}
+
+export function idiomaDeLaCookie(): Idioma | null {
+  // Sin la firma: para PINTAR da igual de quién sea.
+  const { valor } = partesIdioma(brutoIdioma());
+  return valor === 'es' || valor === 'en' ? valor : null;
+}
+
+/**
+ * Borra el idioma guardado EN ESTE NAVEGADOR. La usa la salida de sesión, por
+ * lo mismo que su gemela del tema: la siguiente persona que entre aquí no debe
+ * heredar el idioma de la anterior. `users.locale` no se toca.
+ */
+export function olvidarIdiomaDeEsteNavegador(): void {
+  if (typeof document === 'undefined') return;
+  const dominio = dominioDeLaCookie();
+  if (dominio) document.cookie = `${COOKIE_IDIOMA}=; path=/; max-age=0`;
+  document.cookie = `${COOKIE_IDIOMA}=; path=/; max-age=0${dominio}`;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* modo incógnito: no había copia que borrar */
+  }
 }
 
 function guardarIdiomaEnCookie(i: Idioma) {
@@ -70,7 +115,8 @@ function guardarIdiomaEnCookie(i: Idioma) {
   // disfraz. Borrar sin dominio solo afecta a la de host: la identidad de una
   // cookie es (nombre, dominio, ruta).
   if (dominio) document.cookie = `${COOKIE_IDIOMA}=; path=/; max-age=0`;
-  document.cookie = `${COOKIE_IDIOMA}=${i}; path=/; max-age=31536000; samesite=lax${dominio}`;
+  // Firmada con quien está dentro, como la del tema.
+  document.cookie = `${COOKIE_IDIOMA}=${i}~${cuentaActual ?? ANON}; path=/; max-age=31536000; samesite=lax${dominio}`;
 }
 
 /**
@@ -83,7 +129,11 @@ function guardarIdiomaEnCookie(i: Idioma) {
  * estaba guardando en la cuenta y el servidor contestaba `es-CO` cada vez.
  */
 export function hayIdiomaElegido(): boolean {
-  return idiomaDeLaCookie() !== null;
+  const { valor, de } = partesIdioma(brutoIdioma());
+  if (valor !== 'es' && valor !== 'en') return false;
+  // De OTRA cuenta no cuenta: que exista una elección en este navegador no
+  // significa que sea de quien está dentro ahora.
+  return de === ANON || !cuentaActual || de === cuentaActual;
 }
 
 // ─── Diccionario base (español) ──────────────────────────────────────────────

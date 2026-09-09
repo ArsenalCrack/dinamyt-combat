@@ -85,15 +85,98 @@ function guardarEnLaCookie(tema: Tema) {
   // disfraz. Borrar sin dominio solo afecta a la de host: la identidad de una
   // cookie es (nombre, dominio, ruta).
   if (dominio) document.cookie = `${COOKIE_KEY}=; path=/; max-age=0`;
-  document.cookie = `${COOKIE_KEY}=${tema}; path=/; max-age=31536000; samesite=lax${dominio}`;
+  // Firmada con quien esta dentro: ver el bloque «DE QUIEN ES LA ELECCION».
+  document.cookie = `${COOKIE_KEY}=${tema}~${cuentaActual ?? ANON}; path=/; max-age=31536000; samesite=lax${dominio}`;
+}
+
+/**
+ * ── DE QUIÉN ES LA ELECCIÓN GUARDADA ────────────────────────────────────────
+ *
+ * La cookie compartida es del NAVEGADOR, no de la cuenta, y ahí estaba el
+ * fallo: quien salía de una cuenta y entraba en otra se encontraba la pantalla
+ * con el tema y el idioma de la anterior. La cookie ganaba —a propósito, es lo
+ * que hace que la elección cruce las cuatro webs al instante— pero nadie miraba
+ * de quién era.
+ *
+ * Ahora el valor lleva firma: `oscuro~<id>`. Antes de dejar que la cookie pise
+ * lo que dice la cuenta se comprueba la firma; si es de otra persona, manda la
+ * cuenta y vuelve a firmar.
+ *
+ * `anon` es la firma de quien todavía no ha entrado, y se trata como propia de
+ * quien entre después: quien pone el modo claro en la pantalla de login espera
+ * que siga puesto al pasar dentro.
+ *
+ * Una cookie SIN `~` es de antes de este cambio y se lee como `anon`. No
+ * hacerlo mandaría a todo el mundo a su valor de cuenta la primera vez, que es
+ * ruido por un problema que ya no existe.
+ */
+const ANON = 'anon';
+
+/** Quién está dentro AHORA. Lo fija `AplicarApariencia` al montar. */
+let cuentaActual: string | null = null;
+
+/**
+ * Decir quién está usando la aplicación.
+ *
+ * Se llama una vez por carga, antes de aplicar nada. `null` = nadie ha entrado.
+ * De esto depende con qué se firma cada escritura y si la cuenta puede pisar la
+ * cookie.
+ */
+export function fijarCuenta(id: string | null): void {
+  cuentaActual = id || null;
+}
+
+/** El valor y la firma de la cookie, separados. */
+function partes(bruto: string | null): { valor: string; de: string } {
+  if (!bruto) return { valor: '', de: '' };
+  const i = bruto.indexOf('~');
+  return i === -1
+    ? { valor: bruto, de: ANON }
+    : { valor: bruto.slice(0, i), de: bruto.slice(i + 1) || ANON };
+}
+
+/**
+ * ¿La elección guardada es de quien está dentro?
+ *
+ * `anon` vale para cualquiera (ver arriba). Sin sesión también vale: es este
+ * navegador y no hay cuenta con la que comparar.
+ */
+function esDeEstaCuenta(de: string): boolean {
+  return de === ANON || !cuentaActual || de === cuentaActual;
 }
 
 /** Lo que eligio esta persona en CUALQUIERA de las cuatro webs, o `null`. */
-function temaDeLaCookie(): Tema | null {
+function brutoDeLaCookie(): string | null {
   if (typeof document === 'undefined') return null;
   const m = new RegExp(`(?:^|; )${COOKIE_KEY}=([^;]*)`).exec(document.cookie);
-  const v = m ? decodeURIComponent(m[1]) : null;
-  return v === 'claro' || v === 'oscuro' || v === 'sistema' ? v : null;
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function temaDeLaCookie(): Tema | null {
+  // Sin la firma: para PINTAR da igual de quien sea. La firma decide otra
+  // cosa —si la cuenta puede pisarla— y eso lo mira `hayModoElegido`.
+  const { valor } = partes(brutoDeLaCookie());
+  return valor === 'claro' || valor === 'oscuro' || valor === 'sistema' ? valor : null;
+}
+
+/**
+ * Borra la eleccion guardada EN ESTE NAVEGADOR.
+ *
+ * La usa la salida de sesion. Sin esto, la siguiente persona que entre aqui
+ * hereda el tema y el idioma de la anterior — que es justo lo que se venia a
+ * arreglar. No toca `users.theme`: la cuenta conserva lo suyo y lo recupera
+ * al entrar.
+ */
+export function olvidarTemaDeEsteNavegador(): void {
+  if (typeof document === 'undefined') return;
+  const dominio = dominioDeLaCookie();
+  if (dominio) document.cookie = `${COOKIE_KEY}=; path=/; max-age=0`;
+  document.cookie = `${COOKIE_KEY}=; path=/; max-age=0${dominio}`;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* modo incognito: no habia copia que borrar */
+  }
 }
 
 // Debe coincidir con <meta name="theme-color"> del layout: es el color de la
@@ -213,7 +296,11 @@ export function refrescarDesdeLaCookie(): void {
  * NUEVO, donde todavia no hay cookie.
  */
 export function hayModoElegido(): boolean {
-  return temaDeLaCookie() !== null;
+  const { valor, de } = partes(brutoDeLaCookie());
+  if (!valor) return false;
+  // De OTRA cuenta no cuenta: que exista una eleccion en este navegador no
+  // significa que sea de quien esta dentro ahora.
+  return esDeEstaCuenta(de);
 }
 
 /**
@@ -252,7 +339,7 @@ export function alternarModo(): 'claro' | 'oscuro' {
  */
 export const SCRIPT_ANTI_PARPADEO = `(function(){try{
 var c=document.cookie.match(/(?:^|; )dinamyt_tema=([^;]*)/);
-var t=(c?decodeURIComponent(c[1]):null)||localStorage.getItem('${STORAGE_KEY}')||'sistema';
+var t=(((c?decodeURIComponent(c[1]):null)||localStorage.getItem('${STORAGE_KEY}')||'sistema')+'').split('~')[0];
 if(t==='light')t='claro';if(t==='dark')t='oscuro';
 var claro = t==='claro' || (t==='sistema' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
 if(claro){document.documentElement.dataset.theme='light';

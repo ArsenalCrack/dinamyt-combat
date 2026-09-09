@@ -397,48 +397,64 @@ export default function LoginPage() {
               {loading ? t("login.verificando") : t("login.entrar")}
             </button>
 
-            {/* ── Lo público, que no pide cuenta ──────────────────────────
-                Estaba en una tarjeta del mismo tamaño que el formulario, a su
-                izquierda, y esta pantalla parecía dos pantallas. Es lo que
-                busca quien llega desde un cartel o un grupo de WhatsApp, así
-                que no se esconde — pero va debajo y en outline, porque quien
-                abre `/login` casi siempre viene a entrar. */}
-            <div className="eco-login-sep" aria-hidden="true">
-              <span />
-              <em>{t("login.o")}</em>
-              <span />
-            </div>
+            {/* ════════════════════════════════════════════════════════════
+                LO PÚBLICO SE FUE DE AQUÍ — y esto es cómo volver a ponerlo
+                ════════════════════════════════════════════════════════════
 
-            <p className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.7rem" }}>
-              {t("login.publica.intro")}
-            </p>
+                Debajo del botón de entrar había un separador con «o» y tres
+                botones de contorno: «Elegir tatami», «Ver campeonatos» y «Ver
+                resultados».
 
-            <div className="eco-login-publico">
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={() => router.push("/pantalla")}
-                id="public-access-btn"
-              >
-                {t("login.publica.boton")}
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={() => router.push("/campeonatos")}
-                id="public-champs-btn"
-              >
-                {t("pub.camp.boton")}
-              </button>
-              <button
-                type="button"
-                className="btn btn-outline"
-                onClick={() => router.push("/resultados")}
-                id="public-results-btn"
-              >
-                {t("res.verResultados")}
-              </button>
-            </div>
+                ── Por qué se quitó ──
+
+                Porque un formulario de entrar de DINAMYT es una sola columna
+                que hace UNA pregunta: correo, contraseña, entrar. Así son los
+                de Membresías, los del portal y los de Academy. Aquí, después
+                del botón, la pantalla volvía a empezar: una raya, una frase de
+                introducción y tres botones más, todos del mismo peso visual.
+                Quien abre `/login` casi siempre viene a entrar, y esos tres le
+                pedían leer una pantalla entera para no elegir ninguno.
+
+                ── Qué NO se perdió ──
+
+                Las tres puertas públicas siguen abiertas y enlazadas desde el
+                PIE de página, que sale en todas las pantallas de esta app
+                (`components/PieDePagina.tsx`): «Campeonatos» y «Resultados».
+                Y `/pantalla` es la portada del marcador, a la que se llega
+                desde ahí.
+
+                ── Cómo devolverlo, donde toque ──
+
+                Los textos siguen en el diccionario, sin usar y a propósito:
+                `login.o`, `login.publica.intro`, `login.publica.boton`,
+                `pub.camp.boton` y `res.verResultados`. Las medidas también:
+                `.eco-login-sep` y `.eco-login-publico` en `globals.css`.
+                Pegar este bloque devuelve exactamente lo que había:
+
+                  <div className="eco-login-sep" aria-hidden="true">
+                    <span /><em>{t("login.o")}</em><span />
+                  </div>
+                  <p className="muted" style={{ fontSize: "0.85rem", marginBottom: "0.7rem" }}>
+                    {t("login.publica.intro")}
+                  </p>
+                  <div className="eco-login-publico">
+                    <button type="button" className="btn btn-outline"
+                      onClick={() => router.push("/pantalla")} id="public-access-btn">
+                      {t("login.publica.boton")}
+                    </button>
+                    <button type="button" className="btn btn-outline"
+                      onClick={() => router.push("/campeonatos")} id="public-champs-btn">
+                      {t("pub.camp.boton")}
+                    </button>
+                    <button type="button" className="btn btn-outline"
+                      onClick={() => router.push("/resultados")} id="public-results-btn">
+                      {t("res.verResultados")}
+                    </button>
+                  </div>
+
+                El sitio natural para eso es la PORTADA de la app (`app/page.tsx`)
+                o la pantalla de selección de tatami, no la puerta de entrada de
+                los jueces. */}
           </>
         )}
       </form>
