@@ -718,6 +718,74 @@ los roles múltiples y la organización, y hoy los deja fuera.
 
 ---
 
+## F6-bis · Bajarse la VPS al PC del evento — **ya funciona; lo que falta es saber cuándo se hizo**
+
+*(añadido el 9 de septiembre de 2026, tras la pregunta de si esto estaba en el
+plan. **No estaba, y hacía falta que estuviera** — aunque no por lo que
+parecía.)*
+
+### La buena noticia: la bajada ya existe, y es re-ejecutable
+
+`exportar_campeonato()` en la VPS y `POST /sincronizacion/importar` en el local
+llevan funcionando desde el 26 de julio, con vista previa antes de escribir
+nada. Y lo importante para lo que se pregunta:
+
+- **El modo por defecto es `fusionar`** (`sincronizacion.py:1027`). Reimportar
+  **añade lo nuevo y actualiza lo cambiado, sin duplicar**: la identidad viaja
+  por `uid`, no por el id de la tabla.
+- Así que **sí**: si el jueves entran tres inscripciones nuevas y un maestro se
+  crea una cuenta, se vuelve a exportar el viernes, se vuelve a importar, y
+  aparecen. Las que ya estaban no se tocan.
+- Y hay un **freno**: si en el local ya hay llaves `activa` o `terminada`, la
+  importación se niega con un 409 —*«importar podría pisar resultados»*— salvo
+  confirmación explícita (`sincronizacion.py:1076`). Correcto y hay que dejarlo.
+
+O sea que la respuesta a *«¿hay que construir la bajada?»* es **no**. Se baja
+tantas veces como haga falta **hasta que empiece a competirse**, y desde ese
+momento ya no, a propósito.
+
+> **Y no puede ser al revés.** `B3-RIESGOS.md` §1.1: pasarse a local a mitad de
+> campeonato es imposible —el paquete no lleva `combates` ni el estado vivo del
+> tatami, y sin internet ni siquiera se puede exportar—. **El local no es el
+> plan B: es el plan A.** El campeonato corre en local desde el minuto uno, y la
+> VPS puede estar apagada esos tres días.
+
+### La mala: nadie sabe de cuándo es la copia
+
+Eso es lo que sí falta, y es barato:
+
+1. **El local dice qué se trajo y cuándo.** Una línea en `/admin`:
+   > *Copia traída de la VPS el 7 de octubre a las 18:42 · 148 competidores ·
+   > 160 inscripciones · 12 usuarios*
+
+   Hoy esa información **existe** —el sobre del paquete lleva `exportado_por` y
+   la fecha (`_sobre()`)— pero se enseña una vez en la vista previa y se pierde.
+   Se guarda en `ajustes` y se pinta siempre.
+2. **Y avisa cuando se está quedando vieja.** Si la última bajada tiene más de
+   24 h y todavía no se compite, lo dice en amarillo. El sábado a las siete de
+   la mañana nadie se acuerda de si la copia incluye las inscripciones del
+   jueves, y esa duda se resuelve **volviendo a bajar**, que cuesta dos minutos
+   y no rompe nada.
+3. **El runbook, escrito en `INICIAR-LOCAL.md`.** Hoy el manual del día del
+   evento **no menciona la bajada en ninguna parte**: salta de «instala» a
+   «enciende». Le falta el paso de en medio, que es el que trae el campeonato:
+   - **La víspera, con internet:** exportar de la VPS → importar en el local →
+     comprobar que los números cuadran con lo que dice la VPS.
+   - **Y una última bajada la mañana del evento si todavía hay red**, antes de
+     que se active la primera llave.
+   - **Asignar contraseñas a quien vaya a necesitarlas**, porque las contraseñas
+     **no viajan** en el paquete (decisión de
+     `PLAN-SINCRONIZACION-LOCAL-ONLINE.md`) y los jueces entran con el QR.
+
+### Lo que F6 le añade a esto
+
+F6 mete `eco_sub`, `roles` y `org_id` en el paquete. Sin eso, las cuentas que
+bajan de la VPS llegan **sin su enlace al ecosistema**, y al volver a subir los
+resultados se reconcilian por correo — que es el camino que puede acabar en
+`correo_ocupado`. Por eso F6 va antes que el evento y no después.
+
+---
+
 ## F7 · Encender en local: un archivo, y que avise
 
 **Dónde:** `dinamyt-combat`, raíz. **Solo Campeonatos** (`B3-RIESGOS.md` §1.4).
@@ -837,41 +905,51 @@ Eso da **dos fechas reales**, y son las que ordenan lo de abajo:
 | **~26 de septiembre** | Todo lo que toca identidad, roles o login, DENTRO. Después se corre el ensayo sobre lo que de verdad va a correr el 9 |
 | **8 de octubre** | Todo lo demás, DENTRO. Y a partir del 9, nada |
 
-### El orden, por lo que más duele el sábado por la mañana
+### EL ORDEN DE TRABAJO — se empieza por arriba
+
+| # | Fase | Qué es | Por qué ahí | Bloquea a |
+|---|---|---|---|---|
+| **1** | **F5-bis** | La ficha del alumno se reutiliza | **Lo único ROTO.** Hoy un maestro no puede inscribir a su alumna en el segundo campeonato del año | F3, D5 |
+| **2** | **F6** | Los paquetes llevan `eco_sub`, `roles`, `org_id` | Todo lo que baje de la VPS antes de tenerlo llega sin enlace al ecosistema | F6-bis, F8 |
+| **3** | **F6-bis** | La copia dice de cuándo es + el runbook | Sin esto, el sábado nadie sabe si la copia trae las inscripciones del jueves | — |
+| **4** | **F7** | Encender en local con comprobaciones | Se nota el 9 a las siete de la mañana. **No toca nada de nadie**: se puede hacer en paralelo desde el primer día | — |
+| **5** | **F1** | El pase lleva varios roles (ecosystem) | Empieza el bloque de identidad. **Todo esto, dentro antes del ensayo del ~26 de septiembre** | F2 |
+| **6** | **F2** | Campeonatos entiende varios roles | De cara al usuario **no cambia nada**: es el andamio de F3 | F3 |
+| **7** | **F3** | El panel del alumno + el atleta independiente | Lo que multiplica por cien quién entra. Necesita ficha estable (1) y roles (6) | — |
+| **8** | **F4** | La organización llega a Campeonatos | El admin único por organización | F5 |
+| **9** | **F5** | Inscribirse por invitación | El admin invita clubes al campeonato | — |
+| **10** | **F8** | La subida automática de resultados | Ocurre **después** del evento, con red. Lo último que hace falta | — |
+| — | ~~F9~~ | Retirar los andamios | **Después del 11.** Su definición es «cuando lleve un campeonato real encima» | — |
+
+### Los tres carriles, para no trabajar en serie lo que no lo es
 
 ```
-AHORA  ── F5-bis  la ficha del alumno se reutiliza      ← el fallo que muerde
-             │                                            (hoy no se puede
-             │                                             inscribir dos veces)
-             ├─► F7  encender en local              ← independiente, se puede
-             │                                        hacer en paralelo
-             │
-             └─► F1 ─► F2  los roles, un conjunto
-                       │
-                       ├─► F3  el panel del alumno + el atleta independiente
-                       │
-                       └─► F4 ─► F5  organización e invitaciones
-                                  │
-             F6  paquetes con identidad ─────────────┴─► F8  subida automática
+CARRIL A (el evento)     1·F5-bis ──► 2·F6 ──► 3·F6-bis
+                                                   │
+CARRIL B (independiente)          4·F7 ────────────┤  ← desde el primer día
+                                                   │
+CARRIL C (identidad)     5·F1 ─► 6·F2 ─► 7·F3      │
+                                    └─► 8·F4 ─► 9·F5
+                                                   │
+                                          10·F8 ◄──┘
 ```
 
-**F5-bis va primero, y no es discutible.** Es la única fase que arregla algo que
-**hoy está roto**, no algo que falta: un maestro no puede inscribir a su alumna
-en el segundo campeonato del año. Todo lo demás del plan añade; esta repara. Y
-además desbloquea a F3 y a D5, que sin ficha estable no existen.
+**A y B no se estorban.** F7 no toca base de datos ni permisos, así que puede
+avanzar en paralelo con cualquier cosa. El carril C es el único que toca login e
+identidad, y por eso entero **antes del ensayo del ~26 de septiembre**.
 
-**F7 puede ir en paralelo desde el primer día**: no toca identidad, ni permisos,
-ni base de datos. Es la que se nota el 9 por la mañana, cuando hay que encender
-el PC con treinta personas esperando.
+### Las tres reglas del orden, y por qué
 
-**Lo que sigue sin poderse adelantar:** F3 sin F2 (el panel con el modelo de un
-solo rol se escribe dos veces), F8 sin F6 (subirían filas huérfanas), y F5 sin
-F4 (no hay organización a la que invitar).
+**F5-bis va primera y no es discutible.** Es la única fase que **repara**; todas
+las demás añaden. Y es la que más se nota el día del evento: cuarenta
+inscripciones que hoy son cuarenta formularios en blanco.
 
-**F9 (retirar los andamios) se queda para después del 11**, y esa es la única
-excepción a D6 — porque su definición es «cuando lleve un campeonato real
-encima». Retirar compatibilidad la víspera del evento es lo contrario de lo que
-pide D6.
+**F6 va antes que cualquier bajada de la VPS.** Cada paquete que se importe sin
+`eco_sub` deja cuentas sin enlazar, y eso se arrastra hasta la subida de vuelta.
+
+**Lo que no se puede adelantar:** F3 sin F2 (el panel escrito contra el modelo
+de un rol se escribe dos veces), F8 sin F6 (subiría filas huérfanas), F5 sin F4
+(no hay organización a la que invitar).
 
 ### Y el riesgo de meterlo todo antes, dicho una vez
 
