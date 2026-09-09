@@ -136,6 +136,74 @@ Dos consecuencias:
 - **Un competidor no se puede conectar con la persona que es.** Sin eso, el
   panel del alumno de §2.3 no tiene de dónde sacar «tus» resultados.
 
+## 1.5-bis · **El rol local MANDA sobre el del pase** — y esto lo cambia todo
+
+*(añadido el 9 de septiembre de 2026, releyendo `OPERAR.md` §4.13 y §6.1)*
+
+Es la regla que faltaba en la primera versión de este plan, y **es la que decide
+si la fase 1 sirve de algo**:
+
+> **El pase solo decide el rol AL CREAR la fila.** Después manda el local.
+> *(`OPERAR.md` §4.13, «La fila local es un espejo, y su rol manda»)*
+
+O sea: se puede implementar entero el pase con varios roles (F1) y **no cambiaría
+nada en Campeonatos** para nadie que ya haya entrado una vez. El espejo ya
+existe, y su `rol` gana.
+
+Y está puesta a propósito, con una razón buena:
+
+> Evita que un cambio de rol en el portal **degrade en silencio al administrador
+> de un campeonato en marcha**.
+
+`OPERAR.md` §6.1 lo lleva abierto desde el 30 de agosto —«El cambio de rol solo
+viaja a Membresías»— y dice también **cuándo** se puede cerrar:
+
+> Para cerrarlo hace falta el equivalente de `/sync/rol` en cada una: […] en
+> Campeonatos es Flask y **no puede depender de la red el 9 de octubre**, así
+> que ahí conviene esperar a **después del campeonato**.
+
+**Consecuencia para este plan:** F2 no es «leer la lista del pase». F2 tiene que
+decidir **cuándo el ecosistema puede pisar el rol local y cuándo no** — y la
+respuesta no es «siempre», porque entonces se reabre el fallo que esta regla
+evita. La propuesta está en F2.
+
+## 1.5-ter · Y hoy el alumno no crea fila, también a propósito
+
+> **El pase de un alumno no crea ninguna fila** en `usuarios`. Sin esa regla, una
+> federación con doscientos alumnos serían doscientas filas de gente que no va a
+> entrar nunca, cada una ocupando un correo único en la consola.
+> *(`OPERAR.md` §4.13)*
+
+**F3 revierte esta decisión**, y hay que saberlo antes de empezarla: el panel del
+competidor significa exactamente eso, una fila por alumno. El coste que la regla
+evitaba —el listado de usuarios de la consola inundado de gente que no opera— hay
+que pagarlo o esquivarlo. Cómo, en F3.
+
+Lo que sí existe ya, y la primera versión de este plan no reconoció: **el portal
+no deja al alumno en el vacío.** Desde el 30 de agosto su tarjeta lleva a las
+**páginas públicas** de Campeonatos —los campeonatos abiertos y los resultados—,
+que no piden sesión. No es «nada»: es una sala de espera. Lo que no hay es nada
+**suyo**.
+
+## 1.5-quater · Las dos puertas tienen duraciones distintas
+
+`POST /auth/sesion` abre sesiones de distinta duración según por dónde se entre
+(`OPERAR.md` §4.13):
+
+| Entra con… | Quién | Dura |
+|---|---|---|
+| El pase del ecosistema (RS256) | Quien salta desde el portal | **12 h** |
+| Su token propio (HS256) | **El QR del juez** | **72 h** |
+
+Las 12 h acotan cuánto sobrevive aquí una sesión que en el portal ya se cerró
+(§1.3 de `B3-RIESGOS.md`). Las 72 del QR son porque se reparte por la mañana y
+tiene que aguantar el fin de semana **sin internet**.
+
+**Para F3:** el competidor entra por la primera puerta, así que su panel caduca
+cada 12 h. Para lo que va a hacer —mirar sus resultados— está bien y no hay que
+tocarlo. **Pero no se le puede dar un QR de 72 h**: esa puerta es la del juez y
+existe para el modo sin internet.
+
 ## 1.6 · Lo local ya arranca, y ya está decidido que es solo Campeonatos
 
 Existen `1-INSTALAR.bat`, `2-INICIAR.bat` y `abrir-firewall.bat`, y el manual es
@@ -156,6 +224,40 @@ dos ventanas negras y confía. No comprueba que el `venv` exista, ni que el
 frontend esté compilado, ni que los puertos estén libres, ni espera al «Ready»
 —el manual pide contar quince segundos a ojo (`INICIAR-LOCAL.md` §3)— ni hay un
 `3-APAGAR.bat`, así que apagar es «cierra las dos ventanas negras».
+
+## 1.6-bis · El puente con el ecosistema estaba a medias, y en silencio
+
+*(arreglado el 9 de septiembre de 2026 — se cuenta aquí porque es el patrón,
+no la anécdota)*
+
+El tema y el idioma elegidos en el portal no llegaban a Campeonatos. Las dos
+funciones que lo hacen —`guardar_apariencia` y `leer_apariencia`, en
+`espejo.py`— empiezan igual:
+
+```python
+secreto = os.getenv("ECOSYSTEM_SYNC_SECRET", "").strip()
+if not secreto or not raiz or not eco_sub:
+    return None          # ← y aquí no se escribía NADA en el registro
+```
+
+Dos causas, **las dos mudas**: la tabla de variables de `OPERAR.md` §1.4 pedía
+ese secreto en `ecosystem-api` y en `membresias-api` y **no nombraba a
+`campeonatos-api`**; y `eco_sub` en `NULL` apaga las dos direcciones aunque el
+secreto esté puesto. Ya está corregida la tabla, y la app **lo dice al arrancar**
+(`_decir_como_quedo_el_ecosistema`, en `backend/app/__init__.py`).
+
+**Por qué importa para este plan y no es solo una anécdota:** las fases F4, F6 y
+F8 añaden **tres puentes más** con el ecosistema, y las tres tienen la misma
+forma —una variable de entorno que, al faltar, hace que la función se calle y
+devuelva `None`—. Es el diseño correcto para una app que tiene que arrancar sin
+internet, y es también la forma más fiable de que algo lleve semanas apagado sin
+que nadie se entere.
+
+> **Regla para las tres fases que vienen:** *ningún puente nuevo se da por hecho
+> en silencio.* Si una pieza del ecosistema está apagada, **se dice al arrancar y
+> se ve en `/admin`**. «Apagado» es un estado válido; «apagado sin que se note»
+> no lo es. Es la misma lección que `PLAN-SINCRONIZACION-LOCAL-ONLINE.md` ya
+> había pagado: *«el fallo más peligroso no era un error, sino el silencio»*.
 
 ## 1.7 · La vuelta de los resultados es a mano, pero el destino ya existe
 
@@ -302,6 +404,26 @@ verdades que puedan discrepar (`models/usuario.py`). Los roles se hacen igual.
 5. `espejo.py`: `rol_operativo()` → `roles_operativos()`, leyendo
    `roles_campeonatos` del pase y cayendo a `role_campeonatos` si no viene (una
    instalación con el ecosystem sin actualizar tiene que seguir entrando).
+6. **Y quién gana, que es la pregunta de verdad (ver §1.5-bis).** Hoy el rol
+   local manda **siempre** después de crear la fila, y eso deja a F1 sin efecto.
+   Propuesta —**suman, no restan**, que es la regla de §2.1 aplicada al
+   conflicto:
+
+   | | Qué se hace | Por qué |
+   |---|---|---|
+   | El pase trae un papel que la fila NO tiene | **Se añade** | Es el caso de «lo puse en el portal y allí no cambia nada», y añadir no puede romper un campeonato en marcha |
+   | El pase NO trae un papel que la fila SÍ tiene | **Se conserva** | Es exactamente el degradado en silencio que la regla actual evita. `puede_juzgar` y el mando de un campeonato se ponen a mano aquí, y eso no se pisa desde fuera |
+   | Quitar un papel de verdad | **Solo desde la consola de aquí** | Con nombre y apellidos de quien lo quita |
+
+   Así F1 empieza a servir para algo **sin reabrir** el fallo que §4.13 evita: el
+   portal puede DAR, y solo la consola puede QUITAR.
+
+   > **Esto NO cierra `OPERAR.md` §6.1 («El cambio de rol solo viaja a
+   > Membresías»).** Cerrarlo del todo pide un `/sync/rol` que empuje desde el
+   > ecosistema, y ahí `OPERAR.md` es explícito: en Campeonatos es Flask y **no
+   > puede depender de la red el 9 de octubre**, así que se espera a después del
+   > campeonato. Lo de arriba no depende de la red: se aplica con el pase que la
+   > persona ya trae al entrar.
 6. Frontend: `destinoDe(rol)` deja de elegir. Con un solo papel se entra directo
    como hoy; con varios se entra al **panel de competidor** (§F3), que es el
    único que todos tienen, y desde ahí se cambia de sombrero.
@@ -340,6 +462,17 @@ cara al producto**, y por eso va sola.
 6. El portal cambia la tarjeta de solo lectura por el botón de entrar
    (`dashboard/page.tsx:440`), y el mensaje `sin_consola` deja de mencionar el
    portal como único sitio.
+
+7. **Y la consola no se puede inundar (§1.5-ter).** La regla que F3 revierte
+   —«el pase de un alumno no crea ninguna fila»— existía para que una federación
+   de doscientos alumnos no metiera doscientas filas en el listado de usuarios
+   de la consola. Así que al crear el espejo de un competidor:
+   - `/admin` → Jueces **filtra por defecto a quien opera** (`admin`, `maestro`,
+     `juez`) y los competidores quedan detrás de un contador «+184 competidores»;
+   - el buscador sí los encuentra, porque el admin necesita poder enlazar una
+     ficha a mano;
+   - y la fila se crea **la primera vez que la persona entra**, no al firmar el
+     pase: quien nunca abra Campeonatos sigue sin existir aquí.
 
 > **El riesgo de esta fase, dicho claro:** hasta hoy, entrar a Campeonatos era la
 > excepción; a partir de aquí es lo normal. Todo endpoint que asumiera «quien
@@ -482,7 +615,37 @@ Solo cuando F1–F8 lleven **un campeonato real** encima:
 
 ---
 
-# PARTE 4 · El orden, y por qué
+# PARTE 4 · El calendario manda antes que el orden
+
+*(añadido el 9 de septiembre de 2026)*
+
+Hay **un campeonato real el 9, 10 y 11 de octubre de 2026**, y eso no es un
+detalle de agenda: es una restricción del plan.
+
+- **Los días 9, 10 y 11 no se sube nada.** El 8 solo entran arreglos
+  (`OPERAR.md` §1.5). La regla era de trece días y se recortó a tres el 4 de
+  septiembre, así que **hasta la víspera se trabaja normal**.
+- **La última semana de septiembre se corre el ensayo** de `OPERAR.md` §6.0, y
+  hay que anotar los números del cierre. Cada fase de este plan que toque login,
+  roles o identidad **reabre justo los tres eslabones que ese ensayo mide**.
+- Y `OPERAR.md` §6.1 ya lo dice para el cambio de rol: en Campeonatos **conviene
+  esperar a después del campeonato**.
+
+**Lo que eso significa, en concreto:**
+
+| Antes del 8 de octubre | Después del 11 |
+|---|---|
+| **F7** (encendido local) — se nota justo ese fin de semana | F1, F2, F4, F5 |
+| **F6** (paquetes con identidad) — hace falta para el evento | F3 (el panel del alumno) |
+| F0 (decidir) — no toca código | F8, F9 |
+
+F3 después del campeonato no es prudencia de más: es la fase que **multiplica por
+cien la gente que entra**, y estrenarla tres semanas antes del evento, con el
+ensayo ya corrido, es exactamente lo que §1.5 protege.
+
+---
+
+# PARTE 4-bis · El orden, y por qué
 
 ```
 F0 decidir
@@ -512,6 +675,14 @@ Escrito para que dentro de tres meses nadie lo busque aquí:
 - **No junta COMBAT con PROJECT.** Eso es `PLAN_FUSION.md` del monorepo.
 - **No arregla la sesión revocada de los 30 minutos.** Es el precio del diseño y
   está aceptado (`B3-RIESGOS.md` §1.3).
+- **No cierra el bloqueo por plan vencido.** `OPERAR.md` §6.1 lo tiene abierto y
+  razonado: el 9 de octubre Campeonatos no puede depender de la red, y un club
+  cerrado por una columna mal puesta a mitad de un campeonato es peor que un club
+  que operó un mes de más. Lo que sí corta hoy a un club vencido es el pase — sin
+  `app_scopes` no entra quien llegue del portal. Después de F4 habría por fin
+  dónde colgarlo (`campeonatos.org_id`), pero sigue siendo otra conversación.
+- **No retira `POST /auth/register`.** Está previsto «después del campeonato»
+  (`OPERAR.md` §4.13) y es independiente de todo esto.
 - **No lleva el ecosystem al gimnasio.** Decidido que no (§1.4 del mismo).
 - **No sincroniza en tiempo real.** Sigue siendo un sentido y por tandas.
 - **No toca el motor de combate ni el de figuras.** Ni una línea de

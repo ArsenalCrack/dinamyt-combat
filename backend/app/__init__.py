@@ -132,7 +132,78 @@ def create_app(config_name=None):
     # ── Comandos CLI ──
     register_cli_commands(app)
 
+    # ── Y lo último: decir en voz alta con qué ecosistema se habla ──────────
+    _decir_como_quedo_el_ecosistema(app)
+
     return app
+
+
+def _decir_como_quedo_el_ecosistema(app):
+    """
+    Una línea al arrancar diciendo qué mitades del ecosistema están encendidas.
+
+    ── La avería que escribió esto ─────────────────────────────────────────
+
+    El tema y el idioma que se eligen en el portal no llegaban a Campeonatos, y
+    nadie podía saber por qué mirando la aplicación. Las dos funciones que lo
+    hacen —`guardar_apariencia` y `leer_apariencia`, en `espejo.py`— empiezan
+    las dos igual:
+
+        secreto = os.getenv("ECOSYSTEM_SYNC_SECRET", "").strip()
+        if not secreto or not raiz or not eco_sub:
+            return None          # ← y aquí no se escribe NADA en el registro
+
+    Ese `return` mudo es correcto —el día del evento, sin internet, nada de esto
+    puede estorbar— pero **también es mudo cuando la variable falta por
+    descuido**, que es lo que pasó: `OPERAR.md` §1.4 pedía
+    `ECOSYSTEM_SYNC_SECRET` en `ecosystem-api` y en `membresias-api`, y **no
+    nombraba a `campeonatos-api`**. Quien configuró el VPS siguiendo la tabla no
+    la puso aquí, y desde entonces las dos direcciones estaban apagadas sin un
+    solo aviso. Membresías sincronizaba, Campeonatos no, y las dos parecían
+    igual de bien configuradas.
+
+    El `log.warning` que ya había solo salta cuando la RED falla. Un secreto que
+    falta no es un fallo de red: es un silencio.
+
+    ── Por qué avisa y no falla ────────────────────────────────────────────
+
+    Porque «apagado» es un estado VÁLIDO: es exactamente como tiene que arrancar
+    la instalación del gimnasio (`B3-RIESGOS.md` §1.4). Lo que no puede seguir
+    siendo válido es que no se note. Es el mismo criterio que el
+    `EL ESPEJO ESTÁ APAGADO` de Membresías (`OPERAR.md` §2.9).
+    """
+    import logging
+
+    from .identidad import hay_ecosistema
+
+    log = logging.getLogger(__name__)
+    with app.app_context():
+        pase = hay_ecosistema()
+    espejo = bool(os.getenv("ECOSYSTEM_SYNC_SECRET", "").strip())
+
+    if pase and espejo:
+        log.info("[ecosistema] pase RS256 y espejo de apariencia: los dos ENCENDIDOS.")
+    elif not pase and not espejo:
+        # El modo local del día del evento. No es una avería: es el plan.
+        log.info(
+            "[ecosistema] MODO LOCAL: sin pase del ecosistema y sin espejo. "
+            "El login propio y el QR de los tatamis son la única entrada."
+        )
+    elif pase and not espejo:
+        # La combinación de la avería: se entra desde DINAMYT, pero el tema y el
+        # idioma no viajan en ninguna de las dos direcciones.
+        log.warning(
+            "[ecosistema] EL ESPEJO DE APARIENCIA ESTÁ APAGADO: falta "
+            "ECOSYSTEM_SYNC_SECRET. Se entra desde DINAMYT, pero el tema y el "
+            "idioma elegidos en el portal NO llegan aquí, ni los de aquí allá. "
+            "Tiene que ser el MISMO valor que en ecosystem-api. Ver OPERAR.md §1.4."
+        )
+    else:
+        log.warning(
+            "[ecosistema] hay ECOSYSTEM_SYNC_SECRET pero no ECOSYSTEM_JWKS_URL: "
+            "el espejo de apariencia no sirve de nada sin pase que lo estrene. "
+            "Ver OPERAR.md §1.4."
+        )
 
 
 def registrar_contexto_rls(app):

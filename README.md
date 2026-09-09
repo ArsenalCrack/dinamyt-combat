@@ -12,9 +12,26 @@ tablero local que el Juez Central proyecta aunque se caiga la red.
 
 ---
 
+> **Campeonatos es una de las cuatro webs de DINAMYT**, no una aplicación
+> suelta. Desde el 30 de agosto de 2026 se entra con la cuenta del ecosistema
+> —sin segunda contraseña— y el pase RS256 se verifica contra el JWKS del
+> portal. El manual de operación de todo el ecosistema, y el de esta app dentro
+> de él, es `OPERAR.md` del monorepo `dinamyt` (§4.13 para el salto desde
+> DINAMYT). Lo que está por hacer, en [PLAN-CAMPEONATOS.md](PLAN-CAMPEONATOS.md).
+
+---
+
 ## Características
 
-- **Roles diferenciados**: administrador y juez central, con autenticación JWT.
+- **Cuatro roles**: `admin` (organiza el evento), `maestro` (inscribe a sus
+  alumnos y, con permiso, puntúa), `juez` (puntúa combates y figuras) y el
+  super-admin, que ve todos los workspaces. **Hoy cada persona tiene UNO solo**
+  — la excepción es `puede_juzgar`, que deja a un maestro sentarse en la mesa.
+  Que una misma persona pueda ser varias cosas a la vez es la fase 2 del
+  [plan](PLAN-CAMPEONATOS.md).
+- **Identidad del ecosistema**: `usuarios.eco_sub` guarda la cuenta de DINAMYT y
+  la fila local es su ESPEJO (`app/espejo.py`). El login propio **no se retira**:
+  es la marcha atrás del día del evento, sin internet.
 - **Tiempo real** vía Socket.IO (namespace `/combate`): el marcador del juez se
   refleja al instante en la pantalla pública y demás dispositivos.
 - **Dos modalidades**:
@@ -56,6 +73,13 @@ DINAMYT-COMBAT/
 │       ├── models/     Modelos SQLAlchemy (usuario, campeonato, categoria,
 │       │               tatami, asignacion, combate, llave)
 │       ├── seeds/      Datos iniciales (categorías, admin)
+│       ├── identidad.py  Verifica el pase RS256 del ecosistema (JWKS)
+│       ├── espejo.py     La fila local como espejo de la cuenta de DINAMYT,
+│       │                 y el puente de apariencia (tema e idioma)
+│       ├── rls.py        Row Level Security en PostgreSQL
+│       ├── schema_compat.py  Crea al arrancar las columnas que falten
+│       ├── mantenimiento.py  El modo mantenimiento
+│       ├── respaldos.py  Copias de seguridad
 │       ├── uid.py      Identidad estable entre instalaciones (local ↔ online)
 │       └── config.py   Configuración por entorno
 └── frontend/         Aplicación web (Next.js)
@@ -122,7 +146,38 @@ NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
 
 ---
 
-## Despliegue gratuito en internet
+## Despliegue
+
+> ### ⚠️ Lo de abajo YA NO ES como se despliega esto
+>
+> *(nota del 9 de septiembre de 2026)*
+>
+> **Producción vive en un VPS**, no en planes gratuitos: `/srv/campeonatos`,
+> servicios `systemd` (`campeonatos-api` y `campeonatos-web`), PostgreSQL en la
+> misma máquina y Caddy delante, junto a las otras tres webs del ecosistema en
+> `campeonatos.dinamyt.org`. Supabase, Render, Vercel y UptimeRobot **no
+> intervienen**.
+>
+> | Para… | Ir a |
+> |---|---|
+> | Montar el servidor desde cero | `MONTAR-VPS.md` (monorepo `dinamyt`) |
+> | Desplegar un cambio | `OPERAR.md` §2.4-bis (monorepo `dinamyt`) |
+> | Las variables que parecen opcionales y no lo son | `OPERAR.md` §1.4 |
+>
+> El comando de despliegue, para no tener que buscarlo:
+>
+> ```bash
+> cd /srv/campeonatos && git pull && backend/venv/bin/pip install -r backend/requirements.txt && cd frontend && npm ci && npm run build && sudo systemctl restart campeonatos-api campeonatos-web
+> ```
+>
+> Se deja lo que sigue porque **describe bien la aplicación** —qué variables
+> quiere, cómo se conectan las partes, por qué un solo worker— y porque es la
+> receta si algún día hay que levantar una copia aparte. Pero **no es la
+> instalación que está en internet.**
+
+---
+
+## Despliegue gratuito en internet *(histórico — ver el aviso de arriba)*
 
 El proyecto se despliega completo usando solo planes gratuitos
 (tiempo estimado: 30–45 min).

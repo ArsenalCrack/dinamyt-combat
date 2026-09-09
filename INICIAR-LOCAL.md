@@ -67,6 +67,43 @@ Para **apagar**: cierra las dos ventanas negras.
 
 ---
 
+## 3.1) ⚠️ Aquí NO se entra con la cuenta de DINAMYT
+
+*(añadido el 9 de septiembre de 2026)*
+
+**Esto sorprende a todo el mundo la primera vez, y conviene decirlo la víspera y
+no el sábado a las siete de la mañana.**
+
+Desde agosto de 2026, en internet se entra a Campeonatos con la cuenta de DINAMYT
+y sin segunda contraseña. **En el modo local eso no existe**: no hay internet, y
+sin internet no hay ecosistema al que preguntar quién eres.
+
+| En internet (`campeonatos.dinamyt.org`) | Aquí, en el PC del evento |
+|---|---|
+| Se entra con la cuenta de DINAMYT | Se entra con **el usuario y la contraseña de esta instalación** |
+| Recuperar contraseña por correo | **No hay.** Sin correo que mandar |
+| Cuentas nuevas desde el portal | **No hay.** Las crea el admin local |
+| Invitaciones por WhatsApp | **No hay** |
+
+**Las dos formas de entrar el día del evento, y no hay más:**
+
+1. **El QR del tatami** — es la buena para los jueces. Admin → Campeonato →
+   Tatami → **📱 QR** junto a cada juez. Lo escanea y entra directo a su rol, sin
+   escribir nada. Dura 72 h, o sea todo el fin de semana.
+2. **El usuario y la contraseña locales** — para el admin, y para quien necesite
+   entrar sin QR.
+
+> **Los usuarios que llegan en el paquete del campeonato vienen SIN contraseña.**
+> Lo dice el propio informe al importar: *«5 usuario(s) se crearon SIN contraseña:
+> los jueces entran con el QR de su tatami; si alguien necesita entrar con clave,
+> asígnasela en Usuarios.»* Así que si alguien va a necesitar teclear su
+> contraseña, **asígnasela la víspera**, con luz y sin prisa.
+
+El porqué completo está en `B3-RIESGOS.md` §1.4: la promesa de «una cuenta para
+todo» se suspende esos tres días, y es a propósito.
+
+---
+
 ## 4) Que los celulares NO se desconecten (red sin internet)
 
 Como esta red **no tiene internet**, Android/iOS intentan "escapar" a datos
