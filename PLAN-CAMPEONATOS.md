@@ -1,7 +1,11 @@
 # PLAN CAMPEONATOS — de consola de jueces a aplicación del ecosistema
 
-> Estado: **propuesta**, escrita el 9 de septiembre de 2026. Nada de lo que hay
-> aquí está implementado todavía. Lo que sí está implementado se cuenta en la
+> Estado: **propuesta**, escrita el 9 de septiembre de 2026 y revisada el mismo
+> día. Nada de lo que hay aquí está implementado todavía.
+>
+> **⏱ Fecha límite: el 8 de octubre de 2026.** Hay campeonato el 9, 10 y 11 y
+> **no hay «después»** (decisión D6): lo que no esté dentro para entonces, no
+> existe el día del evento. La PARTE 4 es el orden que sale de eso. Lo que sí está implementado se cuenta en la
 > PARTE 1, con archivo y línea, para que el plan se apoye en lo que hay y no en
 > lo que uno recuerda que hay.
 >
@@ -359,21 +363,76 @@ de un admin, con nombres, y la decisión se toma club por club antes de aplicar
 la regla. Nadie pierde la consola por sorpresa — que es la mitad de lo que este
 plan intenta evitar en todas partes.
 
-**D4 · Se empieza por lo del evento.** F7 (encendido local) y F6 (paquetes con
-identidad) **antes de octubre**: las dos se notan ESE fin de semana y ninguna
-toca permisos. Los roles (F1–F2), el panel del alumno (F3) y la organización
-(F4–F5), **después del 11**. Ver la PARTE 4.
+**~~D4 · Se empieza por lo del evento y lo demás va después del 11.~~**
+**REVOCADA el 9 de septiembre**, ver D6.
 
-### Todavía sin decidir — **no bloquean a F6 ni a F7**
+**D5 · El competidor sin plan es el que está FUERA de un club.** No es un fallo
+de facturación: es el atleta independiente, o el de un club que no está en la
+organización. **Se le inscribe igual** —lo hace el administrador del
+campeonato— y su ficha **se guarda**, de modo que el día que se cree una cuenta
+de DINAMYT o entre a un club, **su historial ya está ahí esperándolo**. O sea
+que la ficha del competidor **no depende de tener cuenta**, y la cuenta se le
+engancha después. Desarrollado en F3.
 
-**P1 · ¿El competidor entra aunque su club no tenga el plan de Campeonatos?**
-Propuesta en pie: **no**. `app_scopes` sigue mandando y el mensaje `sin_plan` se
-queda como está; sus resultados se ven en el portal, que es donde ya se ven hoy.
-**Hace falta antes de empezar F3.**
+**D6 · TODO tiene que estar funcional para el 9 de octubre.** No hay «después
+del campeonato». Lo que no esté antes del 8, no existe el día del evento — así
+que el plan deja de estar ordenado por prudencia y pasa a estarlo por **lo que
+más duele el sábado por la mañana**. Ver la PARTE 4, reescrita entera.
 
-**P2 · ¿Caduca la credencial de la máquina local?** Propuesta en pie: **sí, 90
-días**, renovable desde el panel del admin online. Una llave eterna en un PC que
-viaja a los gimnasios es una llave perdida. **Hace falta antes de empezar F8.**
+### Todas las preguntas, contestadas
+
+**~~P1 · ¿El competidor entra aunque su club no tenga el plan?~~** Contestada:
+ver **D5**. La pregunta estaba mal planteada — «sin plan» no era un problema de
+suscripción, era el atleta independiente.
+
+**~~P2 · ¿Caduca la credencial de la máquina local?~~** Contestada en F8, y la
+pregunta hizo falta para descubrir que **la respuesta buena es no tener ninguna
+credencial guardada**. Ver «Las tres cosas que se llaman *local*» aquí abajo y
+el diseño de F8.
+
+---
+
+## F0-bis · Las tres cosas que se llaman «local», y no son la misma
+
+*(9 de septiembre de 2026 — escrito porque en la conversación se mezclaron, y
+mezcladas no se puede decidir nada)*
+
+| | **1 · Servidor local** | **2 · Modo offline del dispositivo** | **3 · Subida automática** |
+|---|---|---|---|
+| Qué es | La aplicación ENTERA corriendo en el PC del gimnasio | Una pantalla (`/local`) que funciona **sin servidor ninguno** | El PC del gimnasio mandando resultados a internet |
+| Quién lo usa | Todos, por el WiFi del evento | El juez de esquina, **cuando se cae hasta la LAN** | Nadie: es una tarea de fondo |
+| Dónde viven los datos | SQLite en `backend/instance/` | `localStorage` del celular del juez | Se copian a la base de internet |
+| Cómo se entra | **Usuario y contraseña de ESA instalación**, o el QR del tatami | No se entra: es una libreta | — |
+| Estado | ✅ Funciona (`2-INICIAR.bat`) | ✅ Funciona (`app/local/page.tsx`) | ❌ Hoy es un USB a mano |
+| Fase | F7 lo pule | No se toca | F8 |
+
+**Las dos primeras no se hablan entre sí y no se parecen.** El *servidor local*
+es DINAMYT entero sin internet: hay base de datos, hay llaves, hay marcador en
+vivo, y treinta dispositivos conectados a un PC. El *modo offline* es una
+libreta digital para un juez cuando ni siquiera eso funciona: no hay servidor,
+no hay sesión, y lo anotado **se dicta a la mesa** o se reingresa a mano.
+
+### Y sobre «credenciales», que es donde estaba el enredo
+
+Hay **dos cosas distintas** que la palabra tapa, y solo una es de personas:
+
+**a) Con qué entra una PERSONA.** El día del evento, con la instalación local:
+**el usuario y la contraseña de esa instalación**, o el QR del tatami. **Nunca
+la cuenta de DINAMYT** — no hay internet al que preguntarle quién es nadie. Está
+en `INICIAR-LOCAL.md` §3.1 y en `B3-RIESGOS.md` §1.4. **Esto no cambia y este
+plan no lo toca.**
+
+**b) Con qué se identifica un PROGRAMA ante otro.** Es lo que pedía F8, y a lo
+que se refería la pregunta P2. Cuando el PC del gimnasio quiere subir los
+resultados, llama a `POST /api/resultados/importar` de la instalación de
+internet — y ese endpoint exige un administrador. **Un programa no puede
+teclear una contraseña.** Nadie ve ese valor, no abre ninguna pantalla, y no
+tiene nada que ver con cómo entran las personas.
+
+**Y precisamente por lo enredado que resulta, la respuesta de F8 pasa a ser:
+NO guardar ninguna llave en el PC del evento.** El diseño elegido usa la sesión
+del propio administrador, la que ya tiene, en el momento en que vuelve la red.
+Ver F8.
 
 ---
 
@@ -473,6 +532,22 @@ cara al producto**, y por eso va sola.
    - el maestro inscribe desde el ecosistema y el alta trae el `sub`;
    - la persona entra y reclama su ficha por documento + fecha de nacimiento;
    - el admin lo enlaza a mano desde `/admin/competidores`.
+
+   > **Y la ficha existe ANTES que la cuenta, que es D5.** Un atleta
+   > independiente —fuera de un club, o de un club que no está en la
+   > organización— lo inscribe el administrador del campeonato, con su ficha
+   > completa y **sin cuenta de DINAMYT ninguna**. Compite, gana, y sus podios
+   > quedan colgando de esa ficha.
+   >
+   > El día que se cree una cuenta o entre a un club, **el segundo camino de
+   > arriba le devuelve su historial entero**: reclama la ficha por documento y
+   > fecha de nacimiento, se le engancha el `eco_sub`, y todo lo que compitió
+   > antes de existir en DINAMYT aparece en su panel. Nada se pierde por haber
+   > llegado sin cuenta.
+   >
+   > Es la misma mecánica que ya enlaza a los usuarios viejos por correo
+   > (`resolver_espejo`), y con la misma prudencia: si esa ficha ya está
+   > enganchada a OTRA cuenta, **no se pisa** — se para y lo mira una persona.
 2. `ROL_DESDE_ECOSISTEMA` gana `competitor` y `student` → `competidor`.
 3. `resolver_espejo` deja de devolver `sin_consola` cuando el pase trae plan:
    crea el espejo con `roles=["competidor"]`. **`sin_consola` no desaparece** —
@@ -554,6 +629,73 @@ organizaciones con más de un admin. Si sale largo, F0.2 se decide otra vez.
 
 ---
 
+## F5-bis · **LA FICHA DEL ALUMNO SE REUTILIZA** — y hoy ni siquiera se puede
+
+*(añadido el 9 de septiembre de 2026. **Es la fase más urgente de todo el plan**
+y no estaba en la primera versión.)*
+
+### Esto no es una mejora: es un fallo, y muerde en octubre
+
+`maestro_inscribir` (`backend/app/api/competidores.py:919`) hace esto, siempre:
+
+```python
+comp = Competidor(nombre_completo="", activo=True, created_by=workspace_owner_id(maestro))
+```
+
+**Una ficha NUEVA en cada inscripción.** No mira si ese alumno ya existe. Y como
+`competidores.documento` es único en todo el sistema, salen dos caminos y los
+dos son malos:
+
+| | Qué pasa |
+|---|---|
+| **El maestro pone el documento** | La segunda inscripción **se rechaza**: *«Ya existe un competidor con documento 1088123456»*. **Un maestro no puede inscribir a su propia alumna en el segundo campeonato del año.** |
+| **No lo pone** | Pasa, y deja **dos fichas distintas** para la misma persona. Sin ficha estable no hay historial — y por tanto F3 (el panel del alumno) no tiene de dónde sacar «tus resultados» |
+
+Está fijado en `backend/tests/test_alumno_en_dos_campeonatos.py`, tres pruebas
+que **hoy pasan** describiendo el comportamiento roto. Cuando esto se arregle,
+las dos primeras cambian de signo y hay que reescribirlas: a propósito.
+
+Y la tercera prueba fija lo otro: **no existe ninguna ruta que le diga al maestro
+quiénes son sus alumnos.** El formulario arranca en
+`{ ...COMPETIDOR_FORM_VACIO, club }` (`app/maestro/page.tsx:109`), así que el
+nombre, la fecha de nacimiento, el género, el documento y el cinturón —que no
+cambian nunca— cuestan exactamente lo mismo de teclear que el peso, que sí
+cambia. Multiplicado por cuarenta alumnos y por cada campeonato.
+
+### Qué se hace
+
+1. **`GET /api/inscripciones/maestro/alumnos`** — los competidores de los clubes
+   de ese maestro, con todo lo suyo. Es la ruta que hoy devuelve 404.
+2. **El maestro elige de una lista, no rellena un formulario.** Busca a su
+   alumna, la marca, y **solo escribe lo que cambia**: el peso, y las
+   modalidades. Lo demás viene de la ficha y se puede corregir si hace falta —
+   una alumna que subió de cinturón desde el campeonato pasado.
+3. **`maestro_inscribir` acepta `competidor_uid`** además del objeto entero:
+   con `uid` **reutiliza la ficha** y solo crea la inscripción. Sin él, sigue
+   creando —es como se da de alta a quien compite por primera vez.
+4. **Y cuando llega un objeto entero con un documento que ya existe**, deja de
+   ser un 400 y pasa a ser lo obvio: **es esa persona**. Se reutiliza la ficha,
+   se actualiza lo que venga distinto, y se avisa de que se reutilizó. Un
+   documento repetido nunca fue un error del maestro: era el sistema sin
+   entender que las personas vuelven.
+5. **El peso vive en la INSCRIPCIÓN, no en la ficha** — y esto ya es así
+   (`inscripciones.peso`, `models/competidor.py:211`), solo que hoy no se
+   aprovecha porque la ficha nace nueva cada vez. Con la ficha reutilizada, el
+   peso del año pasado no contamina el de este.
+
+### Lo que esto desbloquea, y por eso va primero
+
+- **El día del campeonato**: cuarenta inscripciones que hoy son cuarenta
+  formularios en blanco pasan a ser cuarenta casillas. Es la diferencia entre
+  que los maestros inscriban la semana antes o el mismo sábado a mano.
+- **F3 (el panel del alumno) empieza a ser posible**: sin ficha estable no hay
+  «mis resultados».
+- **D5 (el atleta independiente)** cae solo: una ficha que no depende de tener
+  cuenta ya es exactamente lo que D5 pide. Lo único que falta es poder
+  engancharle la cuenta después, que es el punto 1 de F3.
+
+---
+
 ## F6 · Los paquetes llevan la identidad
 
 **Dónde:** `dinamyt-combat/backend/app/api/sincronizacion.py`.
@@ -611,16 +753,48 @@ paquete, lo que sube son filas huérfanas).
 (`PLAN-SINCRONIZACION-LOCAL-ONLINE.md`, «El viaje de vuelta»). Lo que se
 automatiza es el USB, no la dirección.
 
-1. **La credencial.** El admin online genera un *token de instalación* desde
-   `/admin`, se pega una vez en el `.env` del PC del evento. Caduca a los 90
-   días (F0.3). Es de máquina, no de persona: no abre la consola, solo deja
-   publicar resultados.
-2. **La cola.** Tabla local `cola_sync`: `export_uuid`, `payload`, `intentos`,
+### Cómo se identifica el PC del evento — y por qué NO guarda ninguna llave
+
+*(reescrito el 9 de septiembre. La primera versión decía «un token de
+instalación en el `.env`, caducado a los 90 días». La pregunta de por qué hacía
+falta una credencial nueva era la buena, y la respuesta es que no hace falta.)*
+
+El endpoint de destino exige un administrador (`resultados.py:318`), y **un
+programa no puede teclear una contraseña**. Había dos formas de resolverlo:
+
+| | Cómo | Por qué no / por qué sí |
+|---|---|---|
+| **Llave de máquina** | Un token largo en el `.env` del PC del evento | Automático del todo, sin humano. Pero es **una llave viva en un portátil que viaja a los gimnasios**, y que hay que acordarse de renovar. Descartada |
+| **La sesión del propio admin** ✅ | Cuando vuelve la red, el admin **entra a Campeonatos local con su cuenta de DINAMYT** y desde ahí se vacía la cola | **Nada guardado.** El permiso es el suyo, dura lo que dura su sesión, y queda registrado quién publicó qué |
+
+**Se elige la segunda**, y la razón de fondo es la de todo este plan: **no se
+inventa una credencial nueva cuando ya hay una que sirve.** El administrador ya
+tiene su cuenta de DINAMYT; lo que faltaba no era una llave, era que el PC
+supiera aprovechar el momento en que su dueño está delante y con red.
+
+**Qué significa en la práctica, el lunes después del campeonato:**
+
+1. El PC del evento vuelve a casa y coge WiFi con internet.
+2. El admin abre Campeonatos local y **entra normalmente**. En el gimnasio había
+   entrado con la contraseña local (§F0-bis); ahora, con red, el botón de
+   «Entrar con DINAMYT» funciona y es el que se usa.
+3. La cola se vacía sola, en segundo plano, mientras él hace otra cosa.
+4. Si no entra nadie, la cola espera. **No se pierde nada** — y el USB de
+   siempre sigue estando.
+
+> **Lo que esto NO es.** No cambia cómo entran las personas el día del evento:
+> ahí sigue siendo la contraseña de esa instalación y el QR del tatami, porque
+> no hay internet (`INICIAR-LOCAL.md` §3.1). Esto solo ocurre **después**, con
+> red, y con el administrador delante.
+
+### Las piezas
+
+1. **La cola.** Tabla local `cola_sync`: `export_uuid`, `payload`, `intentos`,
    `ultimo_error`, `enviado_at`. Publicar un podio **encola**; no envía.
-3. **El cartero.** Un hilo que cada N minutos: ¿hay red? ¿contesta el online?
-   → `POST /api/resultados/importar` con el cuerpo JSON, que **ya es idempotente
+3. **El cartero.** Cuando hay una sesión de ecosistema viva y hay red:
+   `POST /api/resultados/importar` con el cuerpo JSON, que **ya es idempotente
    por `export_uuid`** (`resultados.py:318`). Reintento con espera creciente;
-   nunca en mitad de un combate.
+   **nunca mientras haya un combate en marcha.**
 4. **Se ve.** Una línea en `/admin`: «3 resultados pendientes de subir · último
    intento hace 4 min · [Subir ahora]». Una cola invisible es una cola que nadie
    vacía, y el fallo silencioso es justo el que ya mordió una vez en esta app
@@ -641,56 +815,73 @@ Solo cuando F1–F8 lleven **un campeonato real** encima:
 
 ---
 
-# PARTE 4 · El calendario manda antes que el orden
+# PARTE 4 · El orden — TODO antes del 8 de octubre
 
-*(añadido el 9 de septiembre de 2026)*
+*(reescrita el 9 de septiembre de 2026, tras D6. La versión anterior repartía el
+plan en «antes» y «después del campeonato». **Ya no hay después**: lo que no
+esté el 8, no existe el 9.)*
 
-Hay **un campeonato real el 9, 10 y 11 de octubre de 2026**, y eso no es un
-detalle de agenda: es una restricción del plan.
+### Lo único que sigue siendo intocable
 
-- **Los días 9, 10 y 11 no se sube nada.** El 8 solo entran arreglos
-  (`OPERAR.md` §1.5). La regla era de trece días y se recortó a tres el 4 de
-  septiembre, así que **hasta la víspera se trabaja normal**.
+- **Los días 9, 10 y 11 no se despliega nada.** El 8 solo arreglos
+  (`OPERAR.md` §1.5). Eso no es prudencia opcional: es que hay gente delante y
+  una llave en marcha.
 - **La última semana de septiembre se corre el ensayo** de `OPERAR.md` §6.0, y
-  hay que anotar los números del cierre. Cada fase de este plan que toque login,
-  roles o identidad **reabre justo los tres eslabones que ese ensayo mide**.
-- Y `OPERAR.md` §6.1 ya lo dice para el cambio de rol: en Campeonatos **conviene
-  esperar a después del campeonato**.
+  se anotan los números. Todo lo que toque login, roles o identidad **tiene que
+  estar dentro antes de ese ensayo**, o el ensayo no mide lo que va a correr.
 
-**Lo que eso significa, en concreto:**
+Eso da **dos fechas reales**, y son las que ordenan lo de abajo:
 
-| Antes del 8 de octubre | Después del 11 |
+| | |
 |---|---|
-| **F7** (encendido local) — se nota justo ese fin de semana | F1, F2, F4, F5 |
-| **F6** (paquetes con identidad) — hace falta para el evento | F3 (el panel del alumno) |
-| F0 (decidir) — no toca código | F8, F9 |
+| **~26 de septiembre** | Todo lo que toca identidad, roles o login, DENTRO. Después se corre el ensayo sobre lo que de verdad va a correr el 9 |
+| **8 de octubre** | Todo lo demás, DENTRO. Y a partir del 9, nada |
 
-F3 después del campeonato no es prudencia de más: es la fase que **multiplica por
-cien la gente que entra**, y estrenarla tres semanas antes del evento, con el
-ensayo ya corrido, es exactamente lo que §1.5 protege.
-
----
-
-# PARTE 4-bis · El orden, y por qué
+### El orden, por lo que más duele el sábado por la mañana
 
 ```
-F0 decidir
-   │
-   ├─► F1 pase con varios roles (ecosystem)
-   │      └─► F2 Campeonatos los entiende      ← nada cambia de cara al usuario
-   │             └─► F3 el panel del alumno    ← aquí cambia el producto
-   │
-   ├─► F4 organización ──► F5 invitaciones     ← puede ir en paralelo a F3
-   │
-   └─► F6 paquetes con identidad ──► F8 subida automática
-          F7 encendido local (independiente, se puede hacer cuando sea)
+AHORA  ── F5-bis  la ficha del alumno se reutiliza      ← el fallo que muerde
+             │                                            (hoy no se puede
+             │                                             inscribir dos veces)
+             ├─► F7  encender en local              ← independiente, se puede
+             │                                        hacer en paralelo
+             │
+             └─► F1 ─► F2  los roles, un conjunto
+                       │
+                       ├─► F3  el panel del alumno + el atleta independiente
+                       │
+                       └─► F4 ─► F5  organización e invitaciones
+                                  │
+             F6  paquetes con identidad ─────────────┴─► F8  subida automática
 ```
 
-**Lo que se puede hacer ya, sin esperar a nada:** F7. Es independiente, se nota
-el día del evento y no toca ni identidad ni permisos.
+**F5-bis va primero, y no es discutible.** Es la única fase que arregla algo que
+**hoy está roto**, no algo que falta: un maestro no puede inscribir a su alumna
+en el segundo campeonato del año. Todo lo demás del plan añade; esta repara. Y
+además desbloquea a F3 y a D5, que sin ficha estable no existen.
 
-**Lo que no se puede adelantar:** F3 sin F2, y F8 sin F6. Empezar por el panel
-del alumno con el modelo de un solo rol significa escribirlo dos veces.
+**F7 puede ir en paralelo desde el primer día**: no toca identidad, ni permisos,
+ni base de datos. Es la que se nota el 9 por la mañana, cuando hay que encender
+el PC con treinta personas esperando.
+
+**Lo que sigue sin poderse adelantar:** F3 sin F2 (el panel con el modelo de un
+solo rol se escribe dos veces), F8 sin F6 (subirían filas huérfanas), y F5 sin
+F4 (no hay organización a la que invitar).
+
+**F9 (retirar los andamios) se queda para después del 11**, y esa es la única
+excepción a D6 — porque su definición es «cuando lleve un campeonato real
+encima». Retirar compatibilidad la víspera del evento es lo contrario de lo que
+pide D6.
+
+### Y el riesgo de meterlo todo antes, dicho una vez
+
+Es apretado y toca los tres eslabones que el ensayo de septiembre mide. Lo que
+lo hace asumible no es optimismo: es que **cada fase deja la aplicación
+desplegable** —esa condición estaba en el plan desde el principio y ahora es la
+que sostiene el calendario—, que F2 no cambia nada de cara al usuario, y que el
+ensayo de §6.0 corre **después** de lo pesado y **antes** del evento, que es
+justo para lo que existe. Si algo se cae, se cae con margen y se puede dejar
+fuera sin arrastrar al resto.
 
 ---
 
@@ -708,7 +899,12 @@ Escrito para que dentro de tres meses nadie lo busque aquí:
   `app_scopes` no entra quien llegue del portal. Después de F4 habría por fin
   dónde colgarlo (`campeonatos.org_id`), pero sigue siendo otra conversación.
 - **No retira `POST /auth/register`.** Está previsto «después del campeonato»
-  (`OPERAR.md` §4.13) y es independiente de todo esto.
+  (`OPERAR.md` §4.13) y es independiente de todo esto. **Y ahora menos que
+  nunca**: es la puerta por la que el modo local crea usuarios sin ecosistema, o
+  sea la que hace falta el 9 de octubre.
+- **No toca cómo entran las personas en el modo local.** Contraseña de esa
+  instalación y QR del tatami, como hoy (§F0-bis, `INICIAR-LOCAL.md` §3.1). Lo
+  único que F8 añade ocurre **después** del evento y con red.
 - **No lleva el ecosystem al gimnasio.** Decidido que no (§1.4 del mismo).
 - **No sincroniza en tiempo real.** Sigue siendo un sentido y por tandas.
 - **No toca el motor de combate ni el de figuras.** Ni una línea de
