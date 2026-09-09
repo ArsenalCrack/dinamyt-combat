@@ -19,6 +19,7 @@ import CompetidorFormFields, {
   formToPayload,
   type CompetidorFormState,
 } from "@/components/CompetidorFormFields";
+import { Cargando } from "@/components/Cargando";
 import { useI18n, type ClaveTexto } from "@/lib/i18n";
 import { aviso } from "@/lib/toast";
 
@@ -284,9 +285,10 @@ export default function MaestroPage() {
       {/* Campeonatos */}
       <div className="card-title">{t("maestro.campeonatos")}</div>
       {cargando ? (
-        <div className="card" style={{ textAlign: "center", padding: 28, color: "var(--text-dim)" }}>
-          {t("maestro.cargando")}
-        </div>
+        /* Era una tarjeta idéntica a la de «no hay campeonatos»: la misma caja,
+           el mismo relleno, el mismo gris. Cambiaba solo la frase, así que la
+           espera y la respuesta se confundían. */
+        <Cargando mensaje={t("maestro.cargando")} encajado />
       ) : camps.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: 28, color: "var(--text-dim)" }}>
           {t("maestro.sinCampeonatos")}

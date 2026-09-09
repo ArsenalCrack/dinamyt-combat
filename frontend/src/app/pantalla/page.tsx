@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { listCampeonatosPublicoAPI } from "@/lib/api";
 import Logo from "@/components/Logo";
 import PublicControls from "@/components/PublicControls";
+import { Cargando } from "@/components/Cargando";
 import { useI18n } from "@/lib/i18n";
 
 interface TatamiPublico {
@@ -73,9 +74,10 @@ export default function PantallaAccess() {
         </p>
 
         {loading ? (
-          <p className="animate-shimmer" style={{ color: "var(--text-muted)", padding: "20px 0" }}>
-            {t("pantalla.cargando")}
-          </p>
+          /* `encajado` porque esta espera vive DENTRO de la tarjeta de
+             selección, debajo del logo: con el alto mínimo de la espera de
+             pantalla completa empujaría el pie fuera de la vista. */
+          <Cargando mensaje={t("pantalla.cargando")} encajado />
         ) : error ? (
           <p style={{ color: "var(--red-alert)", padding: "12px 0", fontWeight: 700 }}>{t("pantalla.errorConexion")}</p>
         ) : campeonatos.length === 0 ? (

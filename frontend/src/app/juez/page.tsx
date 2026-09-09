@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { misTatamisAPI, type UserData } from "@/lib/api";
+import { Cargando } from "@/components/Cargando";
 import { useI18n, type ClaveTexto } from "@/lib/i18n";
 
 interface MiTatami {
@@ -142,20 +143,21 @@ export default function JuezPage() {
             ))}
           </div>
         </>
+      ) : cargando ? (
+        /* Esperar y «no tienes tatami» compartían tarjeta, y no son lo mismo:
+           uno es un estado que se va solo y el otro es una respuesta. Metidos
+           en la misma caja, la espera se leía como si ya fuera la respuesta —el
+           texto aparecía donde luego iba a decir «sin asignación»— y el juez no
+           sabía si esperar o llamar al admin. */
+        <Cargando mensaje={t("juez.cargando")} encajado />
       ) : (
         <div className="card" style={{ textAlign: "center", padding: 32, color: "var(--text-dim)", marginBottom: 24 }}>
-          {cargando ? (
-            t("juez.cargando")
-          ) : (
-            <>
-              <p style={{ marginBottom: 8, fontWeight: 700, color: "var(--text-muted)" }}>
-                {t("juez.sinAsignacion")}
-              </p>
-              <p style={{ fontSize: "0.9rem", margin: 0 }}>
-                {t("juez.sinAsignacionDesc")}
-              </p>
-            </>
-          )}
+          <p style={{ marginBottom: 8, fontWeight: 700, color: "var(--text-muted)" }}>
+            {t("juez.sinAsignacion")}
+          </p>
+          <p style={{ fontSize: "0.9rem", margin: 0 }}>
+            {t("juez.sinAsignacionDesc")}
+          </p>
         </div>
       )}
 

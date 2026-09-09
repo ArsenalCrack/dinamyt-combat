@@ -216,6 +216,10 @@ const es = {
   "login.tituloAcento": "Campeonatos",
   "login.subtitulo": "Accede con tu cuenta para puntuar o administrar el campeonato.",
   "login.volverAlPortal": "Ir al portal DINAMYT",
+  // La espera del salto desde DINAMYT. Dice DE DÓNDE se viene, no solo que se
+  // está cargando: quien pulsó «Entrar a Campeonatos» en el portal tiene que
+  // reconocer que el botón funcionó, y «Cargando…» a secas no se lo dice.
+  "login.entrandoDinamyt": "Entrando desde DINAMYT…",
   // Lo publico, debajo del formulario: se ve sin cuenta y es lo que busca
   // quien llega desde un cartel o un grupo de WhatsApp.
   "login.publica.intro": "¿Vienes a ver el campeonato? No hace falta cuenta.",
@@ -1454,6 +1458,7 @@ const en: Record<ClaveTexto, string> = {
   "login.tituloAcento": "Championships",
   "login.subtitulo": "Sign in with your account to score or manage the championship.",
   "login.volverAlPortal": "Go to the DINAMYT portal",
+  "login.entrandoDinamyt": "Signing you in from DINAMYT…",
   "login.publica.intro": "Here to watch? No account needed.",
   "login.publica.boton": "Choose tatami",
   "login.o": "or",

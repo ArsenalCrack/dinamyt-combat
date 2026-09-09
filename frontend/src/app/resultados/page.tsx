@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import {
   getResultadosCampeonatoAPI,
   listCampeonatosResultadosAPI,
@@ -10,6 +9,8 @@ import {
 } from "@/lib/api";
 import Logo from "@/components/Logo";
 import PublicControls from "@/components/PublicControls";
+import BotonInicio from "@/components/BotonInicio";
+import { Cargando } from "@/components/Cargando";
 import { useI18n } from "@/lib/i18n";
 
 interface CampeonatoOpcion {
@@ -38,7 +39,6 @@ function resaltar(nombre: string, termino: string) {
 }
 
 export default function ResultadosPage() {
-  const router = useRouter();
   const { t } = useI18n();
   const [campeonatos, setCampeonatos] = useState<CampeonatoOpcion[]>([]);
   const [campId, setCampId] = useState<number | string | null>(null);
@@ -123,13 +123,14 @@ export default function ResultadosPage() {
           <h1 className="resultados-titulo">{t("res.titulo")}</h1>
           <p className="resultados-sub">{t("res.sub")}</p>
         </div>
-        <button className="btn btn-sm btn-ghost" onClick={() => router.push("/login")}>
-          {t("res.volverInicio")}
-        </button>
+        {/* «← Inicio» llevaba a `/login`, o sea a la contraseña de los jueces.
+            Esta pantalla es la que se abre desde un cartel: aquí «Inicio» es
+            DINAMYT. Ver `urlDeInicioPublico()`. */}
+        <BotonInicio texto={t("res.volverInicio")} />
       </div>
 
       {loading ? (
-        <p className="animate-shimmer resultados-msg">{t("res.cargando")}</p>
+        <Cargando mensaje={t("res.cargando")} />
       ) : error && campeonatos.length === 0 ? (
         <p className="resultados-msg" style={{ color: "var(--red-alert)" }}>{t("res.errorConexion")}</p>
       ) : campeonatos.length === 0 ? (
@@ -211,7 +212,10 @@ export default function ResultadosPage() {
 
               {/* Lista de resultados */}
               {cargandoResultados ? (
-                <p className="animate-shimmer resultados-msg">{t("res.cargando")}</p>
+                /* `encajado`: aquí la espera es de la LISTA, no de la pantalla.
+                   Con el alto mínimo de la espera entera dejaría medio metro de
+                   hueco justo debajo de los filtros. */
+                <Cargando mensaje={t("res.cargando")} encajado />
               ) : !data || data.resultados.length === 0 ? (
                 <div className="card resultados-vacio">{t("res.sinResultados")}</div>
               ) : visibles.length === 0 ? (

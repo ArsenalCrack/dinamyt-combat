@@ -6,6 +6,7 @@ import { abrirSesionConToken, getMeAPI, loginAPI, logoutAPI } from "@/lib/api";
 import { guardarToken, guardarUsuario, limpiarSesion } from "@/lib/sesion";
 import CampoContrasena from "@/components/CampoContrasena";
 import PublicControls from "@/components/PublicControls";
+import { Cargando } from "@/components/Cargando";
 import { useI18n } from "@/lib/i18n";
 import { PORTAL_URL } from "@/lib/portal";
 import { LIM } from "@/lib/limites";
@@ -284,6 +285,29 @@ export default function LoginPage() {
     }
   }
 
+  // ── Volviendo de DINAMYT: se ESPERA, no se enseña un formulario vacío ─────
+  //
+  // Mientras se canjea el pase esta pantalla dibujaba la caja del login entera
+  // —el recuadro, el logo grande, el antetítulo, el titular «Entrar a
+  // Campeonatos» en dos colores— con el formulario escondido y «Cargando…» de
+  // subtítulo. O sea, un cartel de bienvenida a una app distinta justo en el
+  // segundo en que la persona cree que sigue en DINAMYT. Ninguna otra espera
+  // del ecosistema tiene recuadro ni titular: son el escudo latiendo y una
+  // línea (`.cargando`, en el archivo compartido). Y el salto es lo que más se
+  // ve de esta app —lo cruza cualquiera que entre desde el portal—, así que era
+  // justo la pantalla equivocada donde tener una forma propia.
+  //
+  // Se va tan pronto como el canje responde: si sale bien navegamos al panel
+  // del rol, y si sale mal `setSaltando(false)` devuelve el formulario, que es
+  // entonces la salida buena.
+  if (saltando) {
+    return (
+      <main className="eco-login">
+        <Cargando mensaje={t("login.entrandoDinamyt")} />
+      </main>
+    );
+  }
+
   return (
     <main className="eco-login">
       <form onSubmit={handleSubmit} className="card eco-login-caja">
@@ -305,14 +329,14 @@ export default function LoginPage() {
         <h1 className="display eco-login-titulo">
           {t("login.titulo")} <span className="acento">{t("login.tituloAcento")}</span>
         </h1>
-        <p className="muted eco-login-subtitulo">
-          {saltando ? t("comun.cargando") : t("login.subtitulo")}
-        </p>
+        <p className="muted eco-login-subtitulo">{t("login.subtitulo")}</p>
 
-        {/* Volviendo de DINAMYT: mientras se canjea el pase no se enseña el
-            formulario, o parece que el salto no funcionó y la persona escribe
-            su contraseña encima. */}
-        {!saltando && (
+        {/* Ya no hace falta esconder el formulario mientras se canjea el pase:
+            durante el canje esta pantalla no se dibuja (ver el `if (saltando)`
+            de arriba). El fragmento se queda —sin condición— porque agrupa el
+            formulario entero y quitarlo reindentaría doscientas líneas para
+            nada, que es ruido en el diff y cero cambio en pantalla. */}
+        {
           <>
             <label className="muted eco-login-etiqueta" htmlFor="login-email">
               {t("login.correo")}
@@ -535,7 +559,7 @@ export default function LoginPage() {
                 o la pantalla de selección de tatami, no la puerta de entrada de
                 los jueces. */}
           </>
-        )}
+        }
       </form>
 
       {/* Sin sesión no hay barra: el tema y el idioma viven en el globo, el

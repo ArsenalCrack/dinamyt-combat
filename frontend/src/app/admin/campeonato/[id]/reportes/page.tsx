@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import api, { getCampeonatoAPI, idiomaArchivo, listTatamisAPI, resolverApiUrl, exportarResultadosAPI } from "@/lib/api";
 import CampoFecha from "@/components/CampoFecha";
 import PodioLlave from "@/components/PodioLlave";
+import { Cargando } from "@/components/Cargando";
 import type { PodioItem } from "@/lib/llaves";
 import { useI18n, type ClaveTexto } from "@/lib/i18n";
 import { obtenerToken } from "@/lib/sesion";
@@ -592,9 +593,7 @@ export default function ReportesCampeonatoPage() {
       {/* Table */}
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         {loading ? (
-          <div style={{ padding: 40, textAlign: "center", color: "var(--text-muted)" }} className="animate-shimmer">
-            {t("rep.cargandoRegistros")}
-          </div>
+          <Cargando mensaje={t("rep.cargandoRegistros")} encajado />
         ) : !data || data.combates.length === 0 ? (
           <div style={{ padding: 48, textAlign: "center", color: "var(--text-dim)" }}>
             <p style={{ fontSize: "2rem", marginBottom: 8 }}>📋</p>

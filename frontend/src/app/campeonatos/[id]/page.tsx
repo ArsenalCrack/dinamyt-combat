@@ -9,6 +9,7 @@ import {
 } from "@/lib/api";
 import Logo from "@/components/Logo";
 import PublicControls from "@/components/PublicControls";
+import { Cargando } from "@/components/Cargando";
 import { useI18n, type ClaveTexto, type Idioma } from "@/lib/i18n";
 
 type Apartado = "info" | "inscritos" | "jueces";
@@ -140,7 +141,7 @@ export default function CampeonatoPublicoFichaPage() {
   if (cargando) {
     return (
       <div className="ficha-page">
-        <p className="ficha-msg animate-shimmer">{t("pub.camp.cargandoFicha")}</p>
+        <Cargando mensaje={t("pub.camp.cargandoFicha")} />
         <PublicControls />
         <style>{ESTILOS}</style>
       </div>

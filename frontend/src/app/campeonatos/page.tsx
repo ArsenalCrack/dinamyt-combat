@@ -8,6 +8,8 @@ import {
 } from "@/lib/api";
 import Logo from "@/components/Logo";
 import PublicControls from "@/components/PublicControls";
+import BotonInicio from "@/components/BotonInicio";
+import { Cargando } from "@/components/Cargando";
 import { useI18n, type ClaveTexto } from "@/lib/i18n";
 
 function fechaRango(inicio: string | null, fin: string | null): string {
@@ -51,13 +53,13 @@ export default function CampeonatosPublicoPage() {
           <h1 className="campub-titulo">{t("pub.camp.titulo")}</h1>
           <p className="campub-sub">{t("pub.camp.sub")}</p>
         </div>
-        <button className="btn btn-sm btn-ghost" onClick={() => router.push("/login")}>
-          {t("pub.camp.volver")}
-        </button>
+        {/* Mismo arreglo que en resultados: «Inicio» es DINAMYT, no el
+            formulario de contraseña de esta app. */}
+        <BotonInicio texto={t("pub.camp.volver")} />
       </div>
 
       {loading ? (
-        <p className="campub-msg animate-shimmer">{t("pub.camp.cargando")}</p>
+        <Cargando mensaje={t("pub.camp.cargando")} />
       ) : error ? (
         <p className="campub-msg" style={{ color: "var(--red-alert)" }}>{t("pub.camp.errorConexion")}</p>
       ) : camps.length === 0 ? (
