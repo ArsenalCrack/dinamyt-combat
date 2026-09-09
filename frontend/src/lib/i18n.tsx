@@ -932,6 +932,10 @@ const es = {
   "sync.origen": "Exportado por {admin} · {fecha}",
   "sync.sinCambios": "El paquete no trae nada nuevo: todo está ya igual aquí.",
   "sync.contadores": "{nuevos} nuevos · {actualizados} actualizados · {omitidos} omitidos",
+  // El paquete trae la identidad del ecosistema de cada usuario (F6): sin ella
+  // la fila importada queda sin enlace con su cuenta del portal.
+  "sync.identidades": "Identidades del ecosistema",
+  "sync.identidadesDetalle": "{enlazadas} enlazadas · {omitidas} sin enlazar",
   "sync.avisos": "Avisos",
   "sync.modo": "Si el campeonato ya existe aquí",
   "sync.modo.fusionar": "Fusionar",
@@ -2147,6 +2151,8 @@ const en: Record<ClaveTexto, string> = {
   "sync.origen": "Exported by {admin} · {fecha}",
   "sync.sinCambios": "The package brings nothing new: everything already matches here.",
   "sync.contadores": "{nuevos} new · {actualizados} updated · {omitidos} skipped",
+  "sync.identidades": "Ecosystem identities",
+  "sync.identidadesDetalle": "{enlazadas} linked · {omitidas} not linked",
   "sync.avisos": "Notices",
   "sync.modo": "If the championship already exists here",
   "sync.modo.fusionar": "Merge",

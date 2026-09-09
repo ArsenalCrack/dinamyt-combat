@@ -441,3 +441,128 @@ def test_el_paquete_de_usuarios_va_por_su_cuenta(tmp_path, destino):
     assert resp.status_code == 200
     from app.models.usuario import Usuario
     assert Usuario.query.filter(Usuario.rol != "admin").count() == 2
+
+
+# ── La identidad del ecosistema viaja en el paquete (F6) ────────────────
+#
+# `eco_sub` es el «quién eres» que firma el portal. Sin él, cada paquete que se
+# importa deja cuentas sin enlazar: ni les llega el tema y el idioma de su
+# cuenta, ni la vuelta de los resultados sabe a quién corresponden.
+
+SUB_JUEZ = "11111111-1111-4111-8111-111111111111"
+SUB_MAESTRO = "22222222-2222-4222-8222-222222222222"
+SUB_AJENO = "33333333-3333-4333-8333-333333333333"
+
+
+def _con_identidades(paquete):
+    """El mismo paquete, pero con la identidad puesta en cada usuario."""
+    subs = {"juez@test.local": SUB_JUEZ, "maestro@test.local": SUB_MAESTRO}
+    for u in paquete["usuarios"]:
+        u["eco_sub"] = subs[u["email"]]
+    return paquete
+
+
+def test_el_paquete_reserva_sitio_para_la_identidad(paquete):
+    """Aunque el origen no tenga ninguna, la clave viaja y la versión sube."""
+    assert paquete["version"] == 2
+    assert all("eco_sub" in u for u in paquete["usuarios"])
+
+
+def test_la_identidad_se_enlaza_al_importar(destino, paquete):
+    app, token = destino
+    resp = _importar(app, token, _con_identidades(paquete))
+
+    assert resp.status_code == 200
+    assert resp.get_json()["identidades"] == {"enlazadas": 2, "omitidas": 0}
+
+    from app.models.usuario import Usuario
+    assert Usuario.query.filter_by(email="juez@test.local").one().eco_sub == SUB_JUEZ
+    assert Usuario.query.filter_by(email="maestro@test.local").one().eco_sub == SUB_MAESTRO
+
+
+def test_no_pisa_una_identidad_que_ya_estaba(destino, paquete):
+    """No se elige por el importador cuál de las dos cuentas es la buena.
+
+    Misma prudencia que `resolver_espejo` con `correo_ocupado`: se para, se
+    deja lo local, y que lo mire una persona. Aquí el enlace decide además de
+    quién son los resultados que suben después del evento.
+    """
+    app, token = destino
+    from app.models.usuario import Usuario
+
+    previo = Usuario(email="juez@test.local", nombre="Juez Local", rol="juez",
+                     activo=True, eco_sub=SUB_AJENO)
+    previo.set_password("secret123")
+    db.session.add(previo)
+    db.session.commit()
+
+    resp = _importar(app, token, _con_identidades(paquete))
+    cuerpo = resp.get_json()
+
+    assert resp.status_code == 200
+    assert cuerpo["identidades"] == {"enlazadas": 1, "omitidas": 1}
+    assert any("otra cuenta del ecosistema" in a for a in cuerpo["avisos"])
+    # El enlace local sobrevive: el del paquete no se aplicó.
+    assert Usuario.query.filter_by(email="juez@test.local").one().eco_sub == SUB_AJENO
+
+
+def test_dos_filas_no_pueden_ser_la_misma_cuenta(destino, paquete):
+    """El juez ya estaba aquí (mismo uid), pero su cuenta la tiene otra fila.
+
+    Pasa cuando alguien entró desde el portal con esa cuenta en la instalación
+    de destino y quedó en OTRA fila. Enlazar las dos sería decir que son la
+    misma persona: no se hace, se avisa.
+    """
+    app, token = destino
+    from app.models.usuario import Usuario
+
+    uid_juez = next(u["uid"] for u in paquete["usuarios"] if u["email"] == "juez@test.local")
+    mismo = Usuario(email="juez@test.local", nombre="Juez Uno", rol="juez",
+                    activo=True, uid=uid_juez)
+    mismo.set_password("secret123")
+    otro = Usuario(email="otro@test.local", nombre="Otro", rol="juez",
+                   activo=True, eco_sub=SUB_JUEZ)
+    otro.set_password("secret123")
+    db.session.add_all([mismo, otro])
+    db.session.commit()
+
+    resp = _importar(app, token, _con_identidades(paquete))
+    cuerpo = resp.get_json()
+
+    assert cuerpo["identidades"] == {"enlazadas": 1, "omitidas": 1}
+    assert any("ya la tiene" in a for a in cuerpo["avisos"])
+    assert Usuario.query.filter_by(email="juez@test.local").one().eco_sub is None
+    assert Usuario.query.filter_by(email="otro@test.local").one().eco_sub == SUB_JUEZ
+
+
+def test_la_identidad_manda_sobre_el_correo(destino, paquete):
+    """El correo se cambia en el portal; el `sub` no cambia nunca."""
+    app, token = destino
+    from app.models.usuario import Usuario
+
+    previo = Usuario(email="juez-viejo@test.local", nombre="Juez Local",
+                     rol="juez", activo=True, eco_sub=SUB_JUEZ)
+    previo.set_password("secret123")
+    db.session.add(previo)
+    db.session.commit()
+
+    resp = _importar(app, token, _con_identidades(paquete))
+
+    assert resp.status_code == 200
+    # No se duplicó: la fila de siempre es la misma persona.
+    assert Usuario.query.filter_by(eco_sub=SUB_JUEZ).count() == 1
+
+
+def test_un_paquete_de_la_version_anterior_se_importa_igual(destino, paquete):
+    """El 9 de octubre el paquete que haya es el que hay."""
+    paquete["version"] = 1
+    for u in paquete["usuarios"]:
+        u.pop("eco_sub", None)
+
+    app, token = destino
+    resp = _importar(app, token, paquete)
+
+    assert resp.status_code == 200
+    assert resp.get_json()["identidades"] == {"enlazadas": 0, "omitidas": 0}
+    from app.models.usuario import Usuario
+    assert Usuario.query.filter(Usuario.rol != "admin").count() == 2

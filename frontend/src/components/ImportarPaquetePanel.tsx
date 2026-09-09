@@ -219,6 +219,19 @@ export default function ImportarPaquetePanel({ conModo = false, onImportado }: P
             </ul>
           )}
 
+          {!!previa.identidades &&
+            (previa.identidades.enlazadas > 0 || previa.identidades.omitidas > 0) && (
+            <div style={{ fontSize: "0.88rem" }}>
+              <strong>{t("sync.identidades")}:</strong>{" "}
+              <span className="text-muted">
+                {t("sync.identidadesDetalle", {
+                  enlazadas: previa.identidades.enlazadas,
+                  omitidas: previa.identidades.omitidas,
+                })}
+              </span>
+            </div>
+          )}
+
           {previa.avisos.length > 0 && (
             <div>
               <div style={{ fontWeight: 700, fontSize: "0.84rem", color: "var(--orange)" }}>

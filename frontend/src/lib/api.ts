@@ -465,6 +465,12 @@ export interface InformeImportacion {
     "usuarios" | "competidores" | "tatamis" | "asignaciones" | "inscripciones" | "llaves",
     ContadoresSeccion
   >>;
+  /**
+   * Cuentas del ecosistema (`eco_sub`) que el paquete consiguió pegar a una
+   * fila local, y las que no. No son filas: son enlaces entre una fila y una
+   * cuenta, y por eso se cuentan aparte del resumen.
+   */
+  identidades?: { enlazadas: number; omitidas: number };
   avisos: string[];
   campeonato?: { id: number; nombre: string; uid: string; nuevo: boolean };
 }

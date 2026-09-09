@@ -70,7 +70,14 @@ FORMATO_USUARIOS = "dinamyt-usuarios"
 FORMATO_COMPETIDORES = "dinamyt-competidores"
 FORMATOS_VALIDOS = (FORMATO_CAMPEONATO, FORMATO_USUARIOS, FORMATO_COMPETIDORES)
 
-VERSION_PAQUETE = 1
+# 2 desde F6: los usuarios viajan con `eco_sub`, la identidad del ecosistema.
+#
+# El importador NO comprueba la versión, y es a propósito: los campos nuevos
+# son opcionales y los viejos no se han quitado, así que un paquete de la 1
+# —uno exportado antes de esta fase, o por una instalación que aún no se ha
+# actualizado— se importa igual, con la identidad en blanco. Eso importa el 9
+# de octubre: ese día el paquete que haya es el que hay.
+VERSION_PAQUETE = 2
 
 # Tope del archivo subido (25 MB). Un campeonato de 1000 competidores con sus
 # llaves ronda los 3 MB; más que esto no es un paquete de DINAMYT.
@@ -101,9 +108,18 @@ def _fecha(valor):
 
 
 def _usuario_a_dict(u):
-    """Usuario para el paquete. Sin contraseña, sin es_superadmin, sin ids."""
+    """Usuario para el paquete. Sin contraseña, sin es_superadmin, sin ids.
+
+    `eco_sub` es el «quién eres» que firma el portal (ver `espejo.py`). Viaja
+    porque sin él la fila importada queda sin enlace con el ecosistema: ni le
+    llega el tema y el idioma de su cuenta, ni la vuelta de los resultados
+    sabe a quién corresponde. Es opcional —el modo local crea usuarios que no
+    vienen del portal y esos no tienen ninguno— y NUNCA pisa el que ya haya
+    en el destino (ver `_enlazar_eco_sub`).
+    """
     return {
         "uid": asegurar_uid(u),
+        "eco_sub": u.eco_sub,
         "email": u.email,
         "nombre": u.nombre,
         "rol": u.rol,
@@ -392,6 +408,10 @@ class Informe:
         }
         self.avisos = []
         self.campeonato_nuevo = None  # True/False cuando el paquete lo trae
+        # Identidades del ecosistema (`eco_sub`) pegadas a una fila local, y
+        # las que no se pudieron pegar. Se cuentan aparte de las secciones
+        # porque no son filas: son enlaces entre una fila y una cuenta.
+        self.identidades = {"enlazadas": 0, "omitidas": 0}
 
     def nuevo(self, seccion):
         self.resumen[seccion]["nuevos"] += 1
@@ -407,6 +427,14 @@ class Informe:
     def aviso(self, texto):
         if texto not in self.avisos:
             self.avisos.append(texto)
+
+    def identidad_enlazada(self):
+        self.identidades["enlazadas"] += 1
+
+    def identidad_omitida(self, texto=None):
+        self.identidades["omitidas"] += 1
+        if texto:
+            self.aviso(texto)
 
     def a_dict(self):
         # Solo las secciones que movieron algo: el informe se lee de un vistazo.
@@ -443,6 +471,43 @@ def _fecha_de(valor):
         return None
 
 
+def _enlazar_eco_sub(local, eco_sub, informe):
+    """Pega la identidad del ecosistema a la fila local. Sin pisar ninguna.
+
+    Tres casos, y solo el primero escribe:
+
+      · la fila local no tiene identidad → se le pone la del paquete.
+      · ya tiene OTRA → se deja la local y se avisa. No se elige por el
+        importador cuál de las dos cuentas es la buena: es la misma prudencia
+        de `resolver_espejo` con `correo_ocupado` —no se pisa ninguna, se para
+        y que lo mire una persona—, y aquí además el enlace decide de quién
+        son los resultados que suben después del evento.
+      · esa identidad ya la tiene OTRA fila de esta instancia → tampoco. Dos
+        filas no pueden ser la misma cuenta.
+    """
+    if not eco_sub:
+        return
+    if local.eco_sub:
+        if local.eco_sub != eco_sub:
+            informe.identidad_omitida(
+                f"'{local.email}' ya está enlazado aquí a otra cuenta del "
+                "ecosistema: se dejó el enlace local y no se aplicó el del paquete."
+            )
+        return
+    query = Usuario.query.filter(Usuario.eco_sub == eco_sub)
+    if local.id is not None:
+        query = query.filter(Usuario.id != local.id)
+    otro = query.first()
+    if otro is not None:
+        informe.identidad_omitida(
+            f"La cuenta del ecosistema que trae '{local.email}' ya la tiene "
+            f"'{otro.email}' en esta instancia: no se enlaza."
+        )
+        return
+    local.eco_sub = eco_sub
+    informe.identidad_enlazada()
+
+
 def _importar_usuarios(lista, admin, informe):
     """Crea o actualiza maestros y jueces. Devuelve {uid del paquete: Usuario}."""
     mapa = {}
@@ -450,6 +515,7 @@ def _importar_usuarios(lista, admin, informe):
         if not isinstance(datos, dict):
             continue
         uid = _texto(datos.get("uid"))
+        eco_sub = _texto(datos.get("eco_sub")) or None
         email = _texto(datos.get("email")).lower()
         rol = _texto(datos.get("rol")) or "juez"
 
@@ -465,6 +531,16 @@ def _importar_usuarios(lista, admin, informe):
             continue
 
         local = Usuario.query.filter_by(uid=uid).first() if uid else None
+        if local is None and eco_sub:
+            # La identidad del ecosistema pesa más que el correo: el correo se
+            # puede cambiar en el portal, el `sub` no cambia nunca.
+            local = Usuario.query.filter_by(eco_sub=eco_sub).first()
+            if local is not None and uid and local.uid != uid:
+                informe.aviso(
+                    f"'{local.email}' ya estaba aquí como la misma cuenta del "
+                    "ecosistema: se vincula con la identidad del paquete."
+                )
+                local.uid = uid
         if local is None:
             local = Usuario.query.filter_by(email=email).first()
             if local is not None and uid:
@@ -550,6 +626,8 @@ def _importar_usuarios(lista, admin, informe):
         local.puede_juzgar = bool(datos.get("puede_juzgar")) if rol == "maestro" else False
         if podia_juzgar and not local.puede_juzgar and local.id is not None:
             AsignacionJuez.query.filter_by(usuario_id=local.id).delete()
+
+        _enlazar_eco_sub(local, eco_sub, informe)
 
         if uid:
             mapa[uid] = local
@@ -1044,6 +1122,7 @@ def importar():
             "exportado_at": paquete.get("exportado_at"),
             "origen": paquete.get("origen"),
             "resumen": informe.a_dict(),
+            "identidades": informe.identidades,
             "avisos": informe.avisos,
         })
         return jsonify(respuesta), 200
