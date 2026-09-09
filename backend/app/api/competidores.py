@@ -886,6 +886,65 @@ def moderar_inscripcion(ins_id):
 #  Flujo del MAESTRO (inscribe a sus alumnos → solicitud "pendiente")
 # ══════════════════════════════════════════════════════════════════
 
+def _alumnos_del_maestro(maestro):
+    """Query de las fichas que YA existen de los alumnos de este maestro.
+
+    Son los competidores de su workspace apuntados a uno de sus dojangs. El
+    club se guarda en MAYÚSCULAS (`_mayusculas`), así que la comparación va en
+    mayúsculas por los dos lados: una ficha vieja escrita a mano en minúsculas
+    no puede quedarse fuera de la lista de sus propios alumnos.
+
+    Devuelve None si el maestro todavía no tiene club, que es el mismo caso
+    que ya trata `_club_del_maestro`: sin dojang no hay alumnos que enseñar.
+    """
+    clubes = [_mayusculas(c) for c in maestro.nombres_clubes]
+    if not clubes:
+        return None
+    query = filtrar_competidores(maestro, Competidor.query.filter_by(activo=True))
+    return query.filter(func.upper(Competidor.club).in_(clubes))
+
+
+def _ficha_del_alumno(maestro, uid_pedido, datos):
+    """(competidor, reutilizada, error, codigo): la ficha que le toca a este alumno.
+
+    Tres caminos, y solo el último crea fila:
+
+      · `competidor_uid` → esa ficha, si es un alumno suyo (ver
+        `maestro_alumnos`). Es el camino normal a partir del segundo
+        campeonato: el maestro lo elige de una lista.
+      · un `documento` que ya existe en su workspace → la ficha de esa
+        persona. **Un documento repetido nunca fue un error del maestro**: era
+        el sistema sin entender que las personas vuelven a competir.
+      · nada de lo anterior → ficha nueva, que es como se da de alta a quien
+        compite por primera vez.
+
+    La ficha de OTRO administrador no se reutiliza ni se nombra: el aislamiento
+    por workspace manda, y el error de documento ocupado lo pone
+    `_aplicar_datos`, que ya sabe cuánto detalle puede enseñar.
+    """
+    uid_pedido = str(uid_pedido or "").strip()
+    if uid_pedido:
+        query = _alumnos_del_maestro(maestro)
+        comp = query.filter_by(uid=uid_pedido).first() if query is not None else None
+        if comp is None:
+            # 404 y no 403: no se confirma que esa ficha exista en otro club.
+            return None, False, "Ese alumno no es de tus clubes o ya no está activo.", 404
+        return comp, True, None, None
+
+    doc, error = _validar_documento(datos.get("documento"))
+    if error:
+        return None, False, error, 400
+    if doc:
+        previa = Competidor.query.filter_by(documento=doc).first()
+        if previa is not None and es_dueno_competidor(maestro, previa):
+            return previa, True, None, None
+
+    nueva = Competidor(
+        nombre_completo="", activo=True, created_by=workspace_owner_id(maestro)
+    )
+    return nueva, False, None, None
+
+
 @inscripciones_bp.route("/maestro/campeonatos", methods=["GET"])
 @jwt_required()
 def maestro_campeonatos():
@@ -914,16 +973,94 @@ def maestro_campeonatos():
     } for c in camps]), 200
 
 
+@inscripciones_bp.route("/maestro/alumnos", methods=["GET"])
+@jwt_required()
+def maestro_alumnos():
+    """
+    GET /api/inscripciones/maestro/alumnos?campeonato_id=
+    Los alumnos que el maestro YA tiene fichados, para elegirlos en vez de
+    volver a teclearlos. El nombre, la fecha de nacimiento, el género, el
+    documento y el club no cambian nunca; el peso sí, y por eso es lo único
+    que se escribe en cada campeonato.
+
+    Con `campeonato_id`, cada alumno dice si ya está inscrito ahí (`inscrito`)
+    y en qué estado, para no ofrecerlo dos veces — la inscripción es única por
+    (campeonato, competidor).
+
+    El `uid` viaja porque es lo que se manda de vuelta como `competidor_uid`:
+    es estable entre la instalación local y la de internet (ver `app/uid.py`),
+    a diferencia del `id`.
+    """
+    maestro = require_maestro()
+    if not maestro:
+        return jsonify({"error": "Solo maestros"}), 403
+
+    camp_id = request.args.get("campeonato_id")
+    if camp_id:
+        try:
+            camp_id = int(camp_id)
+        except (TypeError, ValueError):
+            return jsonify({"error": "campeonato_id inválido"}), 400
+
+    query = _alumnos_del_maestro(maestro)
+    if query is None:
+        return jsonify([]), 200
+    alumnos = query.order_by(Competidor.nombre_completo.asc()).limit(2000).all()
+    ids = [a.id for a in alumnos]
+    if not ids:
+        return jsonify([]), 200
+
+    conteos = dict(
+        db.session.query(Inscripcion.competidor_id, func.count(Inscripcion.id))
+        .filter(Inscripcion.competidor_id.in_(ids))
+        .group_by(Inscripcion.competidor_id)
+        .all()
+    )
+    estados = {}
+    if camp_id:
+        estados = dict(
+            db.session.query(Inscripcion.competidor_id, Inscripcion.estado)
+            .filter(
+                Inscripcion.campeonato_id == camp_id,
+                Inscripcion.competidor_id.in_(ids),
+            ).all()
+        )
+
+    return jsonify([
+        {
+            **a.to_dict(num_inscripciones=conteos.get(a.id, 0)),
+            "uid": a.uid,
+            "inscrito": a.id in estados,
+            "estado_inscripcion": estados.get(a.id),
+        }
+        for a in alumnos
+    ]), 200
+
+
 @inscripciones_bp.route("/maestro/campeonato/<int:camp_id>", methods=["POST"])
 @jwt_required()
 def maestro_inscribir(camp_id):
     """
     POST /api/inscripciones/maestro/campeonato/:id
-    Body: { "competidor": { ..., "club"? }, "modalidades"?: [...], "peso"?: number }
+    Body: { "competidor_uid"?: str, "competidor": { ..., "club"? },
+            "modalidades"?: [...], "peso"?: number }
+
     El maestro envía una solicitud (queda 'pendiente'). El club del alumno tiene
     que ser uno de los suyos —si dirige varios, elige cuál; si no lo manda, se
     usa su club principal—; el alumno queda bajo el workspace de su admin.
     Solo si el campeonato está en 'preparacion' y es del workspace del maestro.
+
+    **La ficha del alumno se REUTILIZA** (ver `_ficha_del_alumno`). Antes cada
+    inscripción estrenaba competidor, y de ahí salían las dos mitades del
+    fallo: con documento la segunda inscripción del año se rechazaba —un
+    maestro no podía inscribir a su propia alumna en el segundo campeonato del
+    año— y sin documento quedaban dos fichas de la misma persona, o sea ningún
+    historial del que colgar «mis resultados». Ahora se crea fila solo la
+    primera vez.
+
+    El peso viaja a la INSCRIPCIÓN, no a la ficha: la misma alumna pesa
+    distinto en marzo y en agosto, y con la ficha compartida el peso del año
+    pasado no puede pisar el de este (`inscripciones.peso`).
     """
     maestro = require_maestro()
     if not maestro:
@@ -943,20 +1080,62 @@ def maestro_inscribir(camp_id):
     if error:
         return jsonify({"error": error}), 400
     datos["club"] = club
-    comp = Competidor(
-        nombre_completo="", activo=True, created_by=workspace_owner_id(maestro)
-    )
-    error = _aplicar_datos(comp, datos, actor=maestro)
-    if error:
-        return jsonify({"error": error}), 400
-    db.session.add(comp)
-    db.session.flush()
 
+    # El peso se acepta en el cuerpo o dentro del competidor —el formulario lo
+    # manda ahí— y en los dos casos acaba en la inscripción.
+    peso_crudo = data.get("peso")
+    if peso_crudo in (None, ""):
+        peso_crudo = datos.get("peso")
     peso = None
-    if data.get("peso") not in (None, ""):
-        peso, error = _validar_peso(data.get("peso"))
+    if peso_crudo not in (None, ""):
+        peso, error = _validar_peso(peso_crudo)
         if error:
             return jsonify({"error": error}), 400
+
+    comp, reutilizada, error, codigo = _ficha_del_alumno(
+        maestro, data.get("competidor_uid"), datos
+    )
+    if error:
+        return jsonify({"error": error}), codigo
+
+    if reutilizada:
+        # Con la ficha compartida esto ya no es imposible: antes cada
+        # inscripción estrenaba competidor, así que la unicidad
+        # (campeonato, competidor) nunca llegaba a tocarse — y saltar el
+        # constraint sería un 500 en lugar de una frase. Se comprueba ANTES de
+        # aplicar nada, para que una solicitud repetida no deje cambiada la
+        # ficha de paso.
+        ya = Inscripcion.query.filter_by(
+            campeonato_id=campeonato.id, competidor_id=comp.id
+        ).first()
+        if ya:
+            return jsonify({
+                "error": (
+                    f"{comp.nombre_completo} ya está en este campeonato "
+                    f"(solicitud {ya.estado})."
+                )
+            }), 409
+        # El peso de la ficha no se toca: el de este campeonato es el de la
+        # inscripción, y el del anterior sigue guardado en la suya.
+        datos.pop("peso", None)
+
+    error = _aplicar_datos(comp, datos, parciales=reutilizada, actor=maestro)
+    if error:
+        return jsonify({"error": error}), 400
+    if reutilizada:
+        # Inscribir a alguien es decir que vuelve a competir: si su ficha
+        # estaba dada de baja, vuelve.
+        comp.activo = True
+    else:
+        # Ficha nueva: el peso que venga es el único que se le conoce, así que
+        # queda también como el actual de la ficha —da igual si el cliente lo
+        # mandó suelto o dentro del competidor—. En las siguientes
+        # inscripciones ya no se toca: cada una lleva el suyo.
+        if peso is not None and comp.peso is None:
+            comp.peso = peso
+        db.session.add(comp)
+    db.session.flush()
+
     inscripcion = Inscripcion(
         campeonato_id=campeonato.id,
         competidor_id=comp.id,
@@ -968,8 +1147,15 @@ def maestro_inscribir(camp_id):
     )
     db.session.add(inscripcion)
     db.session.commit()
+    mensaje = f"Solicitud enviada: {comp.nombre_completo}. El administrador la revisará."
+    if reutilizada:
+        mensaje = (
+            f"Solicitud enviada: {comp.nombre_completo}, con su ficha de siempre. "
+            "El administrador la revisará."
+        )
     return jsonify({
-        "message": f"Solicitud enviada: {comp.nombre_completo}. El administrador la revisará.",
+        "message": mensaje,
+        "reutilizada": reutilizada,
         "inscripcion": inscripcion.to_dict(),
     }), 201
 
@@ -1043,6 +1229,21 @@ def maestro_reenviar(ins_id):
     if not comp:
         return jsonify({"error": "Competidor no encontrado"}), 404
 
+    # El peso corrige ESTA inscripción, no la ficha. Desde que la ficha se
+    # reutiliza (ver `maestro_inscribir`) es la misma en todos sus campeonatos,
+    # y corregir un rechazo de agosto no puede reescribir cuánto pesaba en
+    # marzo.
+    peso_crudo = data.get("peso")
+    if peso_crudo in (None, ""):
+        peso_crudo = datos.pop("peso", None)
+    else:
+        datos.pop("peso", None)
+    peso = None
+    if peso_crudo not in (None, ""):
+        peso, error = _validar_peso(peso_crudo)
+        if error:
+            return jsonify({"error": error}), 400
+
     error = _aplicar_datos(comp, datos, actor=maestro)
     if error:
         return jsonify({"error": error}), 400
@@ -1052,7 +1253,7 @@ def maestro_reenviar(ins_id):
         inscripcion.modalidades = _parse_modalidades(data.get("modalidades")) or None
 
     # Actualizar snapshot de peso y cinturón
-    inscripcion.peso = comp.peso
+    inscripcion.peso = peso if peso is not None else comp.peso
     inscripcion.grupo_cinturon = comp.grupo_cinturon
 
     # Restablecer estado

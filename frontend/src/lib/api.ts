@@ -971,12 +971,43 @@ export async function maestroCampeonatosAPI() {
   return res.data as MaestroCampeonato[];
 }
 
+/**
+ * Un alumno que el maestro YA tiene fichado.
+ *
+ * El `uid` es lo que se manda de vuelta como `competidor_uid` al inscribir:
+ * es estable entre la instalación local y la de internet, a diferencia del
+ * `id` (ver `backend/app/uid.py`).
+ */
+export interface AlumnoMaestro extends CompetidorData {
+  uid: string;
+  /** Ya está inscrito en el campeonato por el que se preguntó. */
+  inscrito: boolean;
+  estado_inscripcion: EstadoInscripcion | null;
+}
+
+export async function maestroAlumnosAPI(campeonatoId?: number) {
+  const res = await api.get("/inscripciones/maestro/alumnos", {
+    params: campeonatoId ? { campeonato_id: campeonatoId } : {},
+  });
+  return res.data as AlumnoMaestro[];
+}
+
 export async function maestroInscribirAPI(
   campeonatoId: number,
-  data: { competidor: CompetidorInput; modalidades?: string[]; peso?: number | null }
+  data: {
+    /** Con uid se reutiliza la ficha; sin él se crea (primera vez que compite). */
+    competidor_uid?: string | null;
+    competidor: CompetidorInput;
+    modalidades?: string[];
+    peso?: number | null;
+  }
 ) {
   const res = await api.post(`/inscripciones/maestro/campeonato/${campeonatoId}`, data);
-  return res.data as { message: string; inscripcion: InscripcionData };
+  return res.data as {
+    message: string;
+    reutilizada?: boolean;
+    inscripcion: InscripcionData;
+  };
 }
 
 export async function maestroMisInscripcionesAPI(campeonatoId?: number) {

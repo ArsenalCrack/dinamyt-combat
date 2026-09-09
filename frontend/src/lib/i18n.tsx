@@ -1377,6 +1377,20 @@ const es = {
   "maestro.reenvioOk": "Solicitud re-enviada. El administrador la revisará.",
   "maestro.noEditar": "Esta solicitud ya fue enviada y no puede modificarse.",
 
+  // ── Elegir al alumno en vez de teclearlo (F5-bis) ─────────────────
+  // El nombre, la fecha, el género y el cinturón no cambian nunca; el peso sí.
+  // Por eso la ficha se reutiliza y lo único que se escribe es el peso.
+  "maestro.tusAlumnos": "Tus alumnos",
+  "maestro.cargandoAlumnos": "Buscando tus alumnos…",
+  "maestro.buscarAlumno": "Buscar por nombre o documento…",
+  "maestro.sinCoincidencias": "Ningún alumno tuyo coincide con eso.",
+  "maestro.sinAlumnos": "Todavía no tienes alumnos fichados. El primero se registra aquí abajo, y a partir del próximo campeonato solo hay que elegirlo.",
+  "maestro.primeraVez": "Compite por primera vez",
+  "maestro.fichaDeSiempre": "Su ficha de siempre",
+  "maestro.elegirOtro": "Elegir otro",
+  "maestro.yaInscrito": "Ya inscrito",
+  "maestro.soloElPeso": "Sus datos ya vienen de la ficha. Escribe el peso de ESTE campeonato —es lo único que cambia— y corrige lo que haga falta.",
+
   // ── Apartado público de campeonatos ──
   "menu.campeonatos": "Campeonatos",
   "pub.camp.titulo": "Campeonatos",
@@ -2569,6 +2583,16 @@ const en: Record<ClaveTexto, string> = {
   "maestro.reenviando": "Re-sending…",
   "maestro.reenvioOk": "Request re-sent. The administrator will review it.",
   "maestro.noEditar": "This request has already been sent and cannot be modified.",
+  "maestro.tusAlumnos": "Your students",
+  "maestro.cargandoAlumnos": "Looking up your students…",
+  "maestro.buscarAlumno": "Search by name or ID number…",
+  "maestro.sinCoincidencias": "None of your students match that.",
+  "maestro.sinAlumnos": "You have no students on file yet. Register the first one below — from the next championship on you only have to pick them.",
+  "maestro.primeraVez": "Competing for the first time",
+  "maestro.fichaDeSiempre": "Their usual record",
+  "maestro.elegirOtro": "Pick another",
+  "maestro.yaInscrito": "Already registered",
+  "maestro.soloElPeso": "Their details come from their record. Just enter the weight for THIS championship — the only thing that changes — and fix anything else if needed.",
 
   // ── Public championships section ──
   "menu.campeonatos": "Championships",

@@ -3,11 +3,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  maestroAlumnosAPI,
   maestroCampeonatosAPI,
   maestroInscribirAPI,
   maestroMisInscripcionesAPI,
   maestroReenviarAPI,
   misTatamisAPI,
+  type AlumnoMaestro,
   type ClubMaestro,
   type InscripcionData,
   type MaestroCampeonato,
@@ -49,6 +51,14 @@ export default function MaestroPage() {
   const [form, setForm] = useState<CompetidorFormState>(COMPETIDOR_FORM_VACIO);
   const [modalidades, setModalidades] = useState<string[]>(["COMBATE"]);
   const [guardando, setGuardando] = useState(false);
+
+  // Los alumnos que YA tiene fichados. A partir del segundo campeonato se
+  // elige de aquí en vez de rellenar el formulario entero: el nombre, la
+  // fecha, el género, el documento y el cinturón no cambian nunca.
+  const [alumnos, setAlumnos] = useState<AlumnoMaestro[]>([]);
+  const [alumnoUid, setAlumnoUid] = useState<string | null>(null);
+  const [buscaAlumno, setBuscaAlumno] = useState("");
+  const [cargandoAlumnos, setCargandoAlumnos] = useState(false);
 
   // Re-envío de inscripción rechazada
   const [reenvioId, setReenvioId] = useState<number | null>(null);
@@ -102,12 +112,45 @@ export default function MaestroPage() {
     aviso(texto, tipo);
   }
 
-  function abrirForm(campId: number) {
+  async function abrirForm(campId: number) {
     setCampSel(campId);
     // Arranca en el club principal: con un solo dojang es el único, y con
     // varios es el que el desplegable enseña ya elegido.
     setForm({ ...COMPETIDOR_FORM_VACIO, club });
     setModalidades(["COMBATE"]);
+    setAlumnoUid(null);
+    setBuscaAlumno("");
+    setAlumnos([]);
+    setCargandoAlumnos(true);
+    try {
+      // Con el campeonato: cada alumno dice si ya está inscrito ahí, para no
+      // ofrecerlo dos veces.
+      setAlumnos(await maestroAlumnosAPI(campId));
+    } catch {
+      // Sin lista se sigue pudiendo teclear, que es como funcionaba antes.
+    } finally {
+      setCargandoAlumnos(false);
+    }
+  }
+
+  /** Elegir a un alumno ya fichado: su ficha rellena el formulario. */
+  function elegirAlumno(a: AlumnoMaestro) {
+    setAlumnoUid(a.uid);
+    // El club guardado se traduce al nombre TAL Y COMO lo tiene el maestro:
+    // el desplegable ofrece esos y solo esos (ver `clubesPropios`).
+    const suyo = nombresClubes.find(
+      (c) => c.toUpperCase() === (a.club || "").toUpperCase()
+    );
+    // Y el peso se deja EN BLANCO a propósito: es lo único de la ficha que
+    // cambia de un campeonato a otro, y el del año pasado engañaría.
+    setForm({ ...competidorToForm(a), peso: "", club: suyo || club });
+  }
+
+  /** Volver al formulario en blanco: el que compite por primera vez. */
+  function nuevoAlumno() {
+    setAlumnoUid(null);
+    setBuscaAlumno("");
+    setForm({ ...COMPETIDOR_FORM_VACIO, club });
   }
 
   function toggleModalidad(m: string) {
@@ -123,6 +166,9 @@ export default function MaestroPage() {
     setGuardando(true);
     try {
       await maestroInscribirAPI(campId, {
+        // Con uid se reutiliza la ficha; sin él se crea, que es como se da de
+        // alta a quien compite por primera vez.
+        competidor_uid: alumnoUid,
         competidor: formToPayload(form),
         modalidades,
       });
@@ -194,6 +240,96 @@ export default function MaestroPage() {
       </span>
     );
   };
+
+  /**
+   * Elegir al alumno en vez de teclearlo.
+   *
+   * Es la mitad visible del arreglo: hasta ahora el formulario arrancaba
+   * siempre en blanco, así que el nombre, la fecha de nacimiento, el género,
+   * el documento y el cinturón —que no cambian nunca— costaban exactamente lo
+   * mismo de escribir que el peso, que sí cambia. Multiplicado por cuarenta
+   * alumnos y por cada campeonato.
+   */
+  function selectorAlumnos() {
+    if (cargandoAlumnos) {
+      return <Cargando mensaje={t("maestro.cargandoAlumnos")} encajado />;
+    }
+    if (!alumnos.length) {
+      return <div className="alumnos-aviso">{t("maestro.sinAlumnos")}</div>;
+    }
+
+    const elegido = alumnos.find((a) => a.uid === alumnoUid) || null;
+    if (elegido) {
+      return (
+        <div className="alumno-elegido">
+          <div style={{ minWidth: 0 }}>
+            <div className="microetiqueta">{t("maestro.fichaDeSiempre")}</div>
+            <div style={{ fontWeight: 700, overflowWrap: "anywhere" }}>
+              {elegido.nombre_completo}
+            </div>
+            <div className="alumnos-datos">
+              {[elegido.documento, elegido.cinturon, elegido.club]
+                .filter(Boolean).join(" · ")}
+            </div>
+          </div>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={nuevoAlumno}>
+            {t("maestro.elegirOtro")}
+          </button>
+        </div>
+      );
+    }
+
+    const busca = buscaAlumno.trim().toUpperCase();
+    const filtrados = busca
+      ? alumnos.filter(
+          (a) =>
+            (a.nombre_completo || "").toUpperCase().includes(busca) ||
+            (a.documento || "").includes(busca)
+        )
+      : alumnos;
+
+    return (
+      <div className="alumnos-lista">
+        <div className="microetiqueta">{t("maestro.tusAlumnos")}</div>
+        <input
+          className="input"
+          value={buscaAlumno}
+          onChange={(e) => setBuscaAlumno(e.target.value)}
+          placeholder={t("maestro.buscarAlumno")}
+        />
+        <div className="alumnos-scroll">
+          {filtrados.length === 0 ? (
+            <p className="muted" style={{ margin: 0, padding: "6px 2px", fontSize: "0.85rem" }}>
+              {t("maestro.sinCoincidencias")}
+            </p>
+          ) : (
+            filtrados.map((a) => (
+              <button
+                key={a.uid}
+                type="button"
+                className="alumnos-fila"
+                /* Ya inscrito: la inscripción es única por (campeonato,
+                   competidor), así que ofrecerlo sería ofrecer un error. */
+                disabled={a.inscrito}
+                onClick={() => elegirAlumno(a)}
+              >
+                <span style={{ fontWeight: 700, overflowWrap: "anywhere" }}>
+                  {a.nombre_completo}
+                </span>
+                <span className="alumnos-datos">
+                  {[a.documento, a.cinturon].filter(Boolean).join(" · ")}
+                </span>
+                {a.inscrito && (
+                  <span className="badge badge-gray">{t("maestro.yaInscrito")}</span>
+                )}
+              </button>
+            ))
+          )}
+        </div>
+        <div className="alumnos-datos">{t("maestro.primeraVez")} ↓</div>
+      </div>
+    );
+  }
 
   if (!user) return null;
 
@@ -314,7 +450,7 @@ export default function MaestroPage() {
                   {c.puede_inscribir ? (
                     <button className="btn btn-primary btn-sm"
                       disabled={!club}
-                      onClick={() => (campSel === c.id ? setCampSel(null) : abrirForm(c.id))}>
+                      onClick={() => { if (campSel === c.id) setCampSel(null); else void abrirForm(c.id); }}>
                       {t("maestro.inscribirAlumno")}
                     </button>
                   ) : (
@@ -333,6 +469,12 @@ export default function MaestroPage() {
                   <form onSubmit={(e) => enviar(e, c.id)} className="card animate-slide"
                     style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 12, borderColor: "var(--gold-border)" }}>
                     {infoOrigen(form.club)}
+                    {selectorAlumnos()}
+                    {alumnoUid && (
+                      <p className="alumnos-aviso" style={{ margin: 0 }}>
+                        {t("maestro.soloElPeso")}
+                      </p>
+                    )}
                     <CompetidorFormFields value={form} onChange={setForm} clubesPropios={nombresClubes} />
                     <div>
                       <div className="microetiqueta" style={{ marginBottom: 6 }}>
@@ -493,6 +635,45 @@ export default function MaestroPage() {
           </div>
         </>
       )}
+
+      <style>{`
+        /* ── Elegir alumno (F5-bis) ─────────────────────────────────────
+           Clases propias, sin tocar nada compartido: lo que no está capado
+           gana a «@layer components» y un retoque aquí se llevaría por
+           delante botones de otras pantallas. */
+        .alumnos-lista { display: flex; flex-direction: column; gap: 8px; }
+        .alumnos-scroll {
+          display: flex; flex-direction: column; gap: 6px;
+          max-height: 220px; overflow-y: auto;
+          padding: 4px; border: 1px solid var(--border);
+          border-radius: var(--radius-sm); background: var(--bg-elevated);
+        }
+        .alumnos-fila {
+          display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+          width: 100%; text-align: left; cursor: pointer;
+          padding: 8px 10px; border-radius: var(--radius-sm);
+          border: 1px solid var(--border); background: var(--bg);
+          color: var(--text); font: inherit;
+        }
+        .alumnos-fila:hover:not(:disabled) {
+          border-color: var(--gold-border); background: var(--gold-bg);
+        }
+        .alumnos-fila:disabled { opacity: 0.55; cursor: not-allowed; }
+        .alumnos-datos {
+          font-size: 0.82rem; color: var(--text-muted); overflow-wrap: anywhere;
+        }
+        .alumno-elegido {
+          display: flex; align-items: center; justify-content: space-between;
+          gap: 10px; flex-wrap: wrap;
+          padding: 10px 12px; border-radius: var(--radius-sm);
+          border: 1px solid var(--gold-border); background: var(--gold-bg);
+        }
+        .alumnos-aviso {
+          font-size: 0.85rem; color: var(--text-muted);
+          padding: 8px 12px; border-radius: var(--radius-sm);
+          background: var(--bg-elevated); border: 1px solid var(--border);
+        }
+      `}</style>
     </div>
   );
 }
