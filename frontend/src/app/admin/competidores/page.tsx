@@ -147,13 +147,13 @@ export default function CompetidoresPage() {
   return (
     <div className="competidores-page">
       <div style={{ marginBottom: 18 }}>
-        <button className="btn btn-sm btn-ghost" onClick={() => router.push("/admin")}
+        <button className="btn btn-outline btn-sm" onClick={() => router.push("/admin")}
           style={{ marginBottom: 8 }}>
           {t("comp.volverPanel")}
         </button>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
           <div>
-            <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>{t("comp.titulo")}</h1>
+            <h1 className="display" style={{ fontSize: "1.5rem" }}>{t("comp.titulo")}</h1>
             <p className="text-muted" style={{ fontSize: "0.92rem" }}>
               {t("comp.desc")}
             </p>

@@ -183,11 +183,11 @@ export default function GenerarLlavesPage() {
   return (
     <div className="genllaves-page">
       <div style={{ marginBottom: 16 }}>
-        <button className="btn btn-sm btn-ghost" onClick={() => router.push(`/admin/campeonato/${campId}`)}
+        <button className="btn btn-outline btn-sm" onClick={() => router.push(`/admin/campeonato/${campId}`)}
           style={{ marginBottom: 8 }}>
           {t("ins.volver")}
         </button>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 800, overflowWrap: "anywhere" }}>
+        <h1 className="display" style={{ fontSize: "1.5rem", overflowWrap: "anywhere" }}>
           {t("gen.titulo")} {campNombre || "..."}
         </h1>
         <p className="text-muted" style={{ fontSize: "0.92rem" }}>

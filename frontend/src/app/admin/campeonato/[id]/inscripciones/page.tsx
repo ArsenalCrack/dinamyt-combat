@@ -433,13 +433,13 @@ export default function InscripcionesPage() {
   return (
     <div className="inscripciones-page">
       <div style={{ marginBottom: 18 }}>
-        <button className="btn btn-sm btn-ghost" onClick={() => router.push(`/admin/campeonato/${campId}`)}
+        <button className="btn btn-outline btn-sm" onClick={() => router.push(`/admin/campeonato/${campId}`)}
           style={{ marginBottom: 8 }}>
           {t("ins.volver")}
         </button>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, flexWrap: "wrap" }}>
           <div>
-            <h1 style={{ fontSize: "1.5rem", fontWeight: 800, overflowWrap: "anywhere" }}>
+            <h1 className="display" style={{ fontSize: "1.5rem", overflowWrap: "anywhere" }}>
               {t("camp.inscripciones.boton")} — {campNombre || "..."}
             </h1>
             <p className="text-muted" style={{ fontSize: "0.92rem" }}>

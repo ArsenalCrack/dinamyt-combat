@@ -166,6 +166,11 @@ const es = {
   // salió: en el modo local no hay ningún DINAMYT que cerrar.
   "login.sesionCerrada": "Cerraste tu sesión.",
   "login.sesionCerradaDinamyt": "Cerraste tu sesión de Campeonatos y la de DINAMYT.",
+  // ── El pie de página ──
+  "pie.privacidad": "Privacidad",
+  "pie.ayuda": "¿Necesitas ayuda?",
+  "pie.derechos": "Todos los derechos reservados.",
+  "pie.nota": "DINAMYT Campeonatos es una obra protegida por el derecho de autor.",
   "login.footer": "DINAMYT v4.0 · Global Hapkido Association · Competencias en tiempo real",
 
   // Panel del juez
@@ -1397,6 +1402,10 @@ const en: Record<ClaveTexto, string> = {
   "login.errorConexion": "Could not connect to the server",
   "login.sesionCerrada": "You have been signed out.",
   "login.sesionCerradaDinamyt": "You have been signed out of Championships and DINAMYT.",
+  "pie.privacidad": "Privacy",
+  "pie.ayuda": "Need help?",
+  "pie.derechos": "All rights reserved.",
+  "pie.nota": "DINAMYT Championships is a work protected by copyright.",
   "login.footer": "DINAMYT v4.0 · Global Hapkido Association · Real-time competitions",
 
   "juez.bienvenido": "Welcome,",
@@ -2492,7 +2501,7 @@ const en: Record<ClaveTexto, string> = {
   "maestro.noEditar": "This request has already been sent and cannot be modified.",
 
   // ── Public championships section ──
-  "menu.campeonatos": "🥋 Championships",
+  "menu.campeonatos": "Championships",
   "pub.camp.titulo": "Championships",
   "pub.camp.sub": "Public information · Register through your master",
   "pub.camp.cargando": "Loading championships…",

@@ -516,7 +516,202 @@ input[type="password"]::-ms-clear { display: none; }
     font-variant-numeric: tabular-nums;
   }
 
-  /* ── LA MICRO-ETIQUETA: el nombre de un dato ──────────────────────────
+    /* ── EL GLOBO DE TEMA E IDIOMA (`.pubctl*`) ────────────────────────────
+  
+     Un botón 🌐 discreto abajo a la derecha que despliega el modo y el idioma.
+     
+     ── Para qué, y dónde ──
+     
+     Para las pantallas SIN menú: la portada del portal, el login, la selección
+     de tatami, el marcador público. El menú de arriba solo existe con sesión
+     abierta, así que sin esto quien todavía no ha entrado —o quien mira el
+     marcador desde la grada— no tenía forma de poner el modo claro ni de
+     cambiar de idioma. Es el mismo caso en las cuatro webs.
+     
+     ── Por qué está aquí y no en cada app ──
+     
+     Porque estaba solo en Campeonatos, escrito dentro de un `<style>` de su
+     propio componente, y el portal lo necesitaba igual. Copiarlo habría sido la
+     tercera copia de algo que ya estaba decidido. */
+  .pubctl {
+    position: fixed;
+    right: 14px;
+    bottom: 52px;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .pubctl-toggle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text);
+    font-size: 1.1rem;
+    cursor: pointer;
+    opacity: 0.65;
+    transition: var(--transition, all 0.15s ease);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pubctl-toggle:hover,
+  .pubctl-toggle:focus-visible {
+    opacity: 1;
+    border-color: var(--border-strong);
+    outline: none;
+  }
+  .pubctl-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+    min-width: 170px;
+  }
+  .pubctl-item {
+    padding: 8px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text);
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-align: left;
+    transition: var(--transition, all 0.15s ease);
+  }
+  .pubctl-item:hover,
+  .pubctl-item:focus-visible {
+    background: var(--bg-elevated);
+    outline: none;
+  }
+  .pubctl-langs { display: flex; gap: 6px; }
+  .pubctl-lang {
+    flex: 1;
+    padding: 6px 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    color: var(--text-muted);
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition, all 0.15s ease);
+  }
+  .pubctl-lang:hover,
+  .pubctl-lang:focus-visible {
+    color: var(--text);
+    background: var(--bg-elevated);
+    outline: none;
+  }
+  .pubctl-lang[data-activo='true'] {
+    background: var(--gold-bg, var(--gold-soft));
+    border-color: var(--gold-dim);
+    color: var(--gold);
+    font-weight: 800;
+  }
+
+  /* ── EL PIE, el mismo en las cuatro webs ──────────────────────────────
+  
+     Dos franjas: arriba quién es esto y dónde pedir ayuda; abajo, de quién es
+     y qué versión está corriendo.
+     
+     ── Por qué vive aquí y no en cada app ──
+     
+     Porque estaba en el `globals.css` de Membresías y en ninguna otra parte, y
+     por eso Campeonatos no tenía pie: copiarlo habría sido la quinta copia de
+     algo que ya se había decidido una vez. El portal lo pinta con utilidades
+     de Tailwind —no usa estas clases— y eso es lo que hay; las tres que NO
+     tienen Tailwind (Membresías, Campeonatos y Academy) comparten esto.
+     
+     ── El reparto, y por qué cambia en el celular ──
+     
+     En escritorio la franja de arriba va a los extremos. En el celular no
+     caben en una fila, y `flex-wrap` los dejaba pegados a la izquierda con la
+     dirección de correo colgando fuera de la pantalla — así que se convierte
+     en columna centrada, que es la única forma de que una lista de enlaces de
+     anchos distintos no parezca rota. */
+  .pie {
+    max-width: 1180px;
+    margin: 3rem auto 0;
+    padding: 1.25rem 1.5rem 2rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--text-muted);
+  }
+  .pie-fila {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.9rem;
+    text-align: center;
+  }
+  .pie-marca {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .pie-marca img { border-radius: 0.25rem; }
+  .pie-enlaces {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.7rem;
+  }
+  .pie-enlaces a:hover { color: var(--text); }
+  .pie-soporte {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.1rem 0.4rem;
+    max-width: 100%;
+  }
+  .pie-correo { color: var(--gold); word-break: break-all; }
+  @media (min-width: 640px) {
+    .pie-fila {
+      flex-direction: row;
+      justify-content: space-between;
+      text-align: left;
+      gap: 1rem;
+    }
+    .pie-enlaces {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.5rem 1.1rem;
+    }
+  }
+  .pie-legal {
+    margin-top: 1.1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    font-size: 0.72rem;
+  }
+  .pie-legal strong { color: var(--text); font-weight: 700; }
+  .pie-legal-nota { margin-top: 0.2rem; opacity: 0.75; }
+  /* La versión que está corriendo. Al final del todo: no es algo que nadie
+     venga a buscar, es algo que hace falta tener a mano el día que alguien
+     dice «me sigue pasando». */
+  .pie-version {
+    margin-top: 0.45rem;
+    font-family: var(--font-mono), ui-monospace, monospace;
+    font-size: 0.7rem;
+    opacity: 0.75;
+  }
+
+/* ── LA MICRO-ETIQUETA: el nombre de un dato ──────────────────────────
   
      Lo que va ENCIMA de una cifra o de un valor y dice qué es: «Inscritos»
      sobre el 128, «Sede» sobre «Coliseo El Salitre», el nombre de una

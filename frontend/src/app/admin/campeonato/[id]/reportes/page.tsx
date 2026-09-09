@@ -338,11 +338,11 @@ export default function ReportesCampeonatoPage() {
       {/* Header */}
       <div className="reportes-header">
         <div>
-          <button className="btn btn-sm btn-ghost" onClick={() => router.push(`/admin/campeonato/${campId}`)}
+          <button className="btn btn-outline btn-sm" onClick={() => router.push(`/admin/campeonato/${campId}`)}
             style={{ marginBottom: 8 }}>
             {t("ins.volver")}
           </button>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>
+          <h1 className="display" style={{ fontSize: "1.5rem" }}>
             {t("rep.titulo")} {campNombre || "..."}
           </h1>
           <p className="text-muted" style={{ fontSize: "0.92rem" }}>
@@ -582,7 +582,7 @@ export default function ReportesCampeonatoPage() {
               style={{ background: "rgba(255,68,68,0.10)", borderColor: "rgba(255,68,68,0.30)", color: "#FF6666" }}>
               {exporting === "seleccion-pdf" ? t("rep.generando") : t("rep.descSelPdf")}
             </button>
-            <button className="btn btn-sm btn-ghost" onClick={() => setSeleccion(new Set())}>
+            <button className="btn btn-outline btn-sm" onClick={() => setSeleccion(new Set())}>
               {t("rep.limpiarSel")}
             </button>
           </div>
@@ -705,7 +705,7 @@ export default function ReportesCampeonatoPage() {
                         {c.tipo === "figuras" && (c.ranking?.length || 0) > 0 && (
                           <button
                             type="button"
-                            className="btn btn-sm btn-ghost"
+                            className="btn btn-outline btn-sm"
                             onClick={() => togglePodio(c.id)}
                             style={{ padding: "2px 8px", minHeight: 26, fontSize: "0.8rem" }}
                           >
@@ -715,7 +715,7 @@ export default function ReportesCampeonatoPage() {
                         {c.tipo !== "figuras" && (c.podio_llave?.length || 0) > 0 && (
                           <button
                             type="button"
-                            className="btn btn-sm btn-ghost"
+                            className="btn btn-outline btn-sm"
                             onClick={() => togglePodio(c.id)}
                             style={{ padding: "2px 8px", minHeight: 26, fontSize: "0.8rem" }}
                           >

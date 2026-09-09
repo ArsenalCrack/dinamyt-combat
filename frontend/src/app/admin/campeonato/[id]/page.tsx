@@ -335,7 +335,7 @@ export default function CampeonatoDetailPage() {
       {/* Header */}
       <div className="campeonato-admin-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12, marginBottom: 24 }}>
         <div style={{ minWidth: 0 }}>
-          <button className="btn btn-sm btn-ghost" onClick={() => router.push("/admin")}
+          <button className="btn btn-outline btn-sm" onClick={() => router.push("/admin")}
             style={{ marginBottom: 8, fontSize: "0.875rem" }}>{t("comun.volver")}</button>
           <h1 style={{ fontWeight: 700, fontSize: "clamp(1.6rem, 3vw, 2.1rem)", overflowWrap: "anywhere" }}>{camp.nombre}</h1>
           <p style={{ color: "var(--text-muted)", fontSize: "0.95rem" }}>

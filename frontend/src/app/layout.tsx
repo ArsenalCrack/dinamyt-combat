@@ -4,6 +4,7 @@ import { AplicarApariencia } from "@/components/AplicarApariencia";
 import AppMenu from "@/components/AppMenu";
 import PorteroMantenimiento from "@/components/PorteroMantenimiento";
 import Toaster from "@/components/Toaster";
+import PieDePagina from "@/components/PieDePagina";
 import { I18nProvider } from "@/lib/i18n";
 import { SCRIPT_ANTI_PARPADEO } from "@/lib/theme";
 import "./globals.css";
@@ -45,7 +46,15 @@ const mono = IBM_Plex_Mono({
 const fontClasses = `${display.variable} ${cuerpo.variable} ${mono.variable}`;
 
 export const metadata: Metadata = {
-  title: "DINAMYT - Sistema de Competencias Hapkido",
+  /**
+   * ── El nombre de la pestaña, igual en las cuatro webs ───────────────────
+   *
+   * **dónde estoy · de quién es**, corto y con lo que identifica al principio.
+   * Con tres pestañas del ecosistema abiertas —que es como se usa esto— un
+   * título largo se recorta justo donde empezaba a diferenciarse de los otros.
+   * Esta forma ya era la de Membresías; ahora es la de las cuatro.
+   */
+  title: "Campeonatos · DINAMYT",
   description: "Sistema profesional de gestion y puntuacion de competencias de Hapkido en tiempo real. Combate, Figuras y mas.",
 };
 
@@ -103,6 +112,12 @@ export default function RootLayout({
           <PorteroMantenimiento>
             <AppMenu />
             {children}
+            {/* El pie va DENTRO del portero y después del contenido: con el
+                mantenimiento puesto tampoco hay a dónde ir, y la dirección de
+                soporte —que es lo único útil en ese momento— la enseña el
+                propio portero. Se esconde solo en el tatami y en la pantalla
+                pública; ver el componente. */}
+            <PieDePagina />
           </PorteroMantenimiento>
           {/* Avisos flotantes de "guardado" / "no se pudo". Fuera del portero
               y al final: se pinta en un portal sobre el <body>, así ningún

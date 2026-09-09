@@ -84,10 +84,10 @@ export default function ImportarResultadosPage() {
   return (
     <div style={{ maxWidth: 760, margin: "0 auto", padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
       <div>
-        <button className="btn btn-sm btn-ghost" onClick={() => router.push("/admin")} style={{ marginBottom: 8 }}>
+        <button className="btn btn-outline btn-sm" onClick={() => router.push("/admin")} style={{ marginBottom: 8 }}>
           ← Volver
         </button>
-        <h1 style={{ fontSize: "1.5rem", fontWeight: 800 }}>Importar resultados</h1>
+        <h1 className="display" style={{ fontSize: "1.5rem" }}>Importar resultados</h1>
         <p className="text-muted" style={{ fontSize: "0.92rem" }}>
           Sube el archivo <code>.json</code> exportado desde el software local (Reportes → “Exportar
           resultados”) para publicarlo en la página pública de resultados.
@@ -127,7 +127,7 @@ export default function ImportarResultadosPage() {
       <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div className="card-title" style={{ marginBottom: 0 }}>Publicados actualmente</div>
-          <a className="btn btn-sm btn-ghost" href="/resultados" target="_blank" rel="noreferrer">
+          <a className="btn btn-outline btn-sm" href="/resultados" target="_blank" rel="noreferrer">
             Ver página pública ↗
           </a>
         </div>
@@ -154,7 +154,7 @@ export default function ImportarResultadosPage() {
                   </div>
                 </div>
                 <button
-                  className="btn btn-sm btn-ghost"
+                  className="btn btn-outline btn-sm"
                   onClick={() => handleEliminar(String(p.id), p.nombre)}
                   style={{ color: "#ff9a9a" }}
                 >
