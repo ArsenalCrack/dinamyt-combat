@@ -1,7 +1,14 @@
 # PLAN CAMPEONATOS — de consola de jueces a aplicación del ecosistema
 
-> Estado: **propuesta**, escrita el 9 de septiembre de 2026 y revisada el mismo
-> día. Nada de lo que hay aquí está implementado todavía.
+> Estado: **en marcha**. Escrito el 9 de septiembre de 2026, revisado el mismo
+> día, y empezado esa misma tarde por el orden de la PARTE 4:
+>
+> | | | |
+> |---|---|---|
+> | **F5-bis** | ✅ **hecha** | La ficha del alumno se reutiliza. Backend, pantalla del maestro y las pruebas que fijaban lo roto, dadas la vuelta |
+> | **F6** | 🟡 **a medias** | El paquete ya lleva `eco_sub`. `roles`, `org_id` y la identidad del competidor **no tienen todavía dónde vivir**: las crean F2, F4 y F3. Ver la nota dentro de F6 |
+>
+> El resto sigue sin empezar.
 >
 > **⏱ Fecha límite: el 8 de octubre de 2026.** Hay campeonato el 9, 10 y 11 y
 > **no hay «después»** (decisión D6): lo que no esté dentro para entonces, no
@@ -629,10 +636,38 @@ organizaciones con más de un admin. Si sale largo, F0.2 se decide otra vez.
 
 ---
 
-## F5-bis · **LA FICHA DEL ALUMNO SE REUTILIZA** — y hoy ni siquiera se puede
+## F5-bis · **LA FICHA DEL ALUMNO SE REUTILIZA** — ✅ hecha
 
-*(añadido el 9 de septiembre de 2026. **Es la fase más urgente de todo el plan**
-y no estaba en la primera versión.)*
+*(añadido el 9 de septiembre de 2026 —**la fase más urgente de todo el plan**, y
+no estaba en la primera versión— e implementado ese mismo día.)*
+
+> **Hecho.** Los cinco puntos de «Qué se hace», y dos cosas que salieron al
+> hacerlo:
+>
+> - `GET /api/inscripciones/maestro/alumnos` (`api/competidores.py`), con el
+>   `uid` de cada ficha y, si se le pasa `campeonato_id`, si ya está inscrito
+>   ahí. Los alumnos son los competidores de su workspace apuntados a uno de
+>   sus dojangs (`_alumnos_del_maestro`).
+> - `maestro_inscribir` acepta `competidor_uid`, y un documento ya conocido
+>   **de su propio workspace** deja de ser un 400 y pasa a ser esa persona
+>   (`_ficha_del_alumno`). La ficha de otro administrador sigue sin tocarse:
+>   el aislamiento no se movió, y hay prueba de ello.
+> - En la pantalla del maestro se **elige** al alumno de una lista con
+>   buscador; los ya inscritos salen apagados. El peso se deja en blanco a
+>   propósito: es lo único que cambia de un campeonato a otro.
+> - **Lo que apareció al hacerlo (1):** con la ficha compartida, la unicidad
+>   `(campeonato, competidor)` sí se puede tocar —antes era inalcanzable
+>   porque cada inscripción estrenaba ficha—. Sin comprobarlo, inscribir dos
+>   veces en el mismo campeonato habría sido un **500**. Ahora es un 409 con
+>   una frase.
+> - **Lo que apareció al hacerlo (2):** `maestro_reenviar` escribía el peso en
+>   la FICHA. Con la ficha compartida eso es la contaminación que el punto 5
+>   viene a evitar, así que también manda el peso a la inscripción.
+>
+> `backend/tests/test_alumno_en_dos_campeonatos.py` pasó de fijar el fallo a
+> fijar el arreglo: las dos primeras pruebas cambiaron de signo, como estaba
+> previsto, y hay cuatro más (el peso por inscripción, el 409, y las dos del
+> aislamiento).
 
 ### Esto no es una mejora: es un fallo, y muerde en octubre
 
@@ -696,9 +731,34 @@ cambia. Multiplicado por cuarenta alumnos y por cada campeonato.
 
 ---
 
-## F6 · Los paquetes llevan la identidad
+## F6 · Los paquetes llevan la identidad — 🟡 a medias
 
 **Dónde:** `dinamyt-combat/backend/app/api/sincronizacion.py`.
+
+> **Hecho: la identidad del USUARIO.** `_usuario_a_dict` exporta `eco_sub`; el
+> importador empareja por `uid` → `eco_sub` → correo (en ese orden: el correo
+> se cambia en el portal, el `sub` no cambia nunca), **nunca pisa** un enlace
+> que ya esté puesto ni le da a dos filas la misma cuenta, y el informe previo
+> gana su línea de «identidades: N enlazadas · N sin enlazar».
+> `VERSION_PAQUETE` sube a 2 y un paquete de la 1 **se importa igual** —los
+> campos nuevos son opcionales—, que es lo que hace falta el 9 de octubre.
+>
+> **Y el hallazgo, que toca al orden de la PARTE 4.** Los otros tres datos de
+> esta fase **no tienen columna todavía**, y las columnas las crean fases que
+> van DESPUÉS en el orden:
+>
+> | Dato | Dónde tendría que vivir | La crea |
+> |---|---|---|
+> | `usuarios.roles` | Campeonatos | **F2** (nº 6) |
+> | `competidores.eco_sub` / `usuario_uid` | Campeonatos | **F3** (nº 7) |
+> | `org_id` | **no existe en ninguna tabla** (§1.3) | **F4** (nº 8) |
+>
+> O sea que F6 no se puede *terminar* en el puesto nº 2 — pero **sí se puede
+> hacer la parte que importa**, y es justo la que sostiene su lugar en la
+> lista: «cada paquete que se importe sin `eco_sub` deja cuentas sin
+> enlazar». Esa mitad ya está. Lo demás se retoma **dentro de cada fase que
+> crea su columna** (F2, F3 y F4 se llevan cada una su línea del paquete), en
+> vez de esperar a que estén las tres.
 
 Esto es lo que responde a *«acomodar los imports a como trabaja hoy la
 aplicación»*: el formato se escribió antes de que existieran la identidad única,
@@ -909,8 +969,8 @@ Eso da **dos fechas reales**, y son las que ordenan lo de abajo:
 
 | # | Fase | Qué es | Por qué ahí | Bloquea a |
 |---|---|---|---|---|
-| **1** | **F5-bis** | La ficha del alumno se reutiliza | **Lo único ROTO.** Hoy un maestro no puede inscribir a su alumna en el segundo campeonato del año | F3, D5 |
-| **2** | **F6** | Los paquetes llevan `eco_sub`, `roles`, `org_id` | Todo lo que baje de la VPS antes de tenerlo llega sin enlace al ecosistema | F6-bis, F8 |
+| **1** | **F5-bis** ✅ | La ficha del alumno se reutiliza | **Lo único ROTO.** Un maestro no podía inscribir a su alumna en el segundo campeonato del año | F3, D5 |
+| **2** | **F6** 🟡 | Los paquetes llevan `eco_sub`, ~~`roles`, `org_id`~~ | Todo lo que baje de la VPS antes de tenerlo llega sin enlace al ecosistema. `eco_sub` hecho; los otros dos **no tienen columna hasta F2 y F4** y se hacen ahí | F6-bis, F8 |
 | **3** | **F6-bis** | La copia dice de cuándo es + el runbook | Sin esto, el sábado nadie sabe si la copia trae las inscripciones del jueves | — |
 | **4** | **F7** | Encender en local con comprobaciones | Se nota el 9 a las siete de la mañana. **No toca nada de nadie**: se puede hacer en paralelo desde el primer día | — |
 | **5** | **F1** | El pase lleva varios roles (ecosystem) | Empieza el bloque de identidad. **Todo esto, dentro antes del ensayo del ~26 de septiembre** | F2 |
