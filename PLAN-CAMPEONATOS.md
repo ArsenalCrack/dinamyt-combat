@@ -330,24 +330,50 @@ primeros bloques (F1 → F2 → F3), porque cada uno se apoya en el anterior.
 
 ---
 
-## F0 · Antes de escribir una línea
+## F0 · Las decisiones, antes de escribir una línea
 
-**Qué hay que decidir, porque el código no lo puede decidir solo:**
+### Decidido el 9 de septiembre de 2026
 
-1. **¿El competidor entra aunque su club no tenga el plan?**
-   Propuesta: **no**. `app_scopes` sigue mandando y el mensaje `sin_plan` se
-   queda como está. Si el club no paga Campeonatos, sus alumnos ven sus
-   resultados **en el portal**, que es donde ya los ven hoy.
-2. **¿Qué pasa con el admin que ya existe cuando su organización estrena la
-   regla de «uno solo»?** Propuesta: **el más antiguo se queda de admin**, los
-   demás bajan a maestro, y la migración deja un informe con nombres para
-   revisarlo a mano antes de aplicarlo.
-3. **¿La credencial de la máquina local caduca?** Propuesta: **sí, 90 días**, y
-   se renueva desde el panel del admin online. Una llave eterna en un PC que
-   viaja a los gimnasios es una llave perdida.
+**D1 · El panel del alumno es de SOLO MIRAR.** Sus inscripciones y su estado,
+sus resultados y podios, su historial y sus estadísticas. **Inscribir sigue
+siendo cosa del maestro**, como hoy. Es la fase más pequeña que ya cambia el
+producto, y no toca el flujo de inscripciones — que es el único que puede
+romper un campeonato en marcha.
 
-**Entregable:** las tres respuestas escritas aquí mismo. Sin ellas, F4 y F8 se
-implementan dos veces.
+> Si más adelante hace falta, el paso natural es un «quiero competir en esto»
+> que le llegue al maestro como solicitud, para que deje de perseguir a los
+> alumnos por WhatsApp. Una tabla y una pantalla. **No entra en F3.**
+
+**D2 · El portal DA papeles; solo la consola los QUITA.** Es la respuesta al
+conflicto de §1.5-bis, desarrollada en el punto 6 de F1:
+
+| Situación | Qué se hace |
+|---|---|
+| El pase trae un papel que la fila NO tiene | **Se añade** |
+| El pase NO trae uno que la fila SÍ tiene | **Se conserva** |
+| Quitar un papel | **Solo desde la consola de Campeonatos** |
+
+**D3 · Los admins duplicados de hoy no se tocan: primero el informe.** La
+migración de F4 **no cambia a nadie**. Saca la lista de organizaciones con más
+de un admin, con nombres, y la decisión se toma club por club antes de aplicar
+la regla. Nadie pierde la consola por sorpresa — que es la mitad de lo que este
+plan intenta evitar en todas partes.
+
+**D4 · Se empieza por lo del evento.** F7 (encendido local) y F6 (paquetes con
+identidad) **antes de octubre**: las dos se notan ESE fin de semana y ninguna
+toca permisos. Los roles (F1–F2), el panel del alumno (F3) y la organización
+(F4–F5), **después del 11**. Ver la PARTE 4.
+
+### Todavía sin decidir — **no bloquean a F6 ni a F7**
+
+**P1 · ¿El competidor entra aunque su club no tenga el plan de Campeonatos?**
+Propuesta en pie: **no**. `app_scopes` sigue mandando y el mensaje `sin_plan` se
+queda como está; sus resultados se ven en el portal, que es donde ya se ven hoy.
+**Hace falta antes de empezar F3.**
+
+**P2 · ¿Caduca la credencial de la máquina local?** Propuesta en pie: **sí, 90
+días**, renovable desde el panel del admin online. Una llave eterna en un PC que
+viaja a los gimnasios es una llave perdida. **Hace falta antes de empezar F8.**
 
 ---
 
