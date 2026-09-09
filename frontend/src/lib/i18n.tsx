@@ -228,6 +228,12 @@ const es = {
   "login.errorConexion": "Error de conexión con el servidor",
   // Se aterriza aquí viniendo de «Salir». La frase dice de CUÁNTAS sesiones se
   // salió: en el modo local no hay ningún DINAMYT que cerrar.
+  // Las tres puertas que llevan a DINAMYT: aqui no se crea ninguna cuenta
+  // ni se guarda ninguna contrasena que recuperar.
+  "login.olvidada": "¿Olvidaste tu contraseña?",
+  "login.sso": "Entrar con el portal DINAMYT",
+  "login.sinCuenta": "¿No tienes cuenta?",
+  "login.registrate": "Regístrate en DINAMYT",
   "login.sesionCerrada": "Cerraste tu sesión.",
   "login.sesionCerradaDinamyt": "Cerraste tu sesión de Campeonatos y la de DINAMYT.",
   // ── El pie de página ──
@@ -274,7 +280,7 @@ const es = {
   "acceso.entrando": "Entrando a tu tatami…",
 
   // Comunes (botones y estados repetidos en varias pantallas)
-  "comun.cargando": "Cargando...",
+  "comun.cargando": "Cargando…",
   "comun.crear": "Crear",
   "comun.cancelar": "Cancelar",
   "comun.editar": "Editar",
@@ -1456,6 +1462,10 @@ const en: Record<ClaveTexto, string> = {
   "login.entrar": "Sign in",
   "login.verificando": "Verifying…",
   "login.errorConexion": "Could not connect to the server",
+  "login.olvidada": "Forgot your password?",
+  "login.sso": "Sign in with the DINAMYT portal",
+  "login.sinCuenta": "No account yet?",
+  "login.registrate": "Sign up at DINAMYT",
   "login.sesionCerrada": "You have been signed out.",
   "login.sesionCerradaDinamyt": "You have been signed out of Championships and DINAMYT.",
   "pie.privacidad": "Privacy",
@@ -1497,7 +1507,7 @@ const en: Record<ClaveTexto, string> = {
   "acceso.irLogin": "Go to sign in",
   "acceso.entrando": "Entering your tatami…",
 
-  "comun.cargando": "Loading...",
+  "comun.cargando": "Loading…",
   "comun.crear": "Create",
   "comun.cancelar": "Cancel",
   "comun.editar": "Edit",

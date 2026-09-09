@@ -27,6 +27,7 @@ import { useI18n, type ClaveTexto } from "@/lib/i18n";
 import { aviso } from "@/lib/toast";
 import { enMayusculas } from "@/lib/texto";
 import QRCode from "qrcode";
+import { Cargando } from '@/components/Cargando';
 
 interface Tatami {
   id: number;
@@ -326,7 +327,7 @@ export default function CampeonatoDetailPage() {
 
   if (!camp) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
-      <div className="logo animate-fade">{t("comun.cargando")}</div>
+      <Cargando />
     </div>
   );
 

@@ -17,6 +17,7 @@ import {
 import { useConfirmDialog } from "@/components/ConfirmDialog";
 import { useI18n } from "@/lib/i18n";
 import { aviso } from "@/lib/toast";
+import { Cargando } from '@/components/Cargando';
 
 type Paso = "config" | "preview";
 
@@ -171,7 +172,7 @@ export default function GenerarLlavesPage() {
   if (!config) {
     return (
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
-        <div className="logo animate-fade">{t("comun.cargando")}</div>
+        <Cargando />
       </div>
     );
   }

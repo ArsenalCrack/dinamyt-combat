@@ -620,6 +620,69 @@ input[type="password"]::-ms-clear { display: none; }
     font-weight: 800;
   }
 
+  /* ── LA PANTALLA DE CARGA, la misma en las cuatro webs ────────────────
+  
+     ── Lo que había ──
+     
+     Cada pantalla se inventaba la suya. Auditado el 9 de septiembre de 2026,
+     veinticinco sitios y al menos cuatro formas distintas:
+     
+         portal        <p style="color: var(--text-muted)">Cargando…</p>
+         Membresías    <main style="padding: 2rem" class="muted">Cargando…
+         Campeonatos   <div class="logo animate-fade">Cargando…</div>   ← ¡2.5 rem!
+         Campeonatos   <div class="card" style="padding: 30px">Cargando…</div>
+     
+     La de Campeonatos con `.logo` es la que más canta: esa clase es la MARCA
+     escrita, 2.5 rem en la tipografía de titular, así que «Cargando…» aparecía
+     del tamaño de un título de portada. Y ninguna reservaba alto, de modo que
+     el contenido daba un salto al llegar.
+     
+     ── Lo que hace esta ──
+     
+     El escudo latiendo y una línea de texto, centrados, con alto mínimo para
+     que lo que llegue después no empuje la página. El texto lo pone cada
+     pantalla —«Cargando tu perfil…», «Consultando…»— porque decir QUÉ se está
+     esperando es lo único que distingue una espera de un cuelgue; lo que no
+     cambia es la forma.
+     
+     ── Por qué el escudo y no un aro girando ──
+     
+     Porque el aro es de todas partes y el escudo es de aquí: durante los dos
+     segundos que dura, lo que se está mirando sigue siendo DINAMYT. Y porque
+     ya está descargado —lo usan la barra y el pie—, así que no cuesta nada.
+     
+     `prefers-reduced-motion` apaga el latido y deja el escudo quieto: para
+     quien lo pide, una animación que se repite sin fin es justo lo que no debe
+     haber en una pantalla de espera. */
+  .cargando {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+    min-height: 38vh;
+    padding: 2.5rem 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+  }
+  .cargando-marca {
+    width: 40px;
+    height: 40px;
+    opacity: 0.85;
+    animation: cargando-latido 1.6s ease-in-out infinite;
+  }
+  @keyframes cargando-latido {
+    0%, 100% { transform: scale(1); opacity: 0.55; }
+    50% { transform: scale(1.08); opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cargando-marca { animation: none; opacity: 0.85; }
+  }
+  /* Dentro de una tarjeta o de una tabla no hace falta media pantalla: ahí la
+     espera es de un trozo, no de la pantalla entera. */
+  .cargando[data-encajado='true'] { min-height: 0; padding: 1.75rem 1rem; }
+
   /* ── EL PIE, el mismo en las cuatro webs ──────────────────────────────
   
      Dos franjas: arriba quién es esto y dónde pedir ayuda; abajo, de quién es

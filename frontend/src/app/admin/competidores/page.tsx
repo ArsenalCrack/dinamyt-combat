@@ -23,6 +23,7 @@ import ImportarPaquetePanel from "@/components/ImportarPaquetePanel";
 import { useConfirmDialog } from "@/components/ConfirmDialog";
 import { useI18n } from "@/lib/i18n";
 import { aviso } from "@/lib/toast";
+import { Cargando } from '@/components/Cargando';
 
 export default function CompetidoresPage() {
   const router = useRouter();
@@ -254,7 +255,7 @@ export default function CompetidoresPage() {
 
       {/* Lista */}
       {cargando ? (
-        <div className="card" style={{ textAlign: "center", padding: 30, color: "var(--text-dim)" }}>{t("comun.cargando")}</div>
+        <Cargando encajado />
       ) : visibles.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: 30, color: "var(--text-dim)" }}>
           {competidores.length === 0

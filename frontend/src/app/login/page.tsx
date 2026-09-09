@@ -250,6 +250,20 @@ export default function LoginPage() {
     setAvisoSalida(null);
   }
 
+  /**
+   * Entrar por DINAMYT.
+   *
+   * El portal autentica y vuelve aqui con `#token=<jwt>` en el fragmento —que
+   * nunca viaja al servidor—, y este mismo archivo lo canjea arriba. Es el
+   * mismo camino por el que ya se llegaba pulsando «Entrar a Campeonatos» en el
+   * panel del portal; lo que faltaba era poder empezarlo DESDE aqui, para quien
+   * abre la direccion de Campeonatos directamente.
+   */
+  function entrarPorElPortal() {
+    const vuelta = encodeURIComponent(`${window.location.origin}/login`);
+    window.location.href = `${PORTAL_URL}/login?redirect=${vuelta}`;
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     alTeclear();
@@ -387,15 +401,80 @@ export default function LoginPage() {
               </p>
             )}
 
+            {/* ── El mismo boton que el resto de los login del ecosistema ──
+                Era `btn-primary`, que es el VERDE de accion —el de «guardar»,
+                «cobrar», «crear»—. El boton de entrar de Membresias, del portal
+                y de Academy es `btn-cta`: el oro de la marca. Puestos uno al
+                lado del otro no parecian el mismo gesto, y entrar es
+                literalmente el mismo gesto en las cuatro. */}
             <button
               type="submit"
-              className="btn btn-primary"
+              className="btn btn-cta"
               style={{ width: "100%" }}
               disabled={loading}
               id="login-submit"
             >
               {loading ? t("login.verificando") : t("login.entrar")}
             </button>
+
+            {/* ── Lo que le faltaba a esta pantalla ────────────────────────
+                Debajo del boton, Membresias ofrece tres cosas y aqui no habia
+                ninguna: recuperar la contrasena, entrar por el portal y
+                registrarse. Las tres viven en DINAMYT —aqui no se crea ninguna
+                cuenta ni se guarda ninguna contrasena que recuperar—, asi que
+                las tres son enlaces al portal.
+
+                Solo con portal configurado. En el modo LOCAL —el del dia del
+                campeonato, sin internet— no hay portal al que ir y estos tres
+                llevarian a una pantalla que no responde. */}
+            {PORTAL_URL && (
+              <>
+                <p style={{ marginTop: "0.75rem", textAlign: "center", fontSize: "0.85rem" }}>
+                  <a
+                    href={`${PORTAL_URL}/recuperar${email ? `?email=${encodeURIComponent(email)}` : ""}`}
+                    style={{ color: "var(--gold)" }}
+                  >
+                    {t("login.olvidada")}
+                  </a>
+                </p>
+
+                {/* El separador vuelve, y ahora con lo que de verdad va aqui:
+                    la otra forma de ENTRAR. Antes separaba el formulario de tres
+                    botones publicos —ver el tatami, ver campeonatos, ver
+                    resultados—, que no son entrar y por eso se fueron al pie. */}
+                <div className="eco-login-sep" aria-hidden="true">
+                  <span />
+                  <em>{t("login.o")}</em>
+                  <span />
+                </div>
+
+                {/* Boton y no enlace: la direccion de vuelta necesita
+                    `window.location.origin`, que en el servidor no existe. Como
+                    atributo salia vacio y React no corrige atributos al
+                    hidratar, asi que el portal se quedaba sin saber a donde
+                    devolver. Es la misma nota que hay en Membresias. */}
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  style={{ width: "100%" }}
+                  onClick={entrarPorElPortal}
+                  id="login-sso"
+                >
+                  {t("login.sso")}
+                </button>
+
+                {/* Las cuentas nacen en el ecosistema: aqui no hay registro. */}
+                <p
+                  className="muted"
+                  style={{ marginTop: "1rem", textAlign: "center", fontSize: "0.85rem" }}
+                >
+                  {t("login.sinCuenta")}{" "}
+                  <a href={`${PORTAL_URL}/registro`} style={{ color: "var(--gold)" }}>
+                    {t("login.registrate")}
+                  </a>
+                </p>
+              </>
+            )}
 
             {/* ════════════════════════════════════════════════════════════
                 LO PÚBLICO SE FUE DE AQUÍ — y esto es cómo volver a ponerlo
