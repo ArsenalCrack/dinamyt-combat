@@ -100,13 +100,47 @@ mañana —*«¿esto trae las inscripciones del jueves?»*— sin tener que adiv
 
 ## 3) Encender el sistema el día del evento (sin internet)
 
-1. Doble clic en **`2-INICIAR.bat`**. Se abren **dos ventanas negras**
-   (Backend y Frontend) y te muestra las direcciones `http://...:3000` del PC.
-2. Espera ~15 segundos a que el frontend diga *"Ready"*.
-3. En cada dispositivo, abre en el navegador: **`http://IP-DEL-PC:3000`**
-   (usa la IP que reservaste en el router).
+*(reescrito el 10 de septiembre de 2026: antes decía «espera unos 15 segundos»,
+que es adivinar. Ahora el propio arrancador espera y te dice cuándo.)*
 
-Para **apagar**: cierra las dos ventanas negras.
+1. Doble clic en **`INICIAR.bat`**. (`2-INICIAR.bat` sigue funcionando: llama
+   a este.)
+2. **Comprueba antes de arrancar** y, si algo falta, lo dice y **no arranca a
+   medias**: si no está instalado, te manda a `1-INSTALAR.bat`; si un puerto
+   está ocupado, te dice **qué programa** lo tiene.
+3. Se abren **dos ventanas negras** (Backend y Frontend) y el arrancador
+   **espera a que las dos contesten de verdad**. No hay que contar segundos:
+   cuando dice **LISTO**, está listo.
+4. Enseña **la dirección en grande y un código QR**. Los celulares apuntan la
+   cámara al QR y entran: treinta personas no tienen que teclear una IP.
+
+Para **apagar**: doble clic en **`APAGAR.bat`**.
+
+> **¿Por qué no vale con cerrar las ventanas?** Casi siempre vale, pero no
+> siempre: cerrar la ventana mata al `cmd` y **puede dejar al servidor vivo**
+> escuchando en su puerto. El síntoma aparece después y disfrazado — al volver
+> a encender, el puerto está ocupado «por nada», o peor, quedan dos backends
+> escribiendo en la misma base. `APAGAR.bat` para lo que de verdad está
+> escuchando en el 5000 y el 3000.
+
+### Pruébalo la víspera, cuando todavía puedes arreglarlo
+
+Doble clic en `INICIAR.bat` **no** es la única forma de saber si este PC está
+listo. Desde una ventana de comandos, en la carpeta del proyecto:
+
+```
+INICIAR.bat --comprobar
+```
+
+Comprueba lo mismo que arriba y **no arranca nada**. Es la comprobación que
+conviene hacer la noche antes, junto con la bajada del campeonato (§2.1).
+
+### Si algo se tuerce, queda escrito
+
+Cada arranque y cada apagado se anotan en **`local-<fecha>.log`**, en la misma
+carpeta. Lleva lo que vio el arrancador: qué comprobó, cuánto tardó cada
+servicio y qué falló. Lo que escriban el backend y el frontend se queda en SUS
+ventanas — por eso siguen abiertas.
 
 ---
 
@@ -184,6 +218,8 @@ todo aparece "sin conexión" aunque el servidor "esté encendido".
 - No hagas clic ni selecciones texto dentro de esas ventanas. Minimízalas.
 - Si alguien lo hizo (la barra de título dice "Seleccionar"), haz clic en la
   ventana y presiona **ESC**: todo revive al instante, sin reiniciar nada.
+- Y **para apagar no se cierran: se usa `APAGAR.bat`** (ver §3). Cerrarlas
+  puede dejar el servidor vivo por dentro.
 
 ---
 
