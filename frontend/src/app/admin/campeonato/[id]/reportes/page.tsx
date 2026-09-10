@@ -398,13 +398,13 @@ export default function ReportesCampeonatoPage() {
 
           {/* Publicar en la web: exporta un .json para importarlo en el sitio online */}
           <span className="microetiqueta" style={{ marginTop: 6 }}>
-            Publicar en línea
+            {t("rep.publicarTitulo")}
           </span>
           <button
             className="btn btn-sm"
             onClick={handleExportarResultados}
             disabled={exporting !== null || loading}
-            title="Descarga un archivo .json con los resultados para importarlo en el sitio web (software de la red) y publicarlos."
+            title={t("rep.publicarAyuda")}
             style={{
               background: "var(--gold-bg)",
               borderColor: "var(--gold-border)",

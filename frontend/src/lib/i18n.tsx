@@ -1503,6 +1503,8 @@ const es = {
   // Era una de las cuatro pantallas de Campeonatos que no pasaban por aquí, y
   // la usa quien publica los resultados el lunes después del campeonato.
   "imp.titulo": "Importar resultados",
+  "rep.publicarTitulo": "Publicar en línea",
+  "rep.publicarAyuda": "Descarga un archivo .json con los resultados para importarlo en el sitio web (software de la red) y publicarlos.",
   "imp.sub":
     "Sube el archivo .json exportado desde el software local (Reportes → «Exportar resultados») para publicarlo en la página pública de resultados.",
   "imp.subir": "Subir archivo de resultados",
@@ -2766,6 +2768,8 @@ const en: Record<ClaveTexto, string> = {
   "err.quitarSnapshot": "The snapshot could not be removed.",
 
   "imp.titulo": "Import results",
+  "rep.publicarTitulo": "Publish online",
+  "rep.publicarAyuda": "Downloads a .json file with the results so you can import it into the online site and publish them.",
   "imp.sub":
     "Upload the .json file exported from the local software (Reports → «Export results») to publish it on the public results page.",
   "imp.subir": "Upload results file",

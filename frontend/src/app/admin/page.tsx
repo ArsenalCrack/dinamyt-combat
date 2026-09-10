@@ -434,7 +434,7 @@ export default function AdminPage() {
           {t("admin.tab.competidores")}
         </button>
         <button className="btn" onClick={() => router.push("/admin/importar-resultados")}>
-          Importar resultados
+          {t("imp.titulo")}
         </button>
       </div>
 
