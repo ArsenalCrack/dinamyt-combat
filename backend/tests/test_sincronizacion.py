@@ -566,3 +566,115 @@ def test_un_paquete_de_la_version_anterior_se_importa_igual(destino, paquete):
     assert resp.get_json()["identidades"] == {"enlazadas": 0, "omitidas": 0}
     from app.models.usuario import Usuario
     assert Usuario.query.filter(Usuario.rol != "admin").count() == 2
+
+
+# ── De cuándo es la copia que corre aquí (F6-bis) ──────────────────────
+#
+# La bajada ya funcionaba y es re-ejecutable. Lo que faltaba era saber CUÁNDO se
+# hizo: el sábado a las siete de la mañana la pregunta es «¿esta copia trae las
+# inscripciones del jueves?», y esa dejaba de poder contestarse en cuanto se
+# activaba la primera llave.
+
+
+def _ultima_bajada(app, token):
+    return app.test_client().get(
+        "/api/sincronizacion/ultima-bajada",
+        headers={"Authorization": f"Bearer {token}"},
+    ).get_json()
+
+
+def test_sin_haber_importado_no_hay_copia_que_contar(destino):
+    """Una instalación recién montada, que no es un error."""
+    app, token = destino
+    assert _ultima_bajada(app, token) == {"hay": False}
+
+
+def test_la_copia_queda_anotada_al_importar(destino, paquete):
+    app, token = destino
+    assert _importar(app, token, paquete).status_code == 200
+
+    nota = _ultima_bajada(app, token)
+    assert nota["hay"] is True
+    # De cuándo es la copia: la fecha del sobre, no la de ahora.
+    assert nota["exportado_at"] == paquete["exportado_at"]
+    assert nota["origen_admin"] == "admin@test.local"
+    assert nota["campeonato"] == "COPA NACIONAL"
+    assert nota["importado_por"] == "local@test.local"
+    # Los números que alguien cuenta a ojo contra lo que dice la VPS.
+    assert nota["conteos"] == {
+        "usuarios": 2, "competidores": 2, "inscripciones": 2, "llaves": 1,
+    }
+    # Recién traída: no se avisa.
+    assert nota["avisar"] is False
+
+
+def test_la_vista_previa_no_anota_nada(destino, paquete):
+    """Se revierte entera: anotarla diría que se trajo algo que no se trajo."""
+    app, token = destino
+    assert _importar(app, token, paquete, vista_previa=1).status_code == 200
+    assert _ultima_bajada(app, token) == {"hay": False}
+
+
+def test_un_paquete_de_solo_usuarios_no_pisa_la_fecha_de_la_copia(destino, paquete):
+    """Es una bajada, pero no trae el campeonato.
+
+    Si pisara la fecha, la pantalla diría «traída hace diez minutos» de algo
+    que no tiene ninguna inscripción dentro.
+    """
+    app, token = destino
+    assert _importar(app, token, paquete).status_code == 200
+    antes = _ultima_bajada(app, token)
+
+    solo_usuarios = {
+        "formato": "dinamyt-usuarios",
+        "version": 2,
+        "exportado_at": "2026-10-08T10:00:00+00:00",
+        "origen": {"admin": "otro@test.local"},
+        "usuarios": paquete["usuarios"],
+    }
+    assert _importar(app, token, solo_usuarios).status_code == 200
+
+    despues = _ultima_bajada(app, token)
+    assert despues["exportado_at"] == antes["exportado_at"]
+    assert despues["campeonato"] == "COPA NACIONAL"
+
+
+def test_avisa_cuando_la_copia_se_esta_quedando_vieja(destino, paquete):
+    app, token = destino
+    from datetime import datetime, timedelta, timezone
+
+    paquete["exportado_at"] = (
+        datetime.now(timezone.utc) - timedelta(hours=30)
+    ).isoformat()
+    assert _importar(app, token, paquete).status_code == 200
+
+    nota = _ultima_bajada(app, token)
+    assert nota["horas"] >= 24
+    assert nota["ya_se_compite"] is False
+    assert nota["avisar"] is True
+
+
+def test_en_cuanto_se_compite_el_aviso_calla(destino, paquete):
+    """A partir de la primera llave activa, volver a bajar ya no es una opción.
+
+    Es el mismo umbral con el que la importación se frena. Recordarlo entonces
+    solo sería ruido en la peor mañana del año.
+    """
+    app, token = destino
+    from datetime import datetime, timedelta, timezone
+
+    paquete["exportado_at"] = (
+        datetime.now(timezone.utc) - timedelta(hours=30)
+    ).isoformat()
+    assert _importar(app, token, paquete).status_code == 200
+    assert _ultima_bajada(app, token)["avisar"] is True
+
+    from app.models.llave import Llave
+
+    llave = Llave.query.first()
+    llave.estado = "activa"
+    db.session.commit()
+
+    nota = _ultima_bajada(app, token)
+    assert nota["ya_se_compite"] is True
+    assert nota["avisar"] is False

@@ -3,6 +3,7 @@
 import {
   useEffect, useRef, useState, type CSSProperties, type KeyboardEvent,
 } from "react";
+import { useI18n } from "@/lib/i18n";
 
 export interface SelectMenuOption {
   value: string;
@@ -19,7 +20,7 @@ export interface SelectMenuOption {
  * menús de categoría de figuras (Defensa Personal, etc.).
  */
 export default function SelectMenu({
-  value, onChange, options, ariaLabel, placeholder = "— Selecciona —",
+  value, onChange, options, ariaLabel, placeholder,
   style, buttonStyle, centerLabel = false,
 }: {
   value: string;
@@ -34,6 +35,7 @@ export default function SelectMenu({
   /** Centra la etiqueta (usado en el panel del Juez Central). */
   centerLabel?: boolean;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [activo, setActivo] = useState(0);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -112,7 +114,7 @@ export default function SelectMenu({
           className="selectmenu-label"
           style={centerLabel ? { flex: 1, textAlign: "center" } : undefined}
         >
-          {seleccionada ? seleccionada.label : placeholder}
+          {seleccionada ? seleccionada.label : (placeholder ?? t("comun.selecciona"))}
         </span>
         <span className="selectmenu-arrow" aria-hidden="true" data-open={open}>▼</span>
       </button>

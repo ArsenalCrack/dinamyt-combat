@@ -59,6 +59,7 @@ from ..models.tatami import Tatami
 from ..models.usuario import Usuario
 from ..timeutil import iso_utc
 from ..uid import asegurar_uid, nuevo_uid
+from ..ultima_bajada import anotar as anotar_bajada, estado as estado_bajada
 from .scoping import (
     es_dueno_campeonato, filtrar_competidores, require_admin, workspace_owner_id,
 )
@@ -1073,6 +1074,22 @@ def _es_si(valor):
     return str(valor).lower() in ("1", "true", "si", "yes")
 
 
+@sincronizacion_bp.route("/ultima-bajada", methods=["GET"])
+@jwt_required()
+def ultima_bajada():
+    """
+    GET /api/sincronizacion/ultima-bajada
+    De cuándo es la copia que corre en esta instalación, qué trae, y si
+    conviene volver a bajarla (`avisar`). Con `hay: false` mientras nadie
+    haya importado un campeonato — el estado normal de una instalación recién
+    montada, no un error.
+    """
+    admin = require_admin()
+    if not admin:
+        return jsonify({"error": "Solo administradores"}), 403
+    return jsonify(estado_bajada()), 200
+
+
 @sincronizacion_bp.route("/importar", methods=["POST"])
 @jwt_required()
 @limitar(10, 60, nombre="sincronizacion-importar")
@@ -1114,6 +1131,13 @@ def importar():
             db.session.rollback()
         else:
             db.session.commit()
+            # Y queda escrito de cuándo es esta copia. Solo el paquete del
+            # campeonato: ver `anotar` en `app/ultima_bajada.py`.
+            if formato == FORMATO_CAMPEONATO:
+                anotar_bajada(
+                    paquete, formato, admin,
+                    campeonato_nombre=(respuesta.get("campeonato") or {}).get("nombre"),
+                )
 
         respuesta.update({
             "vista_previa": vista_previa,

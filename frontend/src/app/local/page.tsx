@@ -13,6 +13,8 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Logo from "@/components/Logo";
+import { Cargando } from "@/components/Cargando";
+import { useI18n, type ClaveTexto } from "@/lib/i18n";
 
 interface EntradaLocal {
   ts: number;
@@ -23,10 +25,14 @@ interface EntradaLocal {
 
 const ROLES = ["j1", "j2", "j3", "j4"] as const;
 
-const PUNTOS_COMBATE = [
-  { pts: 1, label: "CUERPO" },
-  { pts: 2, label: "GIRO / PAT. CABEZA" },
-  { pts: 3, label: "GIRO CABEZA" },
+// La etiqueta es una CLAVE, no un texto: el boton se dibuja en el idioma de
+// quien lo mira. Lo que se guarda en el registro es el texto ya traducido,
+// porque ese registro se DICTA a la mesa de control y tiene que leerse en el
+// idioma en que se dicta.
+const PUNTOS_COMBATE: { pts: number; clave: ClaveTexto }[] = [
+  { pts: 1, clave: "local.pt.cuerpo" },
+  { pts: 2, clave: "local.pt.giroPatCabeza" },
+  { pts: 3, clave: "local.pt.giroCabeza" },
 ];
 
 function useRegistroLocal(clave: string) {
@@ -64,18 +70,22 @@ function useRegistroLocal(clave: string) {
   };
 }
 
-function horaDe(ts: number) {
-  return new Date(ts).toLocaleTimeString("es-CO", {
+// `es-CO` estaba fijo: la hora del registro salia en formato colombiano aunque
+// la pantalla estuviera en ingles. El reloj es de 24 h en los dos, pero la
+// etiqueta y el orden los pone el idioma.
+function horaDe(ts: number, idioma: string) {
+  return new Date(ts).toLocaleTimeString(idioma === "en" ? "en-GB" : "es-CO", {
     hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
   });
 }
 
 function ListaRegistro({ registro }: { registro: ReturnType<typeof useRegistroLocal> }) {
+  const { t, idioma } = useI18n();
   const [confirmandoBorrado, setConfirmandoBorrado] = useState(false);
   if (registro.entradas.length === 0) {
     return (
       <p style={{ color: "var(--text-dim)", fontSize: "0.88rem", textAlign: "center", padding: "12px 0" }}>
-        Aún no hay anotaciones. Cada punto que marques queda guardado aquí con su hora.
+        {t("local.sinAnotaciones")}
       </p>
     );
   }
@@ -84,7 +94,7 @@ function ListaRegistro({ registro }: { registro: ReturnType<typeof useRegistroLo
       <div style={{ maxHeight: 240, overflowY: "auto", margin: "10px 0", display: "flex", flexDirection: "column", gap: 2 }}>
         {[...registro.entradas].reverse().map((e, i) => (
           <div key={`${e.ts}-${i}`} style={{ fontSize: "0.875rem", color: "var(--text-muted)", display: "flex", gap: 8, padding: "3px 0", borderBottom: "1px solid var(--border)" }}>
-            <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-dim)", flexShrink: 0 }}>{horaDe(e.ts)}</span>
+            <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-dim)", flexShrink: 0 }}>{horaDe(e.ts, idioma)}</span>
             {e.color && (
               <span style={{ color: e.color === "hong" ? "var(--hong-light)" : "var(--chung-light)", fontWeight: 700, flexShrink: 0 }}>
                 {e.color === "hong" ? "HONG" : "CHUNG"}
@@ -95,17 +105,17 @@ function ListaRegistro({ registro }: { registro: ReturnType<typeof useRegistroLo
         ))}
       </div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button className="btn btn-sm" onClick={registro.deshacer}>↩ Deshacer último</button>
+        <button className="btn btn-sm" onClick={registro.deshacer}>{t("local.deshacer")}</button>
         {confirmandoBorrado ? (
           <>
             <button className="btn btn-sm btn-danger" onClick={() => { registro.limpiar(); setConfirmandoBorrado(false); }}>
-              ✓ Sí, borrar todo
+              {t("local.borrarConfirmar")}
             </button>
-            <button className="btn btn-sm" onClick={() => setConfirmandoBorrado(false)}>Cancelar</button>
+            <button className="btn btn-sm" onClick={() => setConfirmandoBorrado(false)}>{t("comun.cancelar")}</button>
           </>
         ) : (
           <button className="btn btn-sm btn-danger" onClick={() => setConfirmandoBorrado(true)}>
-            Borrar registro
+            {t("local.borrar")}
           </button>
         )}
       </div>
@@ -115,6 +125,7 @@ function ListaRegistro({ registro }: { registro: ReturnType<typeof useRegistroLo
 
 // ─── COMBATE LOCAL ────────────────────────────────────────────────────────────
 function CombateLocal({ rol }: { rol: string }) {
+  const { t } = useI18n();
   const registro = useRegistroLocal(`dinamyt_local_combate_${rol}`);
   const totalHong = registro.entradas.filter((e) => e.color === "hong").reduce((s, e) => s + (e.pts || 0), 0);
   const totalChung = registro.entradas.filter((e) => e.color === "chung").reduce((s, e) => s + (e.pts || 0), 0);
@@ -126,12 +137,12 @@ function CombateLocal({ rol }: { rol: string }) {
         <div className="card card-hong" style={{ textAlign: "center", padding: "10px 8px" }}>
           <div style={{ fontSize: "0.75rem", color: "var(--hong-light)", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em" }}>HONG</div>
           <div style={{ fontFamily: "var(--font-display)", fontSize: "2.5rem", color: "var(--hong-vivid)" }}>{totalHong}</div>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>Mis puntos</div>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>{t("local.misPuntos")}</div>
         </div>
         <div className="card card-chung" style={{ textAlign: "center", padding: "10px 8px" }}>
           <div style={{ fontSize: "0.75rem", color: "var(--chung-light)", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.1em" }}>CHUNG</div>
           <div style={{ fontFamily: "var(--font-display)", fontSize: "2.5rem", color: "var(--chung-vivid)" }}>{totalChung}</div>
-          <div style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>Mis puntos</div>
+          <div style={{ fontSize: "0.75rem", color: "var(--text-dim)" }}>{t("local.misPuntos")}</div>
         </div>
       </div>
 
@@ -144,10 +155,10 @@ function CombateLocal({ rol }: { rol: string }) {
               key={`h${p.pts}`}
               className="combat-btn hong"
               style={{ minHeight: 76 }}
-              onClick={() => registro.agregar({ etiqueta: `+${p.pts} ${p.label}`, color: "hong", pts: p.pts })}
+              onClick={() => registro.agregar({ etiqueta: `+${p.pts} ${t(p.clave)}`, color: "hong", pts: p.pts })}
             >
               <span className="pts">+{p.pts}</span>
-              <span className="label">{p.label}</span>
+              <span className="label">{t(p.clave)}</span>
             </button>
           ))}
         </div>
@@ -158,17 +169,17 @@ function CombateLocal({ rol }: { rol: string }) {
               key={`c${p.pts}`}
               className="combat-btn chung"
               style={{ minHeight: 76 }}
-              onClick={() => registro.agregar({ etiqueta: `+${p.pts} ${p.label}`, color: "chung", pts: p.pts })}
+              onClick={() => registro.agregar({ etiqueta: `+${p.pts} ${t(p.clave)}`, color: "chung", pts: p.pts })}
             >
               <span className="pts">+{p.pts}</span>
-              <span className="label">{p.label}</span>
+              <span className="label">{t(p.clave)}</span>
             </button>
           ))}
         </div>
       </div>
 
       <div className="card">
-        <div className="card-title">Registro local ({registro.entradas.length})</div>
+        <div className="card-title">{t("local.registro", { n: registro.entradas.length })}</div>
         <ListaRegistro registro={registro} />
       </div>
     </>
@@ -177,6 +188,7 @@ function CombateLocal({ rol }: { rol: string }) {
 
 // ─── FIGURAS LOCAL ────────────────────────────────────────────────────────────
 function FigurasLocal({ rol }: { rol: string }) {
+  const { t } = useI18n();
   const registro = useRegistroLocal(`dinamyt_local_figuras_${rol}`);
   const [nombre, setNombre] = useState("");
   const [nota, setNota] = useState("");
@@ -184,17 +196,17 @@ function FigurasLocal({ rol }: { rol: string }) {
   return (
     <>
       <div className="card" style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 10 }}>
-        <div className="card-title">Anotar nota local</div>
+        <div className="card-title">{t("local.anotarNota")}</div>
         <input
           className="input"
-          placeholder="Nombre del competidor"
+          placeholder={t("local.nombrePh")}
           value={nombre}
           onChange={(e) => setNombre(e.target.value)}
         />
         <input
           className="input"
           inputMode="numeric"
-          placeholder="Nota (ej: 8.50)"
+          placeholder={t("local.notaPh")}
           value={nota}
           onChange={(e) => {
             // Igual que el input en red: solo números, máximo 3 dígitos y el
@@ -213,12 +225,12 @@ function FigurasLocal({ rol }: { rol: string }) {
             setNota("");
           }}
         >
-          Guardar nota
+          {t("local.guardarNota")}
         </button>
       </div>
 
       <div className="card">
-        <div className="card-title">Registro local ({registro.entradas.length})</div>
+        <div className="card-title">{t("local.registro", { n: registro.entradas.length })}</div>
         <ListaRegistro registro={registro} />
       </div>
     </>
@@ -227,6 +239,7 @@ function FigurasLocal({ rol }: { rol: string }) {
 
 // ─── PÁGINA ───────────────────────────────────────────────────────────────────
 function LocalContent() {
+  const { t } = useI18n();
   const router = useRouter();
   const searchParams = useSearchParams();
   const modoInicial = searchParams.get("modo") === "figuras" ? "figuras" : "combate";
@@ -240,10 +253,10 @@ function LocalContent() {
         display: "flex", justifyContent: "space-between", alignItems: "center",
         marginBottom: 10, paddingBottom: 10, borderBottom: "1px solid var(--border)",
       }}>
-        <button className="btn btn-ghost btn-sm" onClick={() => router.push("/login")}>← Volver</button>
+        <button className="btn btn-ghost btn-sm" onClick={() => router.push("/login")}>{t("local.volver")}</button>
         <Logo fontSize="1.4rem" />
         <span style={{ fontSize: "0.78rem", color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-          Panel local
+          {t("local.panel")}
         </span>
       </div>
 
@@ -253,34 +266,32 @@ function LocalContent() {
         border: "1px solid var(--gold-border)", background: "var(--gold-bg)",
       }}>
         <div style={{ color: "var(--gold)", fontWeight: 800, fontSize: "0.9rem", letterSpacing: "0.05em", marginBottom: 4 }}>
-          🛟 PANEL LOCAL DE CONTINGENCIA — SIN SERVIDOR
+          {t("local.avisoTitulo")}
         </div>
         <p style={{ color: "var(--text-muted)", fontSize: "0.85rem", margin: 0 }}>
-          Todo se guarda solo en este dispositivo (sobrevive recargas) con la
-          hora de cada anotación. Cuando el sistema en red vuelva, dicta el
-          registro a la mesa de control o reingresa los puntos por el flujo normal.
+          {t("local.avisoTexto")}
         </p>
       </div>
 
       {/* Selección de modo y rol */}
       <div className="card" style={{ marginBottom: 12, display: "flex", flexDirection: "column", gap: 10, padding: "12px 14px" }}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ color: "var(--text-muted)", fontSize: "0.85rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em" }}>Modo:</span>
+          <span style={{ color: "var(--text-muted)", fontSize: "0.85rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em" }}>{t("local.modo")}</span>
           <button
             className={`btn btn-sm ${modo === "combate" ? "btn-primary" : ""}`}
             onClick={() => setModo("combate")}
           >
-            🥋 Combate
+            🥋 {t("res.modCombate")}
           </button>
           <button
             className={`btn btn-sm ${modo === "figuras" ? "btn-primary" : ""}`}
             onClick={() => setModo("figuras")}
           >
-            🥇 Figuras
+            🥇 {t("res.modFiguras")}
           </button>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          <span style={{ color: "var(--text-muted)", fontSize: "0.85rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em" }}>Soy:</span>
+          <span style={{ color: "var(--text-muted)", fontSize: "0.85rem", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em" }}>{t("local.soy")}</span>
           {ROLES.map((r) => (
             <button
               key={r}
@@ -292,8 +303,7 @@ function LocalContent() {
           ))}
         </div>
         <p style={{ color: "var(--text-dim)", fontSize: "0.78rem", margin: 0 }}>
-          Cada juez ({ROLES.map((r) => r.toUpperCase()).join(", ")}) tiene su propio
-          registro en este dispositivo, separado por modo.
+          {t("local.porJuez", { roles: ROLES.map((r) => r.toUpperCase()).join(", ") })}
         </p>
       </div>
 
@@ -304,11 +314,7 @@ function LocalContent() {
 
 export default function LocalPage() {
   return (
-    <Suspense fallback={
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100dvh" }}>
-        <Logo stacked className="animate-fade" fontSize="2.4rem" />
-      </div>
-    }>
+    <Suspense fallback={<Cargando />}>
       <LocalContent />
     </Suspense>
   );

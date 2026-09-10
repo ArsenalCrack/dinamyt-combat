@@ -6,9 +6,11 @@
 > | | | |
 > |---|---|---|
 > | **F5-bis** | ✅ **hecha** | La ficha del alumno se reutiliza. Backend, pantalla del maestro y las pruebas que fijaban lo roto, dadas la vuelta |
-> | **F6** | 🟡 **a medias** | El paquete ya lleva `eco_sub`. `roles`, `org_id` y la identidad del competidor **no tienen todavía dónde vivir**: las crean F2, F4 y F3. Ver la nota dentro de F6 |
+> | **F6-a** | ✅ **hecha** | El paquete lleva `eco_sub`. Los otros tres datos de F6 **no tienen todavía dónde vivir**, así que F6 se reparte: ver «F6 se reparte» en la PARTE 4 |
+> | **F6-bis** | ✅ **hecha** | El local dice de cuándo es la copia y avisa cuando envejece. Y el runbook de la víspera, en `INICIAR-LOCAL.md` |
 >
-> El resto sigue sin empezar.
+> Con eso **el carril A está cerrado**. Lo siguiente es F7 (carril B, no toca
+> nada de nadie) o abrir el carril C por F1. El resto sigue sin empezar.
 >
 > **⏱ Fecha límite: el 8 de octubre de 2026.** Hay campeonato el 9, 10 y 11 y
 > **no hay «después»** (decisión D6): lo que no esté dentro para entonces, no
@@ -731,7 +733,7 @@ cambia. Multiplicado por cuarenta alumnos y por cada campeonato.
 
 ---
 
-## F6 · Los paquetes llevan la identidad — 🟡 a medias
+## F6 · Los paquetes llevan la identidad — 🟡 F6-a hecha, el resto repartido
 
 **Dónde:** `dinamyt-combat/backend/app/api/sincronizacion.py`.
 
@@ -756,9 +758,10 @@ cambia. Multiplicado por cuarenta alumnos y por cada campeonato.
 > O sea que F6 no se puede *terminar* en el puesto nº 2 — pero **sí se puede
 > hacer la parte que importa**, y es justo la que sostiene su lugar en la
 > lista: «cada paquete que se importe sin `eco_sub` deja cuentas sin
-> enlazar». Esa mitad ya está. Lo demás se retoma **dentro de cada fase que
-> crea su columna** (F2, F3 y F4 se llevan cada una su línea del paquete), en
-> vez de esperar a que estén las tres.
+> enlazar». Esa mitad ya está, y se llama **F6-a**. Lo demás se retoma
+> **dentro de cada fase que crea su columna** (F2, F3 y F4 se llevan cada una
+> su línea del paquete), en vez de esperar a que estén las tres. El orden de
+> trabajo de la PARTE 4 ya está reescrito así: ver «F6 se reparte».
 
 Esto es lo que responde a *«acomodar los imports a como trabaja hoy la
 aplicación»*: el formato se escribió antes de que existieran la identidad única,
@@ -778,11 +781,41 @@ los roles múltiples y la organización, y hoy los deja fuera.
 
 ---
 
-## F6-bis · Bajarse la VPS al PC del evento — **ya funciona; lo que falta es saber cuándo se hizo**
+## F6-bis · Bajarse la VPS al PC del evento — ✅ hecha
 
 *(añadido el 9 de septiembre de 2026, tras la pregunta de si esto estaba en el
-plan. **No estaba, y hacía falta que estuviera** — aunque no por lo que
-parecía.)*
+plan —**no estaba, y hacía falta que estuviera**, aunque no por lo que
+parecía— e implementado ese mismo día.)*
+
+> **Hecho.** Los tres puntos de «La mala: nadie sabe de cuándo es la copia»:
+>
+> - **`app/ultima_bajada.py`** guarda en `ajustes` de cuándo es la copia, de
+>   dónde vino y qué trae, y `GET /api/sincronizacion/ultima-bajada` lo
+>   devuelve con la edad ya calculada. Como el modo mantenimiento: es un dato
+>   de la instalación, no de un workspace, y **leerlo no revienta nunca**.
+> - **La línea en `/admin`** (`components/UltimaBajada.tsx`), en dorado cuando
+>   la copia pasa de un día y todavía no se compite.
+> - **El runbook**, en `INICIAR-LOCAL.md` §2.1 — el paso que faltaba entre
+>   «instala» y «enciende»: exportar, importar, **comprobar que los números
+>   cuadran**, asignar contraseñas, y la última bajada la mañana del evento
+>   antes de la primera llave.
+>
+> **Tres decisiones que salieron al escribirlo:**
+>
+> - **La edad se mide desde que la copia SALIÓ de la VPS**, no desde que entró
+>   aquí. Una copia exportada el jueves e importada el sábado sigue sin traer
+>   lo del viernes, y la pregunta de las siete de la mañana es esa.
+> - **Una vista previa no anota nada.** Se revierte entera: anotarla diría que
+>   se trajo algo que no se trajo — el mismo error que esta fase arregla.
+> - **Un paquete de solo usuarios tampoco.** Es una bajada, pero no trae
+>   inscripciones: si pisara la fecha de la copia buena, la pantalla diría
+>   «traída hace diez minutos» de algo sin el campeonato dentro. Las dos cosas
+>   tienen prueba.
+>
+> Y una que ya estaba decidida y se respeta: **el aviso calla en cuanto se
+> compite**. Es el mismo umbral con el que la importación se frena — a partir
+> de ahí volver a bajar no es una opción, así que recordarlo sería ruido en la
+> peor mañana del año.
 
 ### La buena noticia: la bajada ya existe, y es re-ejecutable
 
@@ -843,6 +876,10 @@ F6 mete `eco_sub`, `roles` y `org_id` en el paquete. Sin eso, las cuentas que
 bajan de la VPS llegan **sin su enlace al ecosistema**, y al volver a subir los
 resultados se reconcilian por correo — que es el camino que puede acabar en
 `correo_ocupado`. Por eso F6 va antes que el evento y no después.
+
+> **`eco_sub` ya viaja** (F6-a). Los otros dos llegarán con F2 y F4, y hasta
+> entonces cada paquete se exporta con lo que ya se puede meter en vez de con
+> nada — ver «F6 se reparte» en la PARTE 4.
 
 ---
 
@@ -967,45 +1004,87 @@ Eso da **dos fechas reales**, y son las que ordenan lo de abajo:
 
 ### EL ORDEN DE TRABAJO — se empieza por arriba
 
+*(reordenado el 9 de septiembre de 2026, al implementar F6 y descubrir que en
+el puesto 2 no se puede terminar. Ver «F6 se reparte» aquí abajo.)*
+
 | # | Fase | Qué es | Por qué ahí | Bloquea a |
 |---|---|---|---|---|
 | **1** | **F5-bis** ✅ | La ficha del alumno se reutiliza | **Lo único ROTO.** Un maestro no podía inscribir a su alumna en el segundo campeonato del año | F3, D5 |
-| **2** | **F6** 🟡 | Los paquetes llevan `eco_sub`, ~~`roles`, `org_id`~~ | Todo lo que baje de la VPS antes de tenerlo llega sin enlace al ecosistema. `eco_sub` hecho; los otros dos **no tienen columna hasta F2 y F4** y se hacen ahí | F6-bis, F8 |
-| **3** | **F6-bis** | La copia dice de cuándo es + el runbook | Sin esto, el sábado nadie sabe si la copia trae las inscripciones del jueves | — |
+| **2** | **F6-a** ✅ | El paquete lleva **`eco_sub`** | Todo lo que baje de la VPS antes de tenerlo llega sin enlace al ecosistema. Es la parte de F6 que **sí tiene columna hoy**, y la que sostiene su puesto | F6-bis, F8 |
+| **3** | **F6-bis** ✅ | La copia dice de cuándo es + el runbook | Sin esto, el sábado nadie sabe si la copia trae las inscripciones del jueves | — |
 | **4** | **F7** | Encender en local con comprobaciones | Se nota el 9 a las siete de la mañana. **No toca nada de nadie**: se puede hacer en paralelo desde el primer día | — |
 | **5** | **F1** | El pase lleva varios roles (ecosystem) | Empieza el bloque de identidad. **Todo esto, dentro antes del ensayo del ~26 de septiembre** | F2 |
-| **6** | **F2** | Campeonatos entiende varios roles | De cara al usuario **no cambia nada**: es el andamio de F3 | F3 |
-| **7** | **F3** | El panel del alumno + el atleta independiente | Lo que multiplica por cien quién entra. Necesita ficha estable (1) y roles (6) | — |
-| **8** | **F4** | La organización llega a Campeonatos | El admin único por organización | F5 |
+| **6** | **F2** + **F6-b** | Campeonatos entiende varios roles — **y el paquete lleva `roles`** | De cara al usuario **no cambia nada**: es el andamio de F3. La columna nace aquí, así que el paquete la lleva aquí | F3 |
+| **7** | **F3** + **F6-c** | El panel del alumno + el atleta independiente — **y el paquete lleva la identidad del competidor** | Lo que multiplica por cien quién entra. Necesita ficha estable (1) y roles (6) | — |
+| **8** | **F4** + **F6-d** | La organización llega a Campeonatos — **y el paquete lleva `org_id`** | El admin único por organización. `org_id` no existe hoy en ninguna tabla (§1.3): nace aquí | F5 |
 | **9** | **F5** | Inscribirse por invitación | El admin invita clubes al campeonato | — |
 | **10** | **F8** | La subida automática de resultados | Ocurre **después** del evento, con red. Lo último que hace falta | — |
 | — | ~~F9~~ | Retirar los andamios | **Después del 11.** Su definición es «cuando lleve un campeonato real encima» | — |
 
+### F6 se reparte, y por eso el orden cambió
+
+F6 pedía cuatro datos en el paquete. Al ir a escribirlos apareció que **tres no
+tienen dónde vivir todavía**, y que las columnas las crean fases que van
+DESPUÉS en esta misma lista:
+
+| Trozo | Dato | Necesita |
+|---|---|---|
+| **F6-a** ✅ | `usuarios.eco_sub` | nada: la columna ya existe |
+| **F6-b** | `usuarios.roles` | **F2** (nº 6) |
+| **F6-c** | `competidores.eco_sub` / `usuario_uid` | **F3** (nº 7) |
+| **F6-d** | `org_id` | **F4** (nº 8) — hoy no existe en ninguna tabla |
+
+Había dos salidas y una es peor: **bajar F6 entera al puesto 8**, detrás de F4.
+Eso dejaría todo lo que se baje de la VPS hasta entonces sin `eco_sub`, que es
+exactamente lo que F6 estaba en el puesto 2 para evitar. Así que **F6 deja de
+ser un paso y pasa a ser una línea de cada fase**: la que crea la columna se
+lleva su trozo del paquete, en el mismo commit. Nadie espera a nadie, y ningún
+paquete se exporta sin lo que ya se podía meter.
+
+> **Y una consecuencia que hay que decir en voz alta:** el paquete cambia de
+> forma cuatro veces, no una. Por eso `VERSION_PAQUETE` sube en cada trozo y
+> por eso el importador **acepta siempre las versiones anteriores** — un
+> paquete exportado hoy tiene que poder importarse el 9 de octubre, aunque
+> para entonces el formato vaya por la 5.
+
 ### Los tres carriles, para no trabajar en serie lo que no lo es
 
 ```
-CARRIL A (el evento)     1·F5-bis ──► 2·F6 ──► 3·F6-bis
-                                                   │
-CARRIL B (independiente)          4·F7 ────────────┤  ← desde el primer día
-                                                   │
-CARRIL C (identidad)     5·F1 ─► 6·F2 ─► 7·F3      │
-                                    └─► 8·F4 ─► 9·F5
-                                                   │
-                                          10·F8 ◄──┘
+CARRIL A (el evento)     1·F5-bis ──► 2·F6-a ──► 3·F6-bis
+                             ✅          ✅           ✅
+                                                      │
+CARRIL B (independiente)          4·F7 ───────────────┤  ← desde el primer día
+                                                      │
+CARRIL C (identidad)     5·F1 ─► 6·F2 ─► 7·F3         │
+                                  +F6-b  +F6-c        │
+                                    └─► 8·F4 ─► 9·F5  │
+                                        +F6-d         │
+                                                      │
+                                             10·F8 ◄──┘
 ```
 
 **A y B no se estorban.** F7 no toca base de datos ni permisos, así que puede
 avanzar en paralelo con cualquier cosa. El carril C es el único que toca login e
 identidad, y por eso entero **antes del ensayo del ~26 de septiembre**.
 
-### Las tres reglas del orden, y por qué
+**El carril A ya está cerrado.** Lo que quedaba de F6 no vive en A: viaja
+colgado de C, una línea por fase.
+
+### Las cuatro reglas del orden, y por qué
 
 **F5-bis va primera y no es discutible.** Es la única fase que **repara**; todas
 las demás añaden. Y es la que más se nota el día del evento: cuarenta
 inscripciones que hoy son cuarenta formularios en blanco.
 
-**F6 va antes que cualquier bajada de la VPS.** Cada paquete que se importe sin
-`eco_sub` deja cuentas sin enlazar, y eso se arrastra hasta la subida de vuelta.
+**F6-a va antes que cualquier bajada de la VPS.** Cada paquete que se importe
+sin `eco_sub` deja cuentas sin enlazar, y eso se arrastra hasta la subida de
+vuelta.
+
+**Lo que no tiene columna no se espera: se reparte.** Es la regla que salió de
+implementar F6, y vale para cualquier fase futura que pida un dato que todavía
+no existe. Se hace la parte que ya cabe, y el resto viaja con la fase que crea
+su sitio — en vez de mover la fase entera al final, que era la otra salida y la
+mala.
 
 **Lo que no se puede adelantar:** F3 sin F2 (el panel escrito contra el modelo
 de un rol se escribe dos veces), F8 sin F6 (subiría filas huérfanas), F5 sin F4

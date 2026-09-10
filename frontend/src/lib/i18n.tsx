@@ -937,6 +937,13 @@ const es = {
   "sync.identidades": "Identidades del ecosistema",
   "sync.identidadesDetalle": "{enlazadas} enlazadas · {omitidas} sin enlazar",
   "sync.avisos": "Avisos",
+  // De cuándo es la copia que corre en este PC (F6-bis). El sobre del paquete
+  // ya traía el dato; lo que faltaba era que no se perdiera al confirmar.
+  "sync.copia": "Copia traída de la VPS",
+  "sync.copiaExportada": "exportada el {fecha}",
+  "sync.copiaHace": "hace {horas} h",
+  "sync.copiaDe": "por {admin}",
+  "sync.copiaVieja": "Ha pasado más de un día desde que salió de la VPS. Si todavía hay red, vuelve a bajarla — en cuanto se active la primera llave ya no se puede.",
   "sync.modo": "Si el campeonato ya existe aquí",
   "sync.modo.fusionar": "Fusionar",
   "sync.modo.fusionar.desc":
@@ -1443,6 +1450,76 @@ const es = {
   "pub.camp.sinTatami": "Sin tatami asignado",
   "pub.camp.sinClub": "Sin club",
   "pub.camp.sinModalidades": "Sin modalidades",
+
+  // ── El panel local de contingencia (`/local`) ────────────────────────────
+  //
+  // Esta pantalla entera estaba escrita a mano en español: era la única de
+  // Campeonatos que no pasaba por aquí. Y es justo la que se abre cuando se cae
+  // la red del evento, o sea el peor momento para no entender un botón.
+  //
+  // Lo que NO se traduce y no es descuido: `HONG` y `CHUNG` son los nombres de
+  // las esquinas en hapkido —como «rojo» y «azul» no lo son—, y `J1`…`J4` son
+  // los puestos de la mesa. Se dicen igual en las dos lenguas y en el tatami.
+  "local.volver": "← Volver",
+  "local.panel": "Panel local",
+  "local.avisoTitulo": "🛟 PANEL LOCAL DE CONTINGENCIA — SIN SERVIDOR",
+  "local.avisoTexto":
+    "Todo se guarda solo en este dispositivo (sobrevive recargas) con la hora de cada anotación. Cuando el sistema en red vuelva, dicta el registro a la mesa de control o reingresa los puntos por el flujo normal.",
+  "local.modo": "Modo:",
+  "local.soy": "Soy:",
+  "local.porJuez":
+    "Cada juez ({roles}) tiene su propio registro en este dispositivo, separado por modo.",
+  "local.misPuntos": "Mis puntos",
+  "local.sinAnotaciones":
+    "Aún no hay anotaciones. Cada punto que marques queda guardado aquí con su hora.",
+  "local.registro": "Registro local ({n})",
+  "local.deshacer": "↩ Deshacer último",
+  "local.borrar": "Borrar registro",
+  "local.borrarConfirmar": "✓ Sí, borrar todo",
+  "local.anotarNota": "Anotar nota local",
+  "local.nombrePh": "Nombre del competidor",
+  "local.notaPh": "Nota (ej: 8.50)",
+  "local.guardarNota": "Guardar nota",
+  // Los puntos del combate, los mismos del panel en red.
+  "local.pt.cuerpo": "CUERPO",
+  "local.pt.giroPatCabeza": "GIRO / PAT. CABEZA",
+  "local.pt.giroCabeza": "GIRO CABEZA",
+
+  // ── Errores que se le enseñan a una persona ──────────────────────────────
+  //
+  // Estaban escritos a mano en su `throw`, así que salían en español aunque la
+  // pantalla estuviera en inglés. Son los tres del generador de reportes, el de
+  // importar resultados y el del socket.
+  "err.reporteNoArchivo": "El servidor no devolvió un archivo de reporte válido.",
+  "err.reporteVacio": "El reporte se generó vacío. Intenta de nuevo.",
+  "err.resultadosVacio": "El archivo de resultados salió vacío.",
+  "err.importarResultados":
+    "No se pudo importar el archivo. ¿Es un export de resultados de DINAMYT?",
+  "err.accionRechazada": "Acción rechazada",
+  "err.quitarSnapshot": "No se pudo quitar el snapshot.",
+
+  // ── Importar resultados (la pantalla del ONLINE) ─────────────────────────
+  //
+  // Era una de las cuatro pantallas de Campeonatos que no pasaban por aquí, y
+  // la usa quien publica los resultados el lunes después del campeonato.
+  "imp.titulo": "Importar resultados",
+  "imp.sub":
+    "Sube el archivo .json exportado desde el software local (Reportes → «Exportar resultados») para publicarlo en la página pública de resultados.",
+  "imp.subir": "Subir archivo de resultados",
+  "imp.archivoAria": "Archivo .json de resultados",
+  "imp.importando": "Importando…",
+  "imp.importar": "Importar y publicar",
+  "imp.nResultados": "{n} resultado(s).",
+  "imp.publicados": "Publicados actualmente",
+  "imp.verPublica": "Ver página pública ↗",
+  "imp.sinImportados": "Aún no hay resultados importados.",
+  "imp.quitar": "Quitar",
+  "imp.quitarConfirmar": "¿Quitar de la web pública los resultados de «{nombre}»?",
+  "imp.quitado": "Se quitó «{nombre}» de los resultados públicos.",
+  "comun.selecciona": "— Selecciona —",
+  // El titular del bloque de descalificación del Juez Central. Los VALORES de
+  // los motivos siguen viajando en español al servidor (ver `tatami/[id]`).
+  "tat.jc.descalificacion": "Descalificación directa",
 } as const;
 
 export type ClaveTexto = keyof typeof es;
@@ -2154,6 +2231,11 @@ const en: Record<ClaveTexto, string> = {
   "sync.identidades": "Ecosystem identities",
   "sync.identidadesDetalle": "{enlazadas} linked · {omitidas} not linked",
   "sync.avisos": "Notices",
+  "sync.copia": "Copy brought from the VPS",
+  "sync.copiaExportada": "exported on {fecha}",
+  "sync.copiaHace": "{horas} h ago",
+  "sync.copiaDe": "by {admin}",
+  "sync.copiaVieja": "More than a day has passed since it left the VPS. If there is still a connection, download it again — once the first bracket goes live you no longer can.",
   "sync.modo": "If the championship already exists here",
   "sync.modo.fusionar": "Merge",
   "sync.modo.fusionar.desc":
@@ -2648,6 +2730,57 @@ const en: Record<ClaveTexto, string> = {
   "pub.camp.sinTatami": "No mat assigned",
   "pub.camp.sinClub": "No club",
   "pub.camp.sinModalidades": "No disciplines",
+
+  // El panel local de contingencia. `HONG`, `CHUNG` y `J1`…`J4` no se traducen:
+  // son los nombres de las esquinas y los puestos de la mesa.
+  "local.volver": "← Back",
+  "local.panel": "Local panel",
+  "local.avisoTitulo": "🛟 LOCAL FALLBACK PANEL — NO SERVER",
+  "local.avisoTexto":
+    "Everything is saved on this device only (it survives reloads), with the time of every entry. When the networked system comes back, read your log out to the control desk or re-enter the points the usual way.",
+  "local.modo": "Mode:",
+  "local.soy": "I am:",
+  "local.porJuez":
+    "Each judge ({roles}) keeps their own log on this device, separate per mode.",
+  "local.misPuntos": "My points",
+  "local.sinAnotaciones":
+    "Nothing recorded yet. Every point you mark is saved here with its time.",
+  "local.registro": "Local log ({n})",
+  "local.deshacer": "↩ Undo last",
+  "local.borrar": "Clear log",
+  "local.borrarConfirmar": "✓ Yes, clear everything",
+  "local.anotarNota": "Record a local score",
+  "local.nombrePh": "Athlete's name",
+  "local.notaPh": "Score (e.g. 8.50)",
+  "local.guardarNota": "Save score",
+  "local.pt.cuerpo": "BODY",
+  "local.pt.giroPatCabeza": "SPIN / HEAD KICK",
+  "local.pt.giroCabeza": "SPINNING HEAD KICK",
+
+  "err.reporteNoArchivo": "The server did not return a valid report file.",
+  "err.reporteVacio": "The report came out empty. Try again.",
+  "err.resultadosVacio": "The results file came out empty.",
+  "err.importarResultados":
+    "The file could not be imported. Is it a DINAMYT results export?",
+  "err.accionRechazada": "Action rejected",
+  "err.quitarSnapshot": "The snapshot could not be removed.",
+
+  "imp.titulo": "Import results",
+  "imp.sub":
+    "Upload the .json file exported from the local software (Reports → «Export results») to publish it on the public results page.",
+  "imp.subir": "Upload results file",
+  "imp.archivoAria": "Results .json file",
+  "imp.importando": "Importing…",
+  "imp.importar": "Import and publish",
+  "imp.nResultados": "{n} result(s).",
+  "imp.publicados": "Currently published",
+  "imp.verPublica": "Open public page ↗",
+  "imp.sinImportados": "No results imported yet.",
+  "imp.quitar": "Remove",
+  "imp.quitarConfirmar": "Remove the results for «{nombre}» from the public site?",
+  "imp.quitado": "«{nombre}» removed from the public results.",
+  "comun.selecciona": "— Select —",
+  "tat.jc.descalificacion": "Direct disqualification",
 };
 
 const DICCIONARIOS: Record<Idioma, Record<ClaveTexto, string>> = { es, en };

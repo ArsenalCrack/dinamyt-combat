@@ -551,6 +551,34 @@ export async function importarPaqueteAPI(
 }
 
 // ── Tatamis API ──
+/**
+ * De cuándo es la copia del campeonato que corre en esta instalación.
+ *
+ * `hay: false` mientras nadie haya importado un paquete de campeonato —el
+ * estado normal de la instalación de internet, que no importa nunca—.
+ * `avisar` lo decide el backend: más de un día desde que salió de la VPS y
+ * todavía sin competir (ver `app/ultima_bajada.py`).
+ */
+export interface UltimaBajada {
+  hay: boolean;
+  importado_at?: string;
+  exportado_at?: string | null;
+  origen_admin?: string | null;
+  formato?: string;
+  campeonato?: string | null;
+  importado_por?: string | null;
+  conteos?: Partial<Record<"usuarios" | "competidores" | "inscripciones" | "llaves", number>>;
+  /** Horas desde que la copia salió de la VPS. */
+  horas?: number | null;
+  ya_se_compite?: boolean;
+  avisar?: boolean;
+}
+
+export async function ultimaBajadaAPI() {
+  const res = await api.get("/sincronizacion/ultima-bajada");
+  return res.data as UltimaBajada;
+}
+
 export async function listTatamisAPI(campeonatoId: number) {
   const res = await api.get(`/tatamis/campeonato/${campeonatoId}`);
   return res.data;

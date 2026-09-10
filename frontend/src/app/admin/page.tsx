@@ -23,6 +23,7 @@ import CampoFecha from "@/components/CampoFecha";
 import ClubesInput from "@/components/ClubesInput";
 import { useConfirmDialog } from "@/components/ConfirmDialog";
 import ImportarPaquetePanel from "@/components/ImportarPaquetePanel";
+import UltimaBajada from "@/components/UltimaBajada";
 import PaisCiudadSelect from "@/components/PaisCiudadSelect";
 import { useI18n, type ClaveTexto } from "@/lib/i18n";
 import { enMayusculas } from "@/lib/texto";
@@ -74,6 +75,9 @@ export default function AdminPage() {
   const { t } = useI18n();
   const [user, setUser] = useState<UserData | null>(null);
   const [campeonatos, setCampeonatos] = useState<Campeonato[]>([]);
+  // Sube uno tras cada importación, para que la línea de «de cuándo es la
+  // copia» se vuelva a leer sin recargar la página entera.
+  const [bajadaKey, setBajadaKey] = useState(0);
   const [users, setUsers] = useState<UserData[]>([]);
   // Clubes ya existentes en el workspace, para elegirlos en vez de reescribirlos.
   const [clubes, setClubes] = useState<ClubMaestro[]>([]);
@@ -437,6 +441,10 @@ export default function AdminPage() {
       {/* ══════════════ CAMPEONATOS TAB ══════════════ */}
       {tab === "campeonatos" && (
         <div className="animate-fade">
+          {/* De cuándo es la copia que corre en este PC. En la instalación de
+              internet no pinta nada: nunca ha importado un paquete. */}
+          <UltimaBajada refrescar={bajadaKey} />
+
           <div className="admin-section-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
             <h2 style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "1.1rem" }}>
               {t("admin.tab.campeonatos")} ({campeonatos.length})
@@ -462,6 +470,7 @@ export default function AdminPage() {
                 onImportado={(informe) => {
                   setShowImportCamp(false);
                   loadData(showInactive);
+                  setBajadaKey((n) => n + 1);
                   flash(informe.message, "ok");
                 }}
               />

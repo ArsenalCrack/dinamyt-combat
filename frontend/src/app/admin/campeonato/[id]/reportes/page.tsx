@@ -233,11 +233,11 @@ export default function ReportesCampeonatoPage() {
         || contentType.includes("application/zip")
         || contentType.includes("application/octet-stream");
       if (!esArchivo) {
-        throw new Error("El servidor no devolvió un archivo de reporte válido.");
+        throw new Error(t("err.reporteNoArchivo"));
       }
 
       const blob = await res.blob();
-      if (blob.size === 0) throw new Error("El reporte se generó vacío. Intenta de nuevo.");
+      if (blob.size === 0) throw new Error(t("err.reporteVacio"));
 
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
@@ -292,7 +292,7 @@ export default function ReportesCampeonatoPage() {
     setExportError("");
     try {
       const blob = await exportarResultadosAPI(Number(campId));
-      if (blob.size === 0) throw new Error("El archivo de resultados salió vacío.");
+      if (blob.size === 0) throw new Error(t("err.resultadosVacio"));
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
       a.download = `resultados-${slugArchivo(campNombre, "campeonato")}_${fechaArchivo()}.json`;

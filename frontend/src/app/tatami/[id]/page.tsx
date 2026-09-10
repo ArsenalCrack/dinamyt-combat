@@ -2754,7 +2754,7 @@ function CombateArbitro({
       </div>
 
       {/* Descalificación directa (no presentación, conducta, etc.) */}
-      <div className="card-title">Descalificación directa</div>
+      <div className="card-title">{t("tat.jc.descalificacion")}</div>
       <select
         className="input"
         value={motivoDq}

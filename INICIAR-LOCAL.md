@@ -55,6 +55,49 @@ encendido a la vez).
 
 ---
 
+## 2.1) La víspera, CON internet: traer el campeonato
+
+*(añadido el 9 de septiembre de 2026. **Este paso faltaba en el manual** y es
+el que trae el evento: sin él, el PC arranca perfectamente y vacío.)*
+
+El campeonato se inscribe en internet y **se corre aquí**. Entre las dos cosas
+hay una bajada, y hay que hacerla **la víspera, con red**:
+
+1. En la instalación de **internet** (la VPS), entra como administrador y abre
+   el campeonato → **Exportar paquete**. Se descarga un archivo `.json`.
+2. Pásalo a este PC (USB, correo, lo que sea) y aquí, en **Admin →
+   Campeonatos → Importar campeonato**, súbelo.
+3. Sale una **vista previa** antes de escribir nada: dice cuántos usuarios,
+   competidores e inscripciones va a traer. **Comprueba que esos números
+   cuadran con los que enseña la VPS.** Si cuadran, confirma.
+4. **Asigna contraseñas** a quien vaya a necesitarlas, en **Admin →
+   Usuarios**. Las contraseñas **no viajan en el paquete** (a propósito), así
+   que los usuarios importados llegan sin clave utilizable. Los jueces no
+   necesitan ninguna: entran con el QR de su tatami (ver §3.1).
+
+> **Se puede bajar tantas veces como haga falta.** El modo normal es
+> *fusionar*: vuelve a traer lo nuevo y actualiza lo cambiado, **sin
+> duplicar**. Si el jueves entran tres inscripciones más, se exporta otra vez
+> el viernes, se importa otra vez, y aparecen.
+
+> **Pero deja de poder hacerse en cuanto se compite.** Si aquí ya hay una
+> llave activa o terminada, la importación se niega —podría pisar
+> resultados—. **Así que la última bajada es la mañana del evento, si todavía
+> hay red, y ANTES de activar la primera llave.**
+
+### Cómo saber de cuándo es la copia que tiene este PC
+
+En **Admin → Campeonatos** hay una línea que lo dice:
+
+> *Copia traída de la VPS · COPA NACIONAL · exportada el 7/10/2026, 18:42 ·
+> hace 13 h · 12 usuarios · 148 competidores · 160 inscripciones*
+
+Y **si la copia lleva más de un día** y todavía no se compite, la línea se
+pone en dorado y lo avisa. Es la respuesta a la pregunta de las siete de la
+mañana —*«¿esto trae las inscripciones del jueves?»*— sin tener que adivinar.
+
+---
+
 ## 3) Encender el sistema el día del evento (sin internet)
 
 1. Doble clic en **`2-INICIAR.bat`**. Se abren **dos ventanas negras**

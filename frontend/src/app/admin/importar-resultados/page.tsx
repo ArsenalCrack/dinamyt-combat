@@ -19,8 +19,10 @@ import {
   type ImportResultadosResumen,
 } from "@/lib/api";
 import { avisoError, avisoOk } from "@/lib/toast";
+import { useI18n } from "@/lib/i18n";
 
 export default function ImportarResultadosPage() {
+  const { t, idioma } = useI18n();
   const router = useRouter();
   const [archivo, setArchivo] = useState<File | null>(null);
   const [importando, setImportando] = useState(false);
@@ -63,21 +65,21 @@ export default function ImportarResultadosPage() {
       avisoOk(res.message);
     } catch (err) {
       const m = (err as { response?: { data?: { error?: string } } }).response?.data?.error;
-      avisoError(m || "No se pudo importar el archivo. ¿Es un export de resultados de DINAMYT?");
+      avisoError(m || t("err.importarResultados"));
     } finally {
       setImportando(false);
     }
   }
 
   async function handleEliminar(pubId: string, nombre: string) {
-    if (!confirm(`¿Quitar de la web pública los resultados de "${nombre}"?`)) return;
+    if (!confirm(t("imp.quitarConfirmar", { nombre }))) return;
     const uuid = pubId.startsWith("pub:") ? pubId.slice(4) : pubId;
     try {
       await eliminarResultadoPublicadoAPI(uuid);
       await cargarPublicados();
-      avisoOk(`Se quitó "${nombre}" de los resultados públicos.`);
+      avisoOk(t("imp.quitado", { nombre }));
     } catch {
-      avisoError("No se pudo quitar el snapshot.");
+      avisoError(t("err.quitarSnapshot"));
     }
   }
 
@@ -85,18 +87,17 @@ export default function ImportarResultadosPage() {
     <div style={{ maxWidth: 760, margin: "0 auto", padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
       <div>
         <button className="btn btn-outline btn-sm" onClick={() => router.push("/admin")} style={{ marginBottom: 8 }}>
-          ← Volver
+          {t("local.volver")}
         </button>
-        <h1 className="display" style={{ fontSize: "1.5rem" }}>Importar resultados</h1>
+        <h1 className="display" style={{ fontSize: "1.5rem" }}>{t("imp.titulo")}</h1>
         <p className="text-muted" style={{ fontSize: "0.92rem" }}>
-          Sube el archivo <code>.json</code> exportado desde el software local (Reportes → “Exportar
-          resultados”) para publicarlo en la página pública de resultados.
+          {t("imp.sub")}
         </p>
       </div>
 
       {/* Subir archivo */}
       <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <div className="card-title" style={{ marginBottom: 0 }}>Subir archivo de resultados</div>
+        <div className="card-title" style={{ marginBottom: 0 }}>{t("imp.subir")}</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <input
             ref={inputRef}
@@ -104,7 +105,7 @@ export default function ImportarResultadosPage() {
             accept=".json,application/json"
             onChange={(e) => setArchivo(e.target.files?.[0] || null)}
             style={{ fontSize: "0.88rem", color: "var(--text-muted)", maxWidth: "100%" }}
-            aria-label="Archivo .json de resultados"
+            aria-label={t("imp.archivoAria")}
           />
           <button
             type="button"
@@ -112,13 +113,13 @@ export default function ImportarResultadosPage() {
             disabled={!archivo || importando}
             onClick={handleImportar}
           >
-            {importando ? "Importando…" : "Importar y publicar"}
+            {importando ? t("imp.importando") : t("imp.importar")}
           </button>
         </div>
         {resultado && (
           <div style={{ fontSize: "0.9rem", color: "var(--text-muted)" }}>
             <strong style={{ color: "var(--green)" }}>{resultado.message}</strong> ·{" "}
-            {resultado.num_resultados} resultado(s).
+            {t("imp.nResultados", { n: resultado.num_resultados })}
           </div>
         )}
       </div>
@@ -126,14 +127,14 @@ export default function ImportarResultadosPage() {
       {/* Ya publicados */}
       <div className="card" style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div className="card-title" style={{ marginBottom: 0 }}>Publicados actualmente</div>
+          <div className="card-title" style={{ marginBottom: 0 }}>{t("imp.publicados")}</div>
           <a className="btn btn-outline btn-sm" href="/resultados" target="_blank" rel="noreferrer">
-            Ver página pública ↗
+            {t("imp.verPublica")}
           </a>
         </div>
         {publicados.length === 0 ? (
           <p className="text-muted" style={{ fontSize: "0.9rem", margin: 0 }}>
-            Aún no hay resultados importados.
+            {t("imp.sinImportados")}
           </p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -149,8 +150,8 @@ export default function ImportarResultadosPage() {
                 <div>
                   <div style={{ fontWeight: 700 }}>{p.nombre}</div>
                   <div className="text-muted" style={{ fontSize: "0.82rem" }}>
-                    {p.num_resultados} resultado(s)
-                    {p.importado_at ? ` · ${new Date(p.importado_at).toLocaleString("es-CO", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
+                    {t("imp.nResultados", { n: p.num_resultados })}
+                    {p.importado_at ? ` · ${new Date(p.importado_at).toLocaleString(idioma === "en" ? "en-GB" : "es-CO", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}` : ""}
                   </div>
                 </div>
                 <button
@@ -158,7 +159,7 @@ export default function ImportarResultadosPage() {
                   onClick={() => handleEliminar(String(p.id), p.nombre)}
                   style={{ color: "#ff9a9a" }}
                 >
-                  Quitar
+                  {t("imp.quitar")}
                 </button>
               </div>
             ))}
