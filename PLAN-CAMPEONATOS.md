@@ -10,11 +10,12 @@
 > | **F6-bis** | ✅ **hecha** | El local dice de cuándo es la copia y avisa cuando envejece. Y el runbook de la víspera, en `INICIAR-LOCAL.md` |
 > | **F7** | ✅ **hecha** | `INICIAR.bat` comprueba antes de arrancar, espera al «listo» de verdad y saca la dirección en QR. `APAGAR.bat` apaga por puerto |
 > | **F1** | ✅ **hecha** | El pase lleva `roles_campeonatos` además de `role_campeonatos`, y el portal tiene casillas para marcarlos. Con dos cambios sobre lo escrito: ver la nota dentro de F1 |
+> | **F2** + **F6-b** | ✅ **hecha** | Campeonatos guarda y lee varios papeles, el pase los SUMA a quien ya estaba, y lo que quita la consola se recuerda. El paquete lleva `roles`. Con una contradicción del plan resuelta: ver la nota dentro de F2 |
 >
-> Los carriles A y B están cerrados, y **el C ha empezado**. Lo siguiente es
-> **F2** —Campeonatos lee la lista—, que es la primera fase que vuelve a este
-> repositorio. Todo el carril C tiene que estar dentro **antes del ensayo del
-> ~26 de septiembre**.
+> Los carriles A y B están cerrados y el C va por la mitad. Lo siguiente es
+> **F3** —el panel del competidor—, que es la primera fase que se VE: hasta
+> aquí, de cara al usuario, casi nada ha cambiado. Todo el carril C tiene que
+> estar dentro **antes del ensayo del ~26 de septiembre**.
 >
 > **⏱ Fecha límite: el 8 de octubre de 2026.** Hay campeonato el 9, 10 y 11 y
 > **no hay «después»** (decisión D6): lo que no esté dentro para entonces, no
@@ -530,9 +531,59 @@ se amplían, no se sustituyen.
 
 ---
 
-## F2 · Campeonatos entiende varios roles
+## F2 · Campeonatos entiende varios roles — ✅ hecha (con F6-b)
 
 **Dónde:** `dinamyt-combat/backend`.
+
+> **Hecho, el 13 de septiembre de 2026.** Los puntos 1, 3, 4 y 5 como estaban
+> escritos, y el paquete lleva `roles` (F6-b, versión 3). Y **una
+> contradicción que el plan tenía dentro**, resuelta así:
+>
+> **El plan pedía dos cosas que no caben a la vez.** El punto 6 —y D2, que ya
+> estaba decidido— dice que el pase **añade** los papeles que la fila no
+> tiene. La nota del final dice que en F2 *«ningún endpoint gana ni pierde
+> permisos»*. Pero añadir `juez` a un maestro es, justamente, que pueda
+> juzgar. **Manda D2**, porque es la decisión y es lo único que hace servir a
+> F1. Con dos límites:
+>
+> - **El pase nunca da `admin`** a quien ya estaba. El mando de los
+>   campeonatos se pone a mano aquí (`OPERAR.md` §1.5), y F4 todavía no ha
+>   contado cuántos administradores hay por organización: repartir más desde
+>   fuera antes de ese informe es lo que D3 pide no hacer. Al CREAR la fila sí
+>   puede traerlo, como hasta hoy.
+> - **`require_maestro` sigue preguntando por el principal.** Con `tiene_rol`,
+>   un administrador que además es maestro entraría a los endpoints del
+>   maestro, que miran el workspace del admin que lo creó: dejaría de ver sus
+>   propios campeonatos. `require_admin` sí pasa a `tiene_rol`, y da lo mismo
+>   que antes porque `admin` es el papel de más rango.
+>
+> **Lo que el plan no decía y hacía falta · `roles_quitados`.** Con «el pase
+> añade» y «solo la consola quita» a secas, quitarle el de juez a alguien
+> desde la consola duraba **hasta su siguiente inicio de sesión**, cuando el
+> pase se lo volvía a sumar. Así que la consola RECUERDA lo que quita, el pase
+> no puede devolverlo, y si la consola lo vuelve a dar se olvida. Quién lo
+> quitó queda en el registro, que es lo que pedía «con nombre y apellidos».
+>
+> **Tres cosas menores:**
+>
+> - **`ROLES_VALIDOS` no gana `competidor`.** Queda en otra lista, `PAPELES`:
+>   se puede TENER, pero no ser SOLO eso, porque hasta F3 no hay pantalla para
+>   quien solo compite y el login lo mandaría al panel del juez. El pase del
+>   alumno sigue sin crear fila (§1.5-ter), también hasta F3.
+> - **El punto 6 del frontend pasa a F3.** «Con varios papeles se entra al
+>   panel del competidor» necesita un panel del competidor. Hasta entonces se
+>   entra por el principal, como hoy.
+> - **Un arreglo que salió al hacerlo:** a quien ya estaba enlazado,
+>   `resolver_espejo` le ponía su club y no hacía `commit`, así que se perdía
+>   al terminar la petición. Ahora se guarda.
+>
+> **Pruebas:** `tests/test_roles_multiples.py`, 34 nuevas. La que más importa:
+> para toda fila anterior a F2, `roles` y `puede_ser_juez` contestan
+> exactamente lo mismo que antes, sin backfill.
+>
+> **Despliegue:** nada que migrar a mano. `schema_compat` crea `roles` y
+> `roles_quitados` al arrancar, como hizo con `clubes`. Da igual el orden con
+> el ecosistema: sin `roles_campeonatos` en el pase, se lee `role_campeonatos`.
 
 **El patrón ya existe en esta casa y hay que copiarlo, no inventar otro.**
 `usuarios.clubes` es la lista y fuente de verdad; `usuarios.club` se mantiene
@@ -1103,7 +1154,7 @@ el puesto 2 no se puede terminar. Ver «F6 se reparte» aquí abajo.)*
 | **3** | **F6-bis** ✅ | La copia dice de cuándo es + el runbook | Sin esto, el sábado nadie sabe si la copia trae las inscripciones del jueves | — |
 | **4** | **F7** ✅ | Encender en local con comprobaciones | Se nota el 9 a las siete de la mañana. **No toca nada de nadie**: se puede hacer en paralelo desde el primer día | — |
 | **5** | **F1** ✅ | El pase lleva varios roles (ecosystem) | Empieza el bloque de identidad. **Todo esto, dentro antes del ensayo del ~26 de septiembre** | F2 |
-| **6** | **F2** + **F6-b** | Campeonatos entiende varios roles — **y el paquete lleva `roles`** | De cara al usuario **no cambia nada**: es el andamio de F3. La columna nace aquí, así que el paquete la lleva aquí | F3 |
+| **6** | **F2** + **F6-b** ✅ | Campeonatos entiende varios roles — **y el paquete lleva `roles`** | De cara al usuario **no cambia nada**: es el andamio de F3. La columna nace aquí, así que el paquete la lleva aquí | F3 |
 | **7** | **F3** + **F6-c** | El panel del alumno + el atleta independiente — **y el paquete lleva la identidad del competidor** | Lo que multiplica por cien quién entra. Necesita ficha estable (1) y roles (6) | — |
 | **8** | **F4** + **F6-d** | La organización llega a Campeonatos — **y el paquete lleva `org_id`** | El admin único por organización. `org_id` no existe hoy en ninguna tabla (§1.3): nace aquí | F5 |
 | **9** | **F5** | Inscribirse por invitación | El admin invita clubes al campeonato | — |
@@ -1144,7 +1195,7 @@ CARRIL A (el evento)     1·F5-bis ──► 2·F6-a ──► 3·F6-bis
                                                       │
                                   [ok]                │
 CARRIL B (independiente)          4·F7 ───────────────┤
-                         [ok]                         │
+                         [ok]    [ok]                 │
 CARRIL C (identidad)     5·F1 ─► 6·F2 ─► 7·F3         │
                                   +F6-b  +F6-c        │
                                     └─► 8·F4 ─► 9·F5  │
