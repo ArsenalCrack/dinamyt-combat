@@ -23,6 +23,11 @@ OPTIONAL_COLUMNS = {
         "club": "VARCHAR(80)",
         "clubes": "JSON",
         "puede_juzgar": "BOOLEAN",
+        # Todos los papeles de la persona, y los que la consola le quitó (F2).
+        # Con `roles` en NULL el modelo cae a `rol` + `puede_juzgar`, así que
+        # tampoco hace falta rellenarla.
+        "roles": "JSON",
+        "roles_quitados": "JSON",
         # Delegación del maestro: ciudad de origen y país derivado.
         "delegacion": "VARCHAR(120)",
         "pais_delegacion": "VARCHAR(80)",

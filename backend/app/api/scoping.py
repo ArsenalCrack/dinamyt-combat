@@ -33,15 +33,26 @@ def usuario_actual():
 
 
 def require_admin():
-    """Admin activo (normal o superadmin), o None."""
+    """Admin activo (normal o superadmin), o None.
+
+    Por `tiene_rol` y no por `rol`, y da exactamente lo mismo: `admin` es el
+    papel de más rango, así que quien lo tiene lo tiene de principal.
+    """
     user = usuario_actual()
-    if not user or user.rol != "admin" or not user.activo:
+    if not user or not user.tiene_rol("admin") or not user.activo:
         return None
     return user
 
 
 def require_maestro():
-    """Maestro activo, o None."""
+    """Maestro activo, o None.
+
+    **Este sigue preguntando por el PRINCIPAL, a propósito.** Con `tiene_rol`,
+    un administrador que además es maestro entraría a los endpoints del maestro
+    — que miran el workspace del admin que LO CREÓ (`workspace_owner_id`), no el
+    suyo propio. Dejaría de ver sus campeonatos sin que nadie lo decidiera. F2
+    no cambia a qué entra nadie.
+    """
     user = usuario_actual()
     if not user or user.rol != "maestro" or not user.activo:
         return None

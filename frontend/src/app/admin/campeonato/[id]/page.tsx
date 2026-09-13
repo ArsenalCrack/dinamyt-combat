@@ -18,6 +18,7 @@ import {
   MIN_TATAMIS,
   type EstadoCampeonato,
   type OpcionesExportCampeonato,
+  puedeJuzgar,
   type UserData,
 } from "@/lib/api";
 import CampoFecha from "@/components/CampoFecha";
@@ -131,7 +132,7 @@ export default function CampeonatoDetailPage() {
       setCamp(c);
       setNumTatamis(String(c.tatamis?.length || 0));
       // Asignables a un tatami: jueces y maestros con permiso de juez.
-      setUsers(u.filter((x: UserData) => x.rol === "juez" || (x.rol === "maestro" && x.puede_juzgar)));
+      setUsers(u.filter((x: UserData) => puedeJuzgar(x)));
     } catch { router.replace("/admin"); }
   }, [campId, router]);
 
@@ -305,7 +306,7 @@ export default function CampeonatoDetailPage() {
 
   const searchTerm = judgeSearch.trim().toLowerCase();
   const availableJudges = users.filter((u) => {
-    if (!u.activo || !(u.rol === "juez" || (u.rol === "maestro" && u.puede_juzgar))) return false;
+    if (!u.activo || !puedeJuzgar(u)) return false;
     if ((u.asignaciones?.length || 0) > 0) return false;
     if (!searchTerm) return true;
     return `${u.nombre} ${u.email}`.toLowerCase().includes(searchTerm);

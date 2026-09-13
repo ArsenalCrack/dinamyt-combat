@@ -1217,6 +1217,18 @@ export interface ClubMaestro {
   pais?: string | null;
 }
 
+/**
+ * ¿Puede asignarse a un tatami? Si juez es UNO de sus papeles (F2).
+ *
+ * Con un servidor anterior a F2 no llega `roles`, y se cae a la regla de
+ * siempre: un juez, o un maestro con `puede_juzgar`. Así las dos pantallas que
+ * reparten jueces preguntan lo mismo que el servidor, que es quien valida.
+ */
+export function puedeJuzgar(u: Pick<UserData, "rol" | "roles" | "puede_juzgar">): boolean {
+  if (u.roles) return u.roles.includes("juez");
+  return u.rol === "juez" || (u.rol === "maestro" && Boolean(u.puede_juzgar));
+}
+
 export interface UserData {
   id: number;
   email: string;
@@ -1235,6 +1247,12 @@ export interface UserData {
   delegacion?: string | null;
   pais_delegacion?: string | null;
   puede_juzgar?: boolean;
+  /**
+   * Todos sus papeles, de más rango a menos (F2). `rol` es el primero y sigue
+   * decidiendo a qué pantalla entra. `competidor` puede aparecer aquí, nunca
+   * como `rol`.
+   */
+  roles?: Array<"admin" | "maestro" | "juez" | "competidor">;
   activo: boolean;
   creado_por_id?: number | null;
   creado_por?: {

@@ -19,6 +19,28 @@ import bcrypt
 # `es_superadmin` (booleano aparte) y en `creado_por_id` (workspace).
 ROLES_VALIDOS = ("admin", "maestro", "juez")
 
+# ── Los papeles de una persona (F2 de PLAN-CAMPEONATOS) ─────────────────────
+#
+# `ROLES_VALIDOS` son los que pueden ser el PRINCIPAL: el `rol` de la fila, el
+# que decide a qué consola entra y de qué workspace es. `PAPELES` son todos los
+# que una persona puede tener A LA VEZ, de más rango a menos.
+#
+# `competidor` está en la segunda lista y no en la primera, a propósito: hasta
+# F3 no existe ninguna pantalla para quien solo compite. Si alguien lo tuviera
+# de principal, el login lo mandaría al panel del juez, que es lo que hace con
+# todo rol que no reconoce. Se puede TENER; no se puede ser SOLO eso.
+PAPELES = ("admin", "maestro", "juez", "competidor")
+
+
+def ordenar_papeles(lista):
+    """Sin repetidos ni desconocidos, del de más rango al de menos."""
+    vistos = []
+    for valor in lista or []:
+        papel = str(valor or "").strip()
+        if papel in PAPELES and papel not in vistos:
+            vistos.append(papel)
+    return sorted(vistos, key=PAPELES.index)
+
 # Costo (rondas) de bcrypt al hashear contraseñas. 12 (el default de la
 # librería) tarda ~0.5 s en un PC y 1.5–3 s en la CPU compartida del plan
 # gratis de Render: cada login se siente lento y, bajo eventlet de un solo
@@ -100,6 +122,31 @@ class Usuario(db.Model):
     # Permiso extra para que un maestro también pueda ser asignado a un tatami
     # como juez (sin necesidad de una segunda cuenta). Solo aplica a maestros.
     puede_juzgar = db.Column(db.Boolean, default=False, nullable=True)
+    # ── Los papeles, en lista (F2 de PLAN-CAMPEONATOS) ──────────────────────
+    #
+    # `puede_juzgar` es la prueba de que un solo rol ya no daba: cuando un
+    # maestro tuvo que puntuar, no se amplió el modelo, se le colgó un booleano
+    # al lado. «El admin que compite» o «el juez que además inscribe» serían
+    # otras dos columnas así.
+    #
+    # Mismo patrón que `clubes`, que ya vive en esta tabla: `roles` (JSON) es la
+    # lista y la verdad, y **solo su setter escribe `rol` y `puede_juzgar`**:
+    #
+    #   · `rol` = el principal, el de más rango. Todo lo que ya pregunta por
+    #     `rol` —la consola a la que entra, su workspace, las políticas de RLS—
+    #     sigue contestando lo mismo.
+    #   · `puede_juzgar` = «juzga ADEMÁS de su papel principal», que es lo que
+    #     siempre significó. Un juez a secas lo tiene en falso, como hoy.
+    #
+    # Las filas anteriores tienen `roles` NULL y el getter la arma con esas dos
+    # columnas, así que no hace falta ningún backfill.
+    #
+    # `roles_quitados` son los papeles que quitó la CONSOLA. El pase del
+    # ecosistema puede dar papeles, pero no puede devolver uno que alguien quitó
+    # aquí a mano: si no, quitarle el de juez a alguien duraría hasta su
+    # siguiente inicio de sesión. Ver `fijar_papeles_a_mano`.
+    _roles = db.Column("roles", db.JSON, nullable=True)
+    _roles_quitados = db.Column("roles_quitados", db.JSON, nullable=True)
     activo = db.Column(db.Boolean, default=True, nullable=False)
     creado_por_id = db.Column(
         db.Integer, db.ForeignKey("usuarios.id"), nullable=True, index=True
@@ -237,6 +284,87 @@ class Usuario(db.Model):
                 return club
         return None
 
+    # ── Papeles ─────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _papeles_de_columnas(rol, puede_juzgar) -> list:
+        """Los papeles que dicen `rol` y `puede_juzgar` por sí solos."""
+        papeles = [rol] if rol in PAPELES else []
+        if rol == "maestro" and puede_juzgar:
+            papeles.append("juez")
+        return papeles
+
+    @property
+    def roles(self) -> list:
+        """Todos sus papeles, del de más rango al de menos. El primero es `rol`.
+
+        **Si la lista guardada no cuadra con `rol` y `puede_juzgar`, mandan
+        ellas.** Solo pasa si alguien las escribió sin pasar por la lista —un
+        guion viejo, un endpoint que no la conoce—, y en ese caso lo que quiso
+        decir está en las columnas, no en una lista que ya no se tocó.
+        """
+        de_columnas = self._papeles_de_columnas(self.rol, self.puede_juzgar)
+        guardados = ordenar_papeles(self._roles)
+        if not guardados:
+            return de_columnas
+        juzga_ademas = "juez" in guardados and guardados[0] != "juez"
+        if guardados[0] != self.rol or juzga_ademas != bool(self.puede_juzgar):
+            return de_columnas
+        return guardados
+
+    @roles.setter
+    def roles(self, lista):
+        """Fija la lista entera y, con ella, `rol` y `puede_juzgar`.
+
+        Es el ÚNICO sitio donde deberían escribirse esas dos columnas: tenerlas
+        a mano en cada endpoint es la forma segura de que acaben discrepando.
+        """
+        limpia = ordenar_papeles(lista)
+        if not limpia or limpia[0] not in ROLES_VALIDOS:
+            raise ValueError(
+                "Una persona necesita al menos un papel que abra la consola "
+                f"({', '.join(ROLES_VALIDOS)})."
+            )
+        self._roles = limpia
+        self.rol = limpia[0]
+        self.puede_juzgar = "juez" in limpia and limpia[0] != "juez"
+
+    def tiene_rol(self, papel) -> bool:
+        """True si ese es UNO de sus papeles, sea o no el principal."""
+        return papel in self.roles
+
+    @property
+    def roles_quitados(self) -> list:
+        """Los papeles que la consola le quitó y el pase no puede devolverle."""
+        return ordenar_papeles(self._roles_quitados)
+
+    @roles_quitados.setter
+    def roles_quitados(self, lista):
+        self._roles_quitados = ordenar_papeles(lista) or None
+
+    def fijar_papeles_a_mano(self, nuevos, antes=None):
+        """Lo que decide la CONSOLA. Devuelve `(quitados, dados)`.
+
+        Es la otra mitad de «el portal da papeles, solo la consola los quita»
+        (D2 del plan): lo que se quita aquí se recuerda en `roles_quitados`,
+        para que el pase no lo devuelva al día siguiente; y lo que se vuelve a
+        dar aquí se borra de esa lista, porque ya no está quitado.
+
+        `antes` son los papeles que tenía ANTES de la edición. Hace falta
+        pasarlos cuando quien llama ya ha escrito `rol` o `puede_juzgar` por su
+        cuenta: en ese momento `self.roles` ya contesta con lo nuevo, y la
+        comparación no vería nada quitado.
+        """
+        antes = list(antes) if antes is not None else self.roles
+        self.roles = nuevos
+        despues = self.roles
+        quitados = [p for p in antes if p not in despues]
+        dados = [p for p in despues if p not in antes]
+        self.roles_quitados = [
+            p for p in self.roles_quitados if p not in dados
+        ] + quitados
+        return quitados, dados
+
     @property
     def es_super(self) -> bool:
         """True si es superadmin (la columna puede ser NULL en bases viejas)."""
@@ -248,9 +376,14 @@ class Usuario(db.Model):
 
     @property
     def puede_ser_juez(self) -> bool:
-        """True si el usuario puede asignarse a un tatami: un juez, o un
-        maestro con el permiso `puede_juzgar` activado por el admin."""
-        return self.rol == "juez" or (self.rol == "maestro" and bool(self.puede_juzgar))
+        """True si el usuario puede asignarse a un tatami: si juez es UNO de
+        sus papeles.
+
+        Para toda fila anterior a F2 da exactamente lo mismo que antes —un
+        juez, o un maestro con `puede_juzgar`—, porque de ahí sale la lista
+        cuando no hay otra.
+        """
+        return self.tiene_rol("juez")
 
     def necesita_rehash(self) -> bool:
         """True si el hash guardado usa más rondas que las configuradas.
@@ -280,6 +413,8 @@ class Usuario(db.Model):
             "delegacion": self.delegacion,
             "pais_delegacion": self.pais_delegacion,
             "puede_juzgar": bool(self.puede_juzgar),
+            # Todos sus papeles. `rol` sigue siendo el principal.
+            "roles": self.roles,
             "activo": self.activo,
             "creado_por_id": self.creado_por_id,
             "creado_por": (

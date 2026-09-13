@@ -48,7 +48,7 @@ from urllib.request import Request, urlopen
 
 from .extensions import db
 from .identidad import url_api_ecosistema
-from .models.usuario import Usuario
+from .models.usuario import ROLES_VALIDOS, Usuario, ordenar_papeles
 
 log = logging.getLogger(__name__)
 
@@ -62,6 +62,10 @@ ROL_DESDE_ECOSISTEMA = {
     "coach": "maestro",
     "judge": "juez",
     "juez": "juez",
+    # Competir no abre la consola (F3 le dará su panel). Se traduce para que
+    # la lista de papeles de la fila lo pueda guardar, no para dejar entrar.
+    "competitor": "competidor",
+    "student": "competidor",
 }
 
 # Tope de la columna `nombre`.
@@ -88,15 +92,79 @@ def es_super(claims):
     return bool((claims or {}).get("is_super_admin"))
 
 
-def rol_operativo(claims):
-    """El rol que tendría en Campeonatos, o `None` si no opera nada."""
+def papeles_del_pase(claims):
+    """Todos los papeles que trae el pase, ya traducidos a los de aquí.
+
+    Lee `roles_campeonatos` (la lista, F1 del plan) y, si no viene, cae a
+    `role_campeonatos`: un ecosistema sin actualizar tiene que seguir dejando
+    entrar a la gente exactamente como hasta ahora.
+    """
     if not claims:
-        return None
-    propio = ROL_DESDE_ECOSISTEMA.get((claims.get("role_campeonatos") or "").strip())
-    if propio:
-        return propio
+        return []
+    crudos = claims.get("roles_campeonatos")
+    if not isinstance(crudos, list):
+        crudos = [claims.get("role_campeonatos")]
+    return ordenar_papeles(
+        ROL_DESDE_ECOSISTEMA.get(str(valor or "").strip()) for valor in crudos
+    )
+
+
+def roles_operativos(claims):
+    """Los papeles del pase que abren la consola (sin `competidor`)."""
+    return [p for p in papeles_del_pase(claims) if p in ROLES_VALIDOS]
+
+
+def rol_operativo(claims):
+    """El rol principal que tendría en Campeonatos, o `None` si no opera nada."""
+    operativos = roles_operativos(claims)
+    if operativos:
+        return operativos[0]
     # El super-admin entra a administrar aunque no sea miembro de ningún club.
     return "admin" if es_super(claims) else None
+
+
+def _sumar_papeles_del_pase(usuario, claims):
+    """
+    Le añade a una fila que YA existía los papeles nuevos que trae su pase.
+
+    Devuelve True si cambió algo.
+
+    ── La regla (D2 del plan): el portal DA papeles, solo la consola los QUITA ──
+
+    Hasta F2 el pase solo decidía el rol al CREAR la fila; después mandaba el
+    local (`OPERAR.md` §4.13). Estaba puesto para que un cambio en el portal no
+    degradara en silencio al administrador de un campeonato en marcha — y lo
+    conseguía, pero a cambio el pase con varios papeles no cambiaba nada aquí
+    para nadie que ya hubiera entrado una vez. Ahora:
+
+      · lo que el pase trae y la fila no tiene → **se añade**;
+      · lo que la fila tiene y el pase no trae → **se conserva**. Es
+        exactamente el degradado en silencio que la regla vieja evitaba;
+      · lo que la consola QUITÓ (`roles_quitados`) → **no se devuelve**.
+
+    ── Y lo que el pase nunca da: `admin` ──
+
+    El mando de los campeonatos se pone a mano aquí, mirando, igual que
+    `es_superadmin` (`OPERAR.md` §1.5). Y F4 ni siquiera ha contado todavía
+    cuántos administradores hay por organización (D3): repartir más desde
+    fuera antes de ese informe es justo lo que D3 pide no hacer. Al CREAR la
+    fila el pase sí puede traerlo, como hasta hoy.
+
+    No escribe nada para un usuario desactivado: ahí no va a entrar nadie.
+    """
+    if not usuario.activo:
+        return False
+    cerrados = set(usuario.roles) | set(usuario.roles_quitados) | {"admin"}
+    nuevos = [p for p in papeles_del_pase(claims) if p not in cerrados]
+    if not nuevos:
+        return False
+    antes = usuario.roles
+    usuario.roles = antes + nuevos
+    log.info(
+        "[ecosistema] %s suma %s desde su pase (tenía %s).",
+        usuario.email, ", ".join(nuevos), ", ".join(antes),
+    )
+    return True
 
 
 def club_del_pase(claims, pase):
@@ -169,7 +237,14 @@ def resolver_espejo(claims, pase=None):
 
     usuario = Usuario.query.filter_by(eco_sub=sub).first()
     if usuario:
+        # Primero los papeles y después el club: si el pase lo acaba de hacer
+        # maestro, esa misma entrada ya le trae su dojang.
+        _sumar_papeles_del_pase(usuario, claims)
         _asegurar_club(usuario, claims, pase)
+        # Sin esto, lo que se acaba de sumar —y el club que se le puso— se
+        # descartaba al terminar la petición: nadie hacía `commit` aquí.
+        if db.session.dirty:
+            db.session.commit()
         return usuario, None
 
     usuario = Usuario.query.filter_by(email=email).first()
@@ -187,6 +262,7 @@ def resolver_espejo(claims, pase=None):
             )
             return None, "correo_ocupado"
         usuario.eco_sub = sub
+        _sumar_papeles_del_pase(usuario, claims)
         _asegurar_club(usuario, claims, pase)
         db.session.commit()
         log.info("[ecosistema] %s enlazado con su cuenta del ecosistema.", email)
@@ -203,6 +279,9 @@ def resolver_espejo(claims, pase=None):
         eco_sub=sub,
         activo=True,
     )
+    # Con TODOS los papeles del pase, no solo el principal: el maestro que
+    # además juzga nace pudiendo juzgar, sin que nadie tenga que marcarlo.
+    usuario.roles = [rol, *papeles_del_pase(claims)]
     # Una contraseña que nadie conoce ni puede adivinar: el espejo no se abre
     # con contraseña, se abre con el pase. La columna es NOT NULL, así que
     # dejarla vacía no es opción — y un valor fijo sería una llave maestra.

@@ -449,6 +449,9 @@ def register():
     # `pais_delegacion`. La delegación suelta del cuerpo (clientes antiguos) ya
     # viene doblada dentro de la lista, ver `_validar_clubes`.
     new_user.clubes = clubes if rol == "maestro" else []
+    # Por la lista, igual que los clubes (F2): el setter escribe `rol` y
+    # `puede_juzgar`, y así no hay dos verdades desde el primer día.
+    new_user.roles = [rol, "juez"] if puede_juzgar else [rol]
     new_user.set_password(password)
     db.session.add(new_user)
     db.session.commit()
@@ -653,6 +656,11 @@ def update_user(user_id):
 
     data = request.get_json() or {}
 
+    # Lo que era antes de tocar nada: al final se compara, para saber qué
+    # papeles QUITÓ esta edición y que el pase no se los devuelva (F2).
+    rol_antes = user.rol
+    papeles_antes = user.roles
+
     if data.get("nombre"):
         user.nombre = mayusculas(data["nombre"].strip())
 
@@ -743,6 +751,37 @@ def update_user(user_id):
     # trae clubes se quedaría sin ninguno, y no podría inscribir a nadie.
     if user.rol == "maestro" and not user.clubes:
         return jsonify({"error": "El club es obligatorio para un maestro"}), 400
+
+    # ── Los papeles, por la lista (F2) ──────────────────────────────────────
+    #
+    # Todo lo de arriba sigue escribiendo `rol` y `puede_juzgar` como siempre,
+    # porque esta pantalla solo sabe de esas dos cosas. Aquí se pasa a la lista:
+    # lo que esta pantalla CONTROLA sale de esas columnas, y lo que no controla
+    # —el `competidor` que trajo el pase, el juez de un administrador— se
+    # conserva. Una edición del nombre no le puede quitar a nadie un papel que
+    # esta pantalla ni siquiera enseña.
+    controlados = Usuario._papeles_de_columnas(user.rol, user.puede_juzgar)
+    if user.rol != rol_antes:
+        # Cambiar el principal ya resetea el permiso de juez (arriba); de lo
+        # demás solo sobrevive competir, que no depende de ningún rol.
+        conservados = [p for p in papeles_antes if p == "competidor"]
+    else:
+        conservados = [
+            p for p in papeles_antes
+            if p != user.rol and not (p == "juez" and user.rol == "maestro")
+        ]
+    quitados, _ = user.fijar_papeles_a_mano(
+        controlados + conservados, antes=papeles_antes
+    )
+    if quitados:
+        # «Con nombre y apellidos de quien lo quita» (D2): lo que la consola
+        # quita ya no lo devuelve el pase, así que tiene que quedar dicho quién.
+        from flask import current_app
+
+        current_app.logger.info(
+            "[papeles] %s le quita %s a %s.",
+            current_user.email, ", ".join(quitados), user.email,
+        )
 
     db.session.commit()
     return jsonify({

@@ -464,7 +464,8 @@ def _con_identidades(paquete):
 
 def test_el_paquete_reserva_sitio_para_la_identidad(paquete):
     """Aunque el origen no tenga ninguna, la clave viaja y la versión sube."""
-    assert paquete["version"] == 2
+    # 3 desde F2, que añadió `roles` (F6-b). La 2 es la de `eco_sub`.
+    assert paquete["version"] >= 2
     assert all("eco_sub" in u for u in paquete["usuarios"])
 
 

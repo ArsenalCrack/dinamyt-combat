@@ -56,7 +56,7 @@ from ..models.competidor import (
 )
 from ..models.llave import Llave
 from ..models.tatami import Tatami
-from ..models.usuario import Usuario
+from ..models.usuario import PAPELES, Usuario, ordenar_papeles
 from ..timeutil import iso_utc
 from ..uid import asegurar_uid, nuevo_uid
 from ..ultima_bajada import anotar as anotar_bajada, estado as estado_bajada
@@ -78,7 +78,10 @@ FORMATOS_VALIDOS = (FORMATO_CAMPEONATO, FORMATO_USUARIOS, FORMATO_COMPETIDORES)
 # —uno exportado antes de esta fase, o por una instalación que aún no se ha
 # actualizado— se importa igual, con la identidad en blanco. Eso importa el 9
 # de octubre: ese día el paquete que haya es el que hay.
-VERSION_PAQUETE = 2
+# 3 desde F2 (F6-b): los usuarios viajan con `roles`, la lista de papeles. Un
+# paquete de la 2 o de la 1 se importa igual: sin `roles`, la lista sale de
+# `rol` + `puede_juzgar`, que es lo que ya traían.
+VERSION_PAQUETE = 3
 
 # Tope del archivo subido (25 MB). Un campeonato de 1000 competidores con sus
 # llaves ronda los 3 MB; más que esto no es un paquete de DINAMYT.
@@ -132,6 +135,9 @@ def _usuario_a_dict(u):
         "delegacion": u.delegacion,
         "pais_delegacion": u.pais_delegacion,
         "puede_juzgar": bool(u.puede_juzgar),
+        # Todos sus papeles (F2). `rol` y `puede_juzgar` siguen viajando para
+        # la instalación que todavía no sabe leer la lista.
+        "roles": u.roles,
         "activo": bool(u.activo),
     }
 
@@ -472,6 +478,23 @@ def _fecha_de(valor):
         return None
 
 
+def _papeles_del_paquete(crudos, rol):
+    """Los papeles que trae el paquete para ese usuario, o None si no trae.
+
+    El principal lo decide `rol`, que es lo que valida el resto del importador:
+    un papel por encima de él no se acepta, y `admin` nunca, porque una
+    importación no crea administradores. Si la lista no lo nombra, se le añade.
+    """
+    if not isinstance(crudos, list):
+        return None
+    tope = PAPELES.index(rol)
+    papeles = [
+        p for p in ordenar_papeles(crudos)
+        if p != "admin" and PAPELES.index(p) >= tope
+    ]
+    return ordenar_papeles([rol, *papeles])
+
+
 def _enlazar_eco_sub(local, eco_sub, informe):
     """Pega la identidad del ecosistema a la fila local. Sin pisar ninguna.
 
@@ -627,6 +650,15 @@ def _importar_usuarios(lista, admin, informe):
         local.puede_juzgar = bool(datos.get("puede_juzgar")) if rol == "maestro" else False
         if podia_juzgar and not local.puede_juzgar and local.id is not None:
             AsignacionJuez.query.filter_by(usuario_id=local.id).delete()
+
+        # La lista de papeles, si el paquete la trae (F2). Uno viejo no la trae
+        # y la fila contesta desde `rol` + `puede_juzgar`, como siempre.
+        papeles = _papeles_del_paquete(datos.get("roles"), rol)
+        if papeles:
+            juzgaba = local.puede_ser_juez
+            local.roles = papeles
+            if juzgaba and not local.puede_ser_juez and local.id is not None:
+                AsignacionJuez.query.filter_by(usuario_id=local.id).delete()
 
         _enlazar_eco_sub(local, eco_sub, informe)
 
