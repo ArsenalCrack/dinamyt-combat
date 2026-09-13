@@ -12,7 +12,7 @@
 > | **F1** | ✅ **hecha** | El pase lleva `roles_campeonatos` además de `role_campeonatos`, y el portal tiene casillas para marcarlos. Con dos cambios sobre lo escrito: ver la nota dentro de F1 |
 > | **F2** + **F6-b** | ✅ **hecha** | Campeonatos guarda y lee varios papeles, el pase los SUMA a quien ya estaba, y lo que quita la consola se recuerda. El paquete lleva `roles`. Con una contradicción del plan resuelta: ver la nota dentro de F2 |
 >
-> | **F3** | 🟡 **en marcha** | Parte 1 hecha: las lecturas del personal ya no las ve quien solo compite, y se cerró un hueco que existía HOY. El panel espera una decisión: ver «Los resultados no están enlazados a nadie» dentro de F3 |
+> | **F3** | 🟡 **en marcha** | Partes 1 y 2 hechas: las lecturas del personal ya no las ve quien solo compite (y se cerró un hueco que existía HOY), y las llaves que se generan desde hoy saben de quién es cada resultado. Falta la parte que abre la puerta: la ficha enlazada a la cuenta, el alumno entra y su panel |
 >
 > Los carriles A y B están cerrados y el C va por la mitad. **F3** —el panel
 > del competidor— es la primera fase que se VE. Todo el carril C tiene que
@@ -694,9 +694,41 @@ cara al producto**, y por eso va sola.
 > | **A · Por nombre y club** | El panel busca los resultados comparando el texto | Sale ya, y trae TODO el histórico | Homónimos y nombres corregidos dan resultados de otro, o ninguno |
 > | **B · Enlace desde hoy + nombre para lo viejo** | Las llaves que se generen desde ahora guardan el `uid` de la ficha; lo anterior se busca por nombre y se enseña marcado «sin confirmar» | Lo nuevo es exacto, lo viejo se ve y se dice que es aproximado | Toca cómo se generan las llaves a menos de un mes del campeonato |
 >
-> **Pendiente de decidir.** Lo demás de F3 —la ficha enlazada a la cuenta, el
-> espejo del competidor, sus inscripciones, el botón del portal— no depende de
-> esto, pero se despliega junto: es lo que abre la puerta.
+> **Decidido el 13 de septiembre de 2026: B.** Lo nuevo exacto, lo viejo por
+> nombre y avisando.
+>
+> **Parte 2 · el enlace, hecha el mismo día.** Lo que la opción B exigía
+> comprobar primero —que el motor, el socket y el PDF ignoran el campo nuevo—
+> salió bien: todo lo que LEE una llave mira solo `nombre` y `club`. Lo que
+> perdía el enlace eran los sitios que REHACEN al competidor, y eran cinco:
+>
+> - **La generación automática ya lo tenía y lo tiraba.** La sección lleva
+>   `competidor_id` (`campeonatos.py`), y tres líneas después se construía la
+>   llave con nombre y club. Ahora lleva `competidor_uid` —el uid, no el id: es
+>   el que no cambia entre la instalación local y la de internet—.
+> - **`_comp_estructura`**, **combinar** y **mover** lo conservan
+>   (`_comp_plano`). Los partidos guardan el mismo competidor, así que el
+>   podio lo hereda sin tocar el avance del cuadro.
+> - **Editar** una llave regenera el cuadro con la lista que manda el
+>   formulario, que solo trae nombres: sin arreglo, añadir UN competidor le
+>   quitaba el enlace a todos. `_conservar_enlaces` se lo devuelve por nombre y
+>   club — **y con dos homónimos de fichas distintas no adivina**: ninguno lo
+>   recupera.
+> - **Figuras:** el servidor pone el enlace al cargar el grupo en el motor
+>   (`_competidores_de_llave_a_figuras`), y el ranking lo hereda. **No viaja en
+>   el evento**: el motor no lo lee del cliente, así que nadie puede colgarle un
+>   resultado a la ficha de otra persona. Hay prueba de eso.
+>
+> **Lo que no enseña el uid:** `podio_llave` solo lo añade con `con_uid=True`,
+> porque alimenta los resultados PÚBLICOS; y el ranking público de figuras ya
+> elige campo a campo. Una llave hecha a mano y los combates sueltos siguen
+> sin enlace —no hay ficha que enlazar— y el panel los buscará por nombre,
+> marcados «sin confirmar». El uid sí viaja dentro del estado del tatami, que
+> ven las pantallas: es un valor opaco que no identifica a nadie sin la consola.
+>
+> **Falta (parte 3), y se despliega junta porque es lo que abre la puerta:** la
+> ficha enlazada a la cuenta, el espejo del competidor, `/api/mi/*`, el panel,
+> el botón del portal y el filtro de `/admin`.
 
 1. **Enlazar la persona con el atleta.** `competidores.eco_sub` (nullable,
    indexada) + `competidores.usuario_id`. Sin esto el panel no sabe qué filas son
