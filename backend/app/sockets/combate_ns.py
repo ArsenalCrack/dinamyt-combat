@@ -417,6 +417,32 @@ def _pareja_llave_coincide(ts):
     )
 
 
+def _competidores_de_llave_a_figuras(estado, comps):
+    """Carga en el motor de figuras los competidores de una llave.
+
+    El enlace con la ficha (`competidor_uid`, F3 de PLAN-CAMPEONATOS) se pone
+    AQUÍ, desde el servidor, y a propósito no viaja dentro del evento: el motor
+    no lo lee de `ev`, así que un cliente que mande `agregar_competidor` no
+    puede colgarle un resultado a la ficha de otra persona. Desde aquí llega
+    solo al ranking, que copia el competidor entero.
+    """
+    for c in comps:
+        antes = len(estado["competidores"])
+        aplicar_evento_figuras(estado, {
+            "accion": "agregar_competidor",
+            "nombre": c.get("nombre"),
+            "club": c.get("club", ""),
+            # Categoría especial marcada en el competidor: el motor de
+            # figuras le da 1er puesto sin afectar el ranking normal.
+            "especial": bool(c.get("especial")),
+        })
+        # Solo si el motor lo AÑADIÓ (un nombre vacío o el tope de 50 lo
+        # descartan): si no, el uid iría a parar al competidor anterior.
+        if c.get("competidor_uid") and len(estado["competidores"]) > antes:
+            estado["competidores"][-1]["competidor_uid"] = c["competidor_uid"]
+    return estado
+
+
 def _competidores_con_nombre(estado):
     hong = (estado.get("nombreHong") or "").strip()
     chung = (estado.get("nombreChung") or "").strip()
@@ -1403,15 +1429,7 @@ class CombateNamespace(Namespace):
         nuevo["nombre_categoria"] = nombre_cat
         nuevo["descripcion"] = llave.descripcion or ""
         comps = (llave.estructura or {}).get("competidores", [])
-        for c in comps:
-            aplicar_evento_figuras(nuevo, {
-                "accion": "agregar_competidor",
-                "nombre": c.get("nombre"),
-                "club": c.get("club", ""),
-                # Categoría especial marcada en el competidor: el motor de
-                # figuras le da 1er puesto sin afectar el ranking normal.
-                "especial": bool(c.get("especial")),
-            })
+        _competidores_de_llave_a_figuras(nuevo, comps)
 
         ts["categoria_activa"] = "figuras"
         ts["nombre_categoria"] = nombre_cat

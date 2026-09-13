@@ -55,6 +55,12 @@ def _comp_estructura(idx, c):
     comp = {"id": idx + 1, "nombre": c["nombre"], "club": c.get("club") or ""}
     if c.get("especial"):
         comp["especial"] = True
+    # El enlace con la ficha, cuando lo hay (llaves generadas desde F3). Lo que
+    # lee una llave —el cuadro, el PDF, el socket, los reportes— solo mira
+    # `nombre` y `club`, así que un campo más no le cambia nada a nadie. Los
+    # partidos guardan este mismo diccionario, así que el podio lo hereda.
+    if c.get("competidor_uid"):
+        comp["competidor_uid"] = c["competidor_uid"]
     return comp
 
 
@@ -262,12 +268,17 @@ def registrar_resultado(estructura, ronda_idx, partido_idx, ganador):
     return estructura
 
 
-def podio_llave(estructura):
+def podio_llave(estructura, con_uid=False):
     """
     Podio de una llave de eliminación a partir del cuadro:
     1° campeón · 2° finalista perdedor · 3° ganador del partido por el bronce
     (un único tercer puesto, disputado entre los perdedores de semifinales).
     Retorna [] si todavía no hay campeón.
+
+    `con_uid` añade el uid de la ficha de cada puesto, cuando lo hay. Apagado
+    por defecto A PROPÓSITO: este podio alimenta los resultados PÚBLICOS, y el
+    uid es interno (`app/uid.py`). Solo lo pide quien necesita saber de quién
+    es cada puesto: el panel del competidor.
     """
     estructura = estructura or {}
     rondas = estructura.get("rondas") or []
@@ -275,7 +286,10 @@ def podio_llave(estructura):
         return []
 
     def _comp(c, puesto):
-        return {"puesto": puesto, "nombre": c.get("nombre", "-"), "club": c.get("club", "")}
+        item = {"puesto": puesto, "nombre": c.get("nombre", "-"), "club": c.get("club", "")}
+        if con_uid and c.get("competidor_uid"):
+            item["competidor_uid"] = c["competidor_uid"]
+        return item
 
     podio = []
     final = rondas[-1][0] if rondas[-1] else None
@@ -545,6 +559,7 @@ def editar(llave_id):
         )
         nuevos = sorted((c["nombre"], c.get("club") or "") for c in competidores)
         if nuevos != actuales:
+            _conservar_enlaces(competidores, llave.estructura)
             llave.estructura = (
                 generar_estructura_figuras(competidores) if tipo == "figuras"
                 else generar_estructura(competidores)
@@ -903,15 +918,55 @@ def eliminar(llave_id):
 #   no corromper resultados ya disputados)
 # ══════════════════════════════════════════════════════════════════
 
+def _comp_plano(c):
+    """Un competidor de una estructura, listo para volver a sortearse.
+
+    Conserva el enlace con su ficha: combinar y mover re-sortean el cuadro, y
+    si el uid se quedara por el camino, el resultado de esa llave volvería a no
+    ser de nadie.
+    """
+    d = {"nombre": c.get("nombre", ""), "club": c.get("club") or ""}
+    if c.get("especial"):
+        d["especial"] = True
+    if c.get("competidor_uid"):
+        d["competidor_uid"] = c["competidor_uid"]
+    return d
+
+
 def _comps_planos(estructura):
-    """Competidores de una estructura como lista plana {nombre, club, especial}."""
-    out = []
+    """Competidores de una estructura como lista plana {nombre, club, especial, uid}."""
+    return [_comp_plano(c) for c in (estructura or {}).get("competidores", [])]
+
+
+def _conservar_enlaces(nuevos, estructura):
+    """Devuelve a cada competidor editado el uid que ya tenía en la llave.
+
+    El formulario de edición solo manda nombres y clubes, y cambiar la lista
+    regenera la llave entera: sin esto, añadir UN competidor le quitaba el
+    enlace a todos los demás.
+
+    Se empareja por nombre y club. Si en la llave había dos homónimos con fichas
+    distintas, **no se adivina**: ninguno de los dos recupera el enlace, porque
+    colgarle un resultado a la persona equivocada es peor que no colgarlo.
+    """
+    def clave(c):
+        return (str(c.get("nombre", "")).strip().lower(),
+                str(c.get("club", "") or "").strip().lower())
+
+    por_clave, ambiguos = {}, set()
     for c in (estructura or {}).get("competidores", []):
-        d = {"nombre": c.get("nombre", ""), "club": c.get("club") or ""}
-        if c.get("especial"):
-            d["especial"] = True
-        out.append(d)
-    return out
+        uid = c.get("competidor_uid")
+        if not uid:
+            continue
+        k = clave(c)
+        if k in por_clave and por_clave[k] != uid:
+            ambiguos.add(k)
+        por_clave[k] = uid
+    for c in nuevos:
+        k = clave(c)
+        if k in por_clave and k not in ambiguos:
+            c["competidor_uid"] = por_clave[k]
+    return nuevos
 
 
 def _regenerar(tipo, competidores):
@@ -1061,14 +1116,9 @@ def mover_competidor():
     restantes = []
     for c in (origen.estructura or {}).get("competidores", []):
         if c.get("id") == competidor_id:
-            comp_mover = {"nombre": c.get("nombre", ""), "club": c.get("club") or ""}
-            if c.get("especial"):
-                comp_mover["especial"] = True
+            comp_mover = _comp_plano(c)
         else:
-            d = {"nombre": c.get("nombre", ""), "club": c.get("club") or ""}
-            if c.get("especial"):
-                d["especial"] = True
-            restantes.append(d)
+            restantes.append(_comp_plano(c))
     if not comp_mover:
         return jsonify({"error": "Competidor no encontrado en la llave de origen"}), 404
 

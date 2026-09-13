@@ -477,6 +477,9 @@ def _secciones_con_inscritos(camp):
             seccion["competidores"].append({
                 "inscripcion_id": ins.id,
                 "competidor_id": comp.id,
+                # El que viaja: el id cambia entre la instalación local y la
+                # de internet, el uid no (ver `app/uid.py`).
+                "competidor_uid": comp.uid,
                 "nombre": comp.nombre_completo,
                 "club": comp.club or "",
                 "edad": edad,
@@ -608,8 +611,20 @@ def generar_llaves_auto(camp_id):
                 continue
             db.session.delete(anterior)
 
+        # ── El enlace con la ficha (F3 de PLAN-CAMPEONATOS) ──
+        #
+        # La sección SÍ sabía de quién era cada competidor, y aquí se tiraba:
+        # la llave se quedaba con nombre y club, y ningún resultado apuntaba a
+        # nadie. «Mis resultados» solo se podía sacar comparando texto, que
+        # falla con dos homónimos o con un nombre corregido. Desde hoy, cada
+        # competidor de una llave generada lleva el uid de su ficha.
         competidores = [
-            {"nombre": c["nombre"], "club": c["club"], "especial": c.get("especial", False)}
+            {
+                "nombre": c["nombre"],
+                "club": c["club"],
+                "especial": c.get("especial", False),
+                "competidor_uid": c.get("competidor_uid"),
+            }
             for c in s["competidores"]
         ]
         estructura = (
