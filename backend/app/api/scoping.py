@@ -59,6 +59,36 @@ def require_maestro():
     return user
 
 
+# ── El personal del campeonato (F3 de PLAN-CAMPEONATOS) ─────────────────────
+#
+# Hasta F3, «tener sesión aquí» y «ser personal» eran lo mismo: el pase de un
+# alumno no creaba fila, así que dentro solo había administradores, maestros y
+# jueces. Por eso muchas lecturas se escribieron con `usuario_actual()` a secas,
+# filtrando solo si era admin: todo el que llegaba era de la casa.
+#
+# F3 deja entrar al competidor, y desde ese momento esa suposición es falsa.
+# Esta guarda es la que devuelve cada lectura del personal a quien era suya.
+PERSONAL = ("admin", "maestro", "juez")
+SOLO_PERSONAL = "Solo el personal del campeonato."
+
+
+def require_personal():
+    """Usuario activo cuyo papel PRINCIPAL opera la consola, o None.
+
+    Por el principal y no por `tiene_rol`: el competidor que además es juez
+    tiene «juez» de principal (competir es el papel de menos rango), así que
+    entra igual. Quien SOLO compite, no.
+
+    Para todo el que tenía sesión antes de F3 da exactamente lo mismo que no
+    tener guarda — eran todos personal —, salvo para un usuario desactivado,
+    que deja de leer lo que ya no debería leer.
+    """
+    user = usuario_actual()
+    if not user or not user.activo or user.rol not in PERSONAL:
+        return None
+    return user
+
+
 def workspace_owner_id(user):
     """Id del admin dueño del workspace del usuario.
 

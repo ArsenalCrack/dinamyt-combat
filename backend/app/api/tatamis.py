@@ -13,7 +13,7 @@ from ..models.usuario import Usuario
 from ..models.tatami import Tatami
 from ..models.asignacion import AsignacionJuez
 from .auth import mayusculas
-from .scoping import es_dueno_campeonato, es_dueno_usuario, usuario_actual
+from .scoping import SOLO_PERSONAL, require_personal, es_dueno_campeonato, es_dueno_usuario, usuario_actual
 
 tatamis_bp = Blueprint("tatamis", __name__)
 
@@ -50,8 +50,10 @@ def listar_por_campeonato(camp_id):
     """GET /api/tatamis/campeonato/:camp_id — Lista tatamis de un campeonato."""
     from ..models.campeonato import Campeonato
 
-    user = usuario_actual()
-    if user and user.rol == "admin":
+    user = require_personal()
+    if not user:
+        return jsonify({"error": SOLO_PERSONAL}), 403
+    if user.rol == "admin":
         camp = Campeonato.query.get(camp_id)
         if not camp or not es_dueno_campeonato(user, camp):
             return jsonify({"error": "Campeonato no encontrado"}), 404
@@ -63,8 +65,11 @@ def listar_por_campeonato(camp_id):
 @jwt_required()
 def obtener(tatami_id):
     """GET /api/tatamis/:id — Obtener tatami con asignaciones."""
+    user = require_personal()
+    if not user:
+        return jsonify({"error": SOLO_PERSONAL}), 403
     tatami = Tatami.query.get_or_404(tatami_id)
-    if _tatami_fuera_de_workspace(usuario_actual(), tatami):
+    if _tatami_fuera_de_workspace(user, tatami):
         return jsonify({"error": "Tatami no encontrado"}), 404
     data = tatami.to_dict()
 

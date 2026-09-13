@@ -11,6 +11,8 @@ from ..models.campeonato import ESTADOS_CAMPEONATO, Campeonato
 from ..models.tatami import Tatami
 from .auth import mayusculas
 from .scoping import (
+    SOLO_PERSONAL,
+    require_personal,
     es_dueno_campeonato,
     filtrar_campeonatos,
     require_admin as _require_admin,
@@ -97,11 +99,13 @@ def listar_publico():
 @jwt_required()
 def obtener(camp_id):
     """GET /api/campeonatos/:id — Obtener un campeonato con tatamis."""
+    user = require_personal()
+    if not user:
+        return jsonify({"error": SOLO_PERSONAL}), 403
     camp = Campeonato.query.get_or_404(camp_id)
-    user = usuario_actual()
     # Un admin solo ve los campeonatos de su workspace (404: no revelar).
     # Los jueces conservan lectura (su flujo no navega por campeonatos).
-    if user and user.rol == "admin" and not es_dueno_campeonato(user, camp):
+    if user.rol == "admin" and not es_dueno_campeonato(user, camp):
         return jsonify({"error": "Campeonato no encontrado"}), 404
     return jsonify(camp.to_dict(include_tatamis=True)), 200
 

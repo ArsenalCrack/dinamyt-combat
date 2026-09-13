@@ -20,7 +20,7 @@ from ..models.campeonato import Campeonato
 from ..models.tatami import Tatami
 from ..models.llave import Llave
 from ..filei18n import trad, idioma_request
-from .scoping import es_dueno_campeonato, usuario_actual
+from .scoping import SOLO_PERSONAL, require_personal, es_dueno_campeonato, usuario_actual
 
 llaves_bp = Blueprint("llaves", __name__)
 
@@ -571,8 +571,10 @@ def _con_numero_tatami(llaves):
 @jwt_required()
 def listar_por_campeonato(camp_id):
     """GET /api/llaves/campeonato/:id — Llaves de un campeonato."""
-    user = usuario_actual()
-    if user and user.rol == "admin":
+    user = require_personal()
+    if not user:
+        return jsonify({"error": SOLO_PERSONAL}), 403
+    if user.rol == "admin":
         camp = Campeonato.query.get(camp_id)
         if not camp or not es_dueno_campeonato(user, camp):
             return jsonify({"error": "Campeonato no encontrado"}), 404
@@ -591,6 +593,10 @@ def listar_por_tatami(tatami_id):
     GET /api/llaves/tatami/:id — Llaves asignadas a un tatami, con el
     siguiente combate sugerido (lo usa el panel del Juez Central).
     """
+    # El panel del tatami es de jueces: la guarda los deja pasar a todos.
+    user = require_personal()
+    if not user:
+        return jsonify({"error": SOLO_PERSONAL}), 403
     llaves = (
         Llave.query.filter_by(tatami_id=tatami_id)
         .order_by(Llave.created_at.asc())
@@ -609,8 +615,11 @@ def listar_por_tatami(tatami_id):
 @jwt_required()
 def obtener(llave_id):
     """GET /api/llaves/:id — Detalle de una llave."""
+    user = require_personal()
+    if not user:
+        return jsonify({"error": SOLO_PERSONAL}), 403
     llave = Llave.query.get_or_404(llave_id)
-    if _llave_fuera_de_workspace(usuario_actual(), llave):
+    if _llave_fuera_de_workspace(user, llave):
         return jsonify({"error": "Llave no encontrada"}), 404
     return jsonify(_con_numero_tatami([llave])[0]), 200
 

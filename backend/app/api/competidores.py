@@ -295,11 +295,15 @@ def listar():
     q = (request.args.get("q") or "").strip()
     include_inactivos = request.args.get("include_inactivos") in ("1", "true")
 
-    # Workspace: un admin solo ve los competidores que él registró.
-    user = usuario_actual()
-    query = Competidor.query
-    if user and user.rol == "admin":
-        query = filtrar_competidores(user, query)
+    # Solo el administrador, y de su workspace. Antes filtraba SOLO si era
+    # admin: cualquier otra sesión —un maestro, un juez— recibía TODAS las
+    # fichas de todos los workspaces, con documento y fecha de nacimiento. La
+    # única pantalla que la usa es /admin, y con F3 esa otra sesión podría ser
+    # la de cualquier alumno.
+    user = _require_admin()
+    if not user:
+        return jsonify({"error": "Solo administradores"}), 403
+    query = filtrar_competidores(user, Competidor.query)
     if not include_inactivos:
         query = query.filter_by(activo=True)
     if q:
@@ -712,9 +716,14 @@ def listar_inscripciones(camp_id):
     """
     from ..models.competidor import ESTADOS_INSCRIPCION
 
+    # Solo el administrador del campeonato: cada inscripción lleva la ficha
+    # entera del competidor. Mismo hueco y mismo motivo que `listar`, y la
+    # guarda va ANTES de buscar el campeonato, para no confirmar que existe.
+    user = _require_admin()
+    if not user:
+        return jsonify({"error": "Solo administradores"}), 403
     camp = Campeonato.query.get_or_404(camp_id)
-    user = usuario_actual()
-    if user and user.rol == "admin" and not es_dueno_campeonato(user, camp):
+    if not es_dueno_campeonato(user, camp):
         return jsonify({"error": "Campeonato no encontrado"}), 404
     query = Inscripcion.query.filter_by(campeonato_id=camp_id)
     estado = request.args.get("estado")
