@@ -12,9 +12,10 @@
 > | **F1** | ✅ **hecha** | El pase lleva `roles_campeonatos` además de `role_campeonatos`, y el portal tiene casillas para marcarlos. Con dos cambios sobre lo escrito: ver la nota dentro de F1 |
 > | **F2** + **F6-b** | ✅ **hecha** | Campeonatos guarda y lee varios papeles, el pase los SUMA a quien ya estaba, y lo que quita la consola se recuerda. El paquete lleva `roles`. Con una contradicción del plan resuelta: ver la nota dentro de F2 |
 >
-> Los carriles A y B están cerrados y el C va por la mitad. Lo siguiente es
-> **F3** —el panel del competidor—, que es la primera fase que se VE: hasta
-> aquí, de cara al usuario, casi nada ha cambiado. Todo el carril C tiene que
+> | **F3** | 🟡 **en marcha** | Parte 1 hecha: las lecturas del personal ya no las ve quien solo compite, y se cerró un hueco que existía HOY. El panel espera una decisión: ver «Los resultados no están enlazados a nadie» dentro de F3 |
+>
+> Los carriles A y B están cerrados y el C va por la mitad. **F3** —el panel
+> del competidor— es la primera fase que se VE. Todo el carril C tiene que
 > estar dentro **antes del ensayo del ~26 de septiembre**.
 >
 > **⏱ Fecha límite: el 8 de octubre de 2026.** Hay campeonato el 9, 10 y 11 y
@@ -638,10 +639,64 @@ verdades que puedan discrepar (`models/usuario.py`). Los roles se hacen igual.
 
 ---
 
-## F3 · El alumno entra: el panel del competidor
+## F3 · El alumno entra: el panel del competidor — 🟡 en marcha
 
 **Dónde:** `dinamyt-combat` (backend + frontend). **Es la fase que le cambia la
 cara al producto**, y por eso va sola.
+
+> **Parte 1 · la puerta, hecha el 13 de septiembre de 2026.** El aviso del
+> final de esta fase —*«antes de desplegar F3 hay que repasar los endpoints uno
+> a uno»*— se hizo PRIMERO, porque dejar entrar al alumno sin haberlo hecho es
+> abrir la puerta antes de mirar qué hay detrás. Salió del grafo
+> (`graphify affected "usuario_actual"`) y de un inventario de las 77 rutas con
+> la guarda de cada una:
+>
+> | Lectura | Qué dejaba ver a una sesión que no fuera admin | Quién la usa | Ahora |
+> |---|---|---|---|
+> | `GET /api/competidores` | **Todas las fichas de todos los workspaces, con documento y fecha de nacimiento** | solo `/admin` | solo admin, su workspace |
+> | `GET /api/inscripciones/campeonato/:id` | Las inscripciones con la ficha entera | solo `/admin` | solo admin, su campeonato |
+> | `GET /api/campeonatos/:id` | El campeonato con tatamis y categorías | solo `/admin` | personal |
+> | `GET /api/llaves/campeonato/:id`, `/llaves/:id` | Las llaves completas | `/admin` | personal |
+> | `GET /api/llaves/tatami/:id` | Las llaves del tatami (sin guarda) | panel del juez | personal |
+> | `GET /api/tatamis/campeonato/:id`, `/tatamis/:id` | Tatamis y quién los juzga | `/admin` | personal |
+> | `GET /api/combates/*` | El historial de combates (sin guarda) | nadie | personal |
+>
+> **Las dos primeras filas eran un hueco YA, no en F3.** Un maestro o un juez
+> con sesión recibía las fichas de todos los clubes de todos los
+> administradores. Nadie lo notó porque ninguna pantalla suya las pide.
+>
+> Revisado y sin cambios: ningún `to_dict` enseña el PIN de un tatami; el
+> socket del tatami exige asignación para actuar de juez; categorías y la
+> plantilla de Excel no llevan datos de nadie; `GET /api/campeonatos` ya filtra
+> por workspace a todo el mundo. «Personal» es `require_personal()` en
+> `scoping.py`: papel principal admin, maestro o juez, y activo — para
+> cualquiera que tuviera sesión antes de F3 da lo mismo que no tener guarda,
+> salvo un usuario dado de baja, que deja de leer.
+>
+> ### Los resultados no están enlazados a nadie — y eso decide el panel
+>
+> Al ir a construir «mis resultados» (punto 4), el grafo enseñó que **ningún
+> resultado apunta a una ficha**:
+>
+> - `Llave.estructura` guarda a cada competidor como `{id, nombre, club}`, y ese
+>   `id` es **la posición dentro de la llave**, no el competidor
+>   (`api/llaves.py:55`, `api/campeonatos.py:476`).
+> - El ranking de figuras y los combates sueltos guardan **solo nombres**
+>   (`_construir_resultados` en `api/resultados.py`).
+>
+> O sea que «mis podios», «mis estadísticas» —y la promesa de D5 de que el
+> historial queda colgando de la ficha— **hoy solo se pueden sacar comparando
+> nombre y club**. Eso falla con dos homónimos en un campeonato y con cualquier
+> nombre corregido después. Las dos salidas, por orden de coste:
+>
+> | | Qué es | Lo bueno | Lo malo |
+> |---|---|---|---|
+> | **A · Por nombre y club** | El panel busca los resultados comparando el texto | Sale ya, y trae TODO el histórico | Homónimos y nombres corregidos dan resultados de otro, o ninguno |
+> | **B · Enlace desde hoy + nombre para lo viejo** | Las llaves que se generen desde ahora guardan el `uid` de la ficha; lo anterior se busca por nombre y se enseña marcado «sin confirmar» | Lo nuevo es exacto, lo viejo se ve y se dice que es aproximado | Toca cómo se generan las llaves a menos de un mes del campeonato |
+>
+> **Pendiente de decidir.** Lo demás de F3 —la ficha enlazada a la cuenta, el
+> espejo del competidor, sus inscripciones, el botón del portal— no depende de
+> esto, pero se despliega junto: es lo que abre la puerta.
 
 1. **Enlazar la persona con el atleta.** `competidores.eco_sub` (nullable,
    indexada) + `competidores.usuario_id`. Sin esto el panel no sabe qué filas son
@@ -1155,7 +1210,7 @@ el puesto 2 no se puede terminar. Ver «F6 se reparte» aquí abajo.)*
 | **4** | **F7** ✅ | Encender en local con comprobaciones | Se nota el 9 a las siete de la mañana. **No toca nada de nadie**: se puede hacer en paralelo desde el primer día | — |
 | **5** | **F1** ✅ | El pase lleva varios roles (ecosystem) | Empieza el bloque de identidad. **Todo esto, dentro antes del ensayo del ~26 de septiembre** | F2 |
 | **6** | **F2** + **F6-b** ✅ | Campeonatos entiende varios roles — **y el paquete lleva `roles`** | De cara al usuario **no cambia nada**: es el andamio de F3. La columna nace aquí, así que el paquete la lleva aquí | F3 |
-| **7** | **F3** + **F6-c** | El panel del alumno + el atleta independiente — **y el paquete lleva la identidad del competidor** | Lo que multiplica por cien quién entra. Necesita ficha estable (1) y roles (6) | — |
+| **7** | **F3** + **F6-c** 🟡 | El panel del alumno + el atleta independiente — **y el paquete lleva la identidad del competidor** | Lo que multiplica por cien quién entra. Necesita ficha estable (1) y roles (6) | — |
 | **8** | **F4** + **F6-d** | La organización llega a Campeonatos — **y el paquete lleva `org_id`** | El admin único por organización. `org_id` no existe hoy en ninguna tabla (§1.3): nace aquí | F5 |
 | **9** | **F5** | Inscribirse por invitación | El admin invita clubes al campeonato | — |
 | **10** | **F8** | La subida automática de resultados | Ocurre **después** del evento, con red. Lo último que hace falta | — |
