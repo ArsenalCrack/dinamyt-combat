@@ -11,12 +11,12 @@
 > | **F7** | ✅ **hecha** | `INICIAR.bat` comprueba antes de arrancar, espera al «listo» de verdad y saca la dirección en QR. `APAGAR.bat` apaga por puerto |
 > | **F1** | ✅ **hecha** | El pase lleva `roles_campeonatos` además de `role_campeonatos`, y el portal tiene casillas para marcarlos. Con dos cambios sobre lo escrito: ver la nota dentro de F1 |
 > | **F2** + **F6-b** | ✅ **hecha** | Campeonatos guarda y lee varios papeles, el pase los SUMA a quien ya estaba, y lo que quita la consola se recuerda. El paquete lleva `roles`. Con una contradicción del plan resuelta: ver la nota dentro de F2 |
+> | **F3** + **F6-c** | ✅ **hecha** | El alumno entra a **su panel** (`/mi-panel`): inscripciones con su estado, próximos campeonatos, su maestro, resultados y números. La ficha se reclama con documento y fecha, o la enlaza el admin, y viaja en el paquete. Las lecturas del personal se cerraron antes de abrir la puerta. Con cuatro cambios sobre lo escrito: ver la nota de la parte 3 dentro de F3 |
 >
-> | **F3** | 🟡 **en marcha** | Partes 1 y 2 hechas: las lecturas del personal ya no las ve quien solo compite (y se cerró un hueco que existía HOY), y las llaves que se generan desde hoy saben de quién es cada resultado. Falta la parte que abre la puerta: la ficha enlazada a la cuenta, el alumno entra y su panel |
->
-> Los carriles A y B están cerrados y el C va por la mitad. **F3** —el panel
-> del competidor— es la primera fase que se VE. Todo el carril C tiene que
-> estar dentro **antes del ensayo del ~26 de septiembre**.
+> Los carriles A y B están cerrados, y del C quedan **F4** —la organización
+> llega a Campeonatos, con F6-d— y **F5** —inscribirse por invitación—. Todo
+> el carril C tiene que estar dentro **antes del ensayo del ~26 de
+> septiembre**; F8, la subida automática, va al final.
 >
 > **⏱ Fecha límite: el 8 de octubre de 2026.** Hay campeonato el 9, 10 y 11 y
 > **no hay «después»** (decisión D6): lo que no esté dentro para entonces, no
@@ -112,6 +112,12 @@ El mensaje que lee es honesto y hoy es verdad:
 
 **Ese mensaje es exactamente lo que el plan viene a dejar de ser verdad.**
 
+> **Y dejó de serlo el 13 de septiembre de 2026 (F3).** `competitor` y
+> `student` crean el espejo con `competidor` de principal (`rol_principal` en
+> `espejo.py`), el login lo manda a `/mi-panel`, y el portal le pone el botón
+> de entrar (`entraACampeonatos`). `sin_consola` sigue existiendo, pero ya solo
+> le llega a quien no trae NINGÚN papel de Campeonatos, y dice eso.
+
 ## 1.3 · En Campeonatos no existe la organización
 
 No hay `org_id` en ninguna tabla. Buscado: cero apariciones en `backend/app/models/`
@@ -197,6 +203,12 @@ evita. La propuesta está en F2.
 competidor significa exactamente eso, una fila por alumno. El coste que la regla
 evitaba —el listado de usuarios de la consola inundado de gente que no opera— hay
 que pagarlo o esquivarlo. Cómo, en F3.
+
+> **Cómo quedó (F3, 13 sep 2026):** esquivado, no pagado. La fila nace al
+> canjear el pase —la primera vez que la persona abre Campeonatos—, así que
+> los alumnos que nunca entran siguen sin existir aquí; y `/admin` → Jueces
+> los esconde detrás de un «+N competidores», con el buscador encontrándolos
+> igual.
 
 Lo que sí existe ya, y la primera versión de este plan no reconoció: **el portal
 no deja al alumno en el vacío.** Desde el 30 de agosto su tarjeta lleva a las
@@ -639,7 +651,7 @@ verdades que puedan discrepar (`models/usuario.py`). Los roles se hacen igual.
 
 ---
 
-## F3 · El alumno entra: el panel del competidor — 🟡 en marcha
+## F3 · El alumno entra: el panel del competidor — ✅ hecha (con F6-c)
 
 **Dónde:** `dinamyt-combat` (backend + frontend). **Es la fase que le cambia la
 cara al producto**, y por eso va sola.
@@ -726,9 +738,54 @@ cara al producto**, y por eso va sola.
 > marcados «sin confirmar». El uid sí viaja dentro del estado del tatami, que
 > ven las pantallas: es un valor opaco que no identifica a nadie sin la consola.
 >
-> **Falta (parte 3), y se despliega junta porque es lo que abre la puerta:** la
-> ficha enlazada a la cuenta, el espejo del competidor, `/api/mi/*`, el panel,
-> el botón del portal y el filtro de `/admin`.
+> **Parte 3 · la puerta abierta, hecha el mismo 13 de septiembre.** Se
+> despliega junta porque es lo que abre la puerta: la ficha enlazada a la
+> cuenta, el espejo del competidor, `/api/mi/*`, el panel, el botón del portal
+> y el filtro de `/admin`. Los siete puntos de abajo están, con **cuatro
+> cambios sobre lo escrito** — los cuatro por leer el código:
+>
+> - **Solo `competidores.eco_sub`, sin `usuario_id`.** El id de la fila cambia
+>   entre la instalación de internet y la del evento; el `sub` es el mismo en
+>   las dos y viaja en el paquete sin traducir nada (**F6-c**,
+>   `VERSION_PAQUETE` 4). Sin `unique`: una persona puede tener una ficha en
+>   cada workspace que la inscribió, y las dos son suyas.
+> - **De los tres caminos del punto 1 hay dos, más el paquete.** Reclamarla
+>   (`POST /api/mi/ficha/reclamar`: documento **y** fecha de nacimiento, cinco
+>   intentos cada quince minutos, y «no existe» contesta igual que «la fecha no
+>   cuadra») y enlazarla a mano (`PUT`/`DELETE /api/competidores/:id/cuenta`,
+>   por el correo de alguien que ya entró). **El primero —«el maestro inscribe
+>   desde el ecosistema y el alta trae el `sub`»— no tiene por dónde entrar
+>   todavía**: el maestro elige entre sus fichas (F5-bis), no entre los
+>   miembros de su club. Su sitio es F5, que es la que trae esa lista.
+> - **`/api/mi/*` levanta la red de RLS** (`rls.sin_workspace`). Un maestro que
+>   además compite tiene la ficha en el workspace de OTRO administrador: con la
+>   red puesta su panel saldría vacío en PostgreSQL — y lleno en SQLite, que es
+>   donde corren las pruebas. Lo que acota ahí es el `eco_sub` de la sesión. El
+>   mismo bloque sirve para enlazar a mano: el espejo de un competidor nace sin
+>   `creado_por_id`, y un admin normal no lo vería.
+> - **«Sin confirmar» se busca solo en los campeonatos donde esa ficha está
+>   inscrita.** Por nombre en todos sería colgarle a alguien los podios de un
+>   homónimo de otra liga. Y un puesto con el `competidor_uid` de OTRA ficha no
+>   es tuyo aunque se llame igual. Cuando en vivo no hay nada, se miran los
+>   resultados importados del modo local con el mismo `export_uuid`: el 9 de
+>   octubre es lo único que llega a internet, y sale por nombre hasta F8.
+>
+> Lo demás, como estaba escrito: el setter de `roles` acepta `competidor` solo;
+> la consola no lo reparte pero lo conserva al editar (sin eso, corregirle el
+> nombre daba 400); `/mi-panel` con inscripciones, próximos, maestro,
+> resultados y números por año y modalidad; el portal elige el botón con
+> `entraACampeonatos`; y `destinoDe` vive en un solo archivo
+> (`frontend/src/lib/destino.ts`) — eran tres copias, y la que se olvidara
+> mandaba al competidor al panel del juez.
+>
+> **El repaso de endpoints, cerrado.** El grafo (`graphify affected
+> "usuario_actual"`) enseñó dos llamadas sin guarda que la parte 1 no listó: el
+> interruptor de mantenimiento (exige superadmin) y el contexto de RLS (solo
+> fija el workspace; el competidor recibe acceso total como el juez, y lo que
+> lo acota son `require_personal` y `/api/mi/*`).
+>
+> **Al desplegar: Campeonatos ANTES que el portal.** Al revés, el botón le sale
+> al alumno y Campeonatos lo devuelve con `sin_consola`.
 
 1. **Enlazar la persona con el atleta.** `competidores.eco_sub` (nullable,
    indexada) + `competidores.usuario_id`. Sin esto el panel no sabe qué filas son
@@ -928,7 +985,7 @@ cambia. Multiplicado por cuarenta alumnos y por cada campeonato.
 
 ---
 
-## F6 · Los paquetes llevan la identidad — 🟡 F6-a hecha, el resto repartido
+## F6 · Los paquetes llevan la identidad — 🟡 F6-a, F6-b y F6-c hechas; F6-d viaja con F4
 
 **Dónde:** `dinamyt-combat/backend/app/api/sincronizacion.py`.
 
@@ -946,8 +1003,8 @@ cambia. Multiplicado por cuarenta alumnos y por cada campeonato.
 >
 > | Dato | Dónde tendría que vivir | La crea |
 > |---|---|---|
-> | `usuarios.roles` | Campeonatos | **F2** (nº 6) |
-> | `competidores.eco_sub` / `usuario_uid` | Campeonatos | **F3** (nº 7) |
+> | `usuarios.roles` | Campeonatos | **F2** (nº 6) — ✅ viaja desde el 13 sep |
+> | `competidores.eco_sub` ~~/ `usuario_uid`~~ | Campeonatos | **F3** (nº 7) — ✅ viaja desde el 13 sep. Sin `usuario_uid`: el `sub` ya es el mismo en las dos instalaciones |
 > | `org_id` | **no existe en ninguna tabla** (§1.3) | **F4** (nº 8) |
 >
 > O sea que F6 no se puede *terminar* en el puesto nº 2 — pero **sí se puede
@@ -1242,7 +1299,7 @@ el puesto 2 no se puede terminar. Ver «F6 se reparte» aquí abajo.)*
 | **4** | **F7** ✅ | Encender en local con comprobaciones | Se nota el 9 a las siete de la mañana. **No toca nada de nadie**: se puede hacer en paralelo desde el primer día | — |
 | **5** | **F1** ✅ | El pase lleva varios roles (ecosystem) | Empieza el bloque de identidad. **Todo esto, dentro antes del ensayo del ~26 de septiembre** | F2 |
 | **6** | **F2** + **F6-b** ✅ | Campeonatos entiende varios roles — **y el paquete lleva `roles`** | De cara al usuario **no cambia nada**: es el andamio de F3. La columna nace aquí, así que el paquete la lleva aquí | F3 |
-| **7** | **F3** + **F6-c** 🟡 | El panel del alumno + el atleta independiente — **y el paquete lleva la identidad del competidor** | Lo que multiplica por cien quién entra. Necesita ficha estable (1) y roles (6) | — |
+| **7** | **F3** + **F6-c** ✅ | El panel del alumno + el atleta independiente — **y el paquete lleva la identidad del competidor** | Lo que multiplica por cien quién entra. Necesita ficha estable (1) y roles (6) | — |
 | **8** | **F4** + **F6-d** | La organización llega a Campeonatos — **y el paquete lleva `org_id`** | El admin único por organización. `org_id` no existe hoy en ninguna tabla (§1.3): nace aquí | F5 |
 | **9** | **F5** | Inscribirse por invitación | El admin invita clubes al campeonato | — |
 | **10** | **F8** | La subida automática de resultados | Ocurre **después** del evento, con red. Lo último que hace falta | — |
@@ -1257,8 +1314,8 @@ DESPUÉS en esta misma lista:
 | Trozo | Dato | Necesita |
 |---|---|---|
 | **F6-a** ✅ | `usuarios.eco_sub` | nada: la columna ya existe |
-| **F6-b** | `usuarios.roles` | **F2** (nº 6) |
-| **F6-c** | `competidores.eco_sub` / `usuario_uid` | **F3** (nº 7) |
+| **F6-b** ✅ | `usuarios.roles` | **F2** (nº 6) |
+| **F6-c** ✅ | `competidores.eco_sub` | **F3** (nº 7) |
 | **F6-d** | `org_id` | **F4** (nº 8) — hoy no existe en ninguna tabla |
 
 Había dos salidas y una es peor: **bajar F6 entera al puesto 8**, detrás de F4.
@@ -1282,7 +1339,7 @@ CARRIL A (el evento)     1·F5-bis ──► 2·F6-a ──► 3·F6-bis
                                                       │
                                   [ok]                │
 CARRIL B (independiente)          4·F7 ───────────────┤
-                         [ok]    [ok]                 │
+                         [ok]    [ok]    [ok]         │
 CARRIL C (identidad)     5·F1 ─► 6·F2 ─► 7·F3         │
                                   +F6-b  +F6-c        │
                                     └─► 8·F4 ─► 9·F5  │

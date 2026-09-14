@@ -23,12 +23,18 @@ tablero local que el Juez Central proyecta aunque se caiga la red.
 
 ## Características
 
-- **Cuatro roles**: `admin` (organiza el evento), `maestro` (inscribe a sus
-  alumnos y, con permiso, puntúa), `juez` (puntúa combates y figuras) y el
-  super-admin, que ve todos los workspaces. **Hoy cada persona tiene UNO solo**
-  — la excepción es `puede_juzgar`, que deja a un maestro sentarse en la mesa.
-  Que una misma persona pueda ser varias cosas a la vez es la fase 2 del
-  [plan](PLAN-CAMPEONATOS.md).
+- **Cuatro papeles**: `admin` (organiza el evento), `maestro` (inscribe a sus
+  alumnos), `juez` (puntúa combates y figuras) y `competidor`, más el
+  super-admin, que ve todos los workspaces. **Una persona puede tener varios a
+  la vez** (`usuarios.roles`, F2 del [plan](PLAN-CAMPEONATOS.md)): `rol` es el
+  principal y decide a qué pantalla entra; `puede_juzgar` sigue existiendo, y
+  lo escribe la lista.
+- **El panel del competidor** (`/mi-panel`, F3): quien solo compite entra con
+  su cuenta de DINAMYT y ve sus inscripciones, sus próximos campeonatos, sus
+  resultados y sus números. La ficha de atleta se enlaza a la cuenta por
+  `competidores.eco_sub` —la reclama la persona con documento y fecha de
+  nacimiento, o la enlaza el administrador—, y todo sale de `/api/mi/*`, que
+  filtra siempre por la cuenta de la sesión.
 - **Identidad del ecosistema**: `usuarios.eco_sub` guarda la cuenta de DINAMYT y
   la fila local es su ESPEJO (`app/espejo.py`). El login propio **no se retira**:
   es la marcha atrás del día del evento, sin internet.
