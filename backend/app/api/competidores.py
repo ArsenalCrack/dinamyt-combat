@@ -391,6 +391,105 @@ def eliminar(comp_id):
 
 
 # ══════════════════════════════════════════════════════════════════
+#  La ficha y la cuenta de quien compite con ella (F3, parte 3)
+# ══════════════════════════════════════════════════════════════════
+
+@competidores_bp.route("/<int:comp_id>/cuenta", methods=["PUT"])
+@jwt_required()
+def enlazar_cuenta(comp_id):
+    """
+    PUT /api/competidores/:id/cuenta — Enlaza la ficha con la cuenta de DINAMYT
+    de quien compite con ella. Body: { "email": "..." }
+
+    El tercer camino del plan, para cuando la persona no puede reclamarla sola
+    desde su panel: la ficha no tiene fecha de nacimiento, o el documento está
+    mal escrito.
+
+    ── Solo a una cuenta que YA entró a Campeonatos ──
+    El `sub` sale del espejo de esa persona, y el espejo nace la primera vez
+    que entra. Pedir el correo y guardarlo tal cual sería guardar algo que el
+    portal deja cambiar; el `sub` no cambia nunca.
+
+    ── No se pisa ──
+    Si la ficha ya es de OTRA cuenta, 409: primero se desenlaza, a la vista.
+    """
+    admin = _require_admin()
+    if not admin:
+        return jsonify({"error": "Solo administradores"}), 403
+
+    comp = Competidor.query.get(comp_id)
+    if comp is None or not es_dueno_competidor(admin, comp):
+        return jsonify({"error": "Competidor no encontrado"}), 404
+
+    email = str((request.get_json(silent=True) or {}).get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"error": "Escribe el correo de su cuenta de DINAMYT."}), 400
+
+    from ..models.usuario import Usuario
+    from ..rls import sin_workspace
+
+    # La cuenta de un competidor no es de ningún workspace (nace sin
+    # `creado_por_id`): con la red de RLS puesta, este admin no la vería.
+    with sin_workspace():
+        persona = Usuario.query.filter_by(email=email).first()
+        sub = str(persona.eco_sub) if persona is not None and persona.eco_sub else ""
+    if not sub:
+        return jsonify({
+            "error": "Nadie con ese correo ha entrado todavía a Campeonatos con su "
+                     "cuenta de DINAMYT. Pídele que entre una vez desde el portal "
+                     "y vuelve a intentarlo.",
+        }), 404
+    if comp.eco_sub and comp.eco_sub != sub:
+        return jsonify({
+            "error": "Esta ficha ya está enlazada a otra cuenta. Desenlázala "
+                     "primero si de verdad es de otra persona.",
+        }), 409
+
+    if comp.eco_sub != sub:
+        comp.eco_sub = sub
+        db.session.commit()
+        from flask import current_app
+
+        current_app.logger.info(
+            "[fichas] %s enlaza la ficha %s con %s.", admin.email, comp.uid, email,
+        )
+    return jsonify({
+        "message": f"La ficha de '{comp.nombre_completo}' quedó enlazada con {email}.",
+        "competidor": comp.to_dict(),
+    }), 200
+
+
+@competidores_bp.route("/<int:comp_id>/cuenta", methods=["DELETE"])
+@jwt_required()
+def desenlazar_cuenta(comp_id):
+    """DELETE /api/competidores/:id/cuenta — La ficha deja de ser de esa cuenta.
+
+    Sus resultados no se tocan: siguen colgando de la ficha, y vuelven a
+    aparecer en el panel de quien la reclame después.
+    """
+    admin = _require_admin()
+    if not admin:
+        return jsonify({"error": "Solo administradores"}), 403
+
+    comp = Competidor.query.get(comp_id)
+    if comp is None or not es_dueno_competidor(admin, comp):
+        return jsonify({"error": "Competidor no encontrado"}), 404
+
+    if comp.eco_sub:
+        comp.eco_sub = None
+        db.session.commit()
+        from flask import current_app
+
+        current_app.logger.info(
+            "[fichas] %s desenlaza la ficha %s de su cuenta.", admin.email, comp.uid,
+        )
+    return jsonify({
+        "message": f"La ficha de '{comp.nombre_completo}' ya no está enlazada a ninguna cuenta.",
+        "competidor": comp.to_dict(),
+    }), 200
+
+
+# ══════════════════════════════════════════════════════════════════
 #  Plantilla e importación desde Excel
 # ══════════════════════════════════════════════════════════════════
 

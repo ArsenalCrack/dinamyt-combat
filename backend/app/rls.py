@@ -21,6 +21,8 @@ vez por request: los endpoints hacen `commit()` a mitad y siguen consultando, y
 un `set_config` local muere con la transacción que lo fijó.
 """
 
+from contextlib import contextmanager
+
 from flask import g
 from sqlalchemy import event, text
 
@@ -119,9 +121,36 @@ def contexto_de_usuario(user):
         return None, True
     if getattr(user, "es_super", False):
         return None, True
+    # El competidor (F3) cae aquí también, como el juez: lo suyo no es de
+    # ningún workspace. Lo que acota lo que ve es `/api/mi/*`, que filtra por su
+    # `eco_sub`, y `require_personal`, que le cierra todo lo demás.
     if user.rol not in ("admin", "maestro"):
         return None, True
     return workspace_owner_id(user), False
+
+
+@contextmanager
+def sin_workspace():
+    """Levanta la red de RLS durante un bloque, y la devuelve al salir.
+
+    Para las pocas lecturas cuyo filtro NO es el workspace sino otra cosa que
+    la API ya comprobó:
+
+      · `/api/mi/*` (F3): un maestro que además compite tiene la ficha en el
+        workspace de OTRO administrador, y con la red puesta su propio panel le
+        saldría vacío en PostgreSQL — y lleno en SQLite, que es donde corren las
+        pruebas: la peor forma de enterarse.
+      · Enlazar una ficha a mano: la cuenta de un competidor nace sin
+        `creado_por_id`, así que un administrador normal no la ve nunca.
+
+    Uso: `with sin_workspace(): ...`. En SQLite no hace nada.
+    """
+    antes = _contexto_actual()
+    fijar_contexto(None, True)
+    try:
+        yield
+    finally:
+        fijar_contexto(*antes)
 
 
 # ── Creación de las políticas ───────────────────────────────────────────────

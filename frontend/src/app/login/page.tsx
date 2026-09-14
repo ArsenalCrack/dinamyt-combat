@@ -7,6 +7,10 @@ import { guardarToken, guardarUsuario, limpiarSesion } from "@/lib/sesion";
 import CampoContrasena from "@/components/CampoContrasena";
 import PublicControls from "@/components/PublicControls";
 import { Cargando } from "@/components/Cargando";
+// Dónde aterriza cada rol. Lo comparten el formulario, el salto desde DINAMYT,
+// la portada y la barra: dos copias de esto es cómo un rol acaba entrando a la
+// pantalla de otro.
+import { destinoDe } from "@/lib/destino";
 import { useI18n } from "@/lib/i18n";
 import { PORTAL_URL } from "@/lib/portal";
 import { LIM } from "@/lib/limites";
@@ -45,15 +49,6 @@ import { aplicarAparienciaDelPase } from "@/lib/theme";
  * botones de idioma abajo del todo (`.login-idiomas`), que era el cuarto sitio
  * distinto donde se elegía lo mismo.
  */
-
-/** Dónde aterriza cada rol al entrar. Lo comparten el formulario y el salto
- *  desde DINAMYT: dos copias de esto es cómo un rol acaba entrando a la
- *  pantalla de otro. */
-function destinoDe(rol: string) {
-  if (rol === "admin") return "/admin";
-  if (rol === "maestro") return "/maestro";
-  return "/juez";
-}
 
 /** Lo que tarda el aviso de «cerraste tu sesión» en irse solo. Ver abajo. */
 const MS_AVISO_SALIDA = 9000;

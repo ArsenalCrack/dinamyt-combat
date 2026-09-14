@@ -99,7 +99,7 @@ export default function AdminPage() {
   });
   const [userSearch, setUserSearch] = useState("");
   const [showInactive, setShowInactive] = useState(false);
-  const [rolFiltro, setRolFiltro] = useState<"todos" | "admin" | "maestro" | "juez">("todos");
+  const [rolFiltro, setRolFiltro] = useState<"todos" | "admin" | "maestro" | "juez" | "competidor">("todos");
   const [campSearch, setCampSearch] = useState("");
   const [campFiltro, setCampFiltro] = useState<"todos" | "activos" | "inactivos">("todos");
   const [creandoCamp, setCreandoCamp] = useState(false);
@@ -733,7 +733,7 @@ export default function AdminPage() {
             <select
               className="input"
               value={rolFiltro}
-              onChange={(e) => setRolFiltro(e.target.value as "todos" | "admin" | "maestro" | "juez")}
+              onChange={(e) => setRolFiltro(e.target.value as "todos" | "admin" | "maestro" | "juez" | "competidor")}
               aria-label={t("admin.usuarios.filtroAria")}
               style={{ width: "auto", minWidth: 150, padding: "8px 30px 8px 12px", minHeight: 38 }}
             >
@@ -741,6 +741,7 @@ export default function AdminPage() {
               <option value="admin">{t("admin.usuarios.filtro.admins")}</option>
               <option value="maestro">{t("admin.usuarios.filtro.maestros")}</option>
               <option value="juez">{t("admin.usuarios.filtro.jueces")}</option>
+              <option value="competidor">{t("admin.usuarios.filtro.competidores")}</option>
             </select>
             <label style={{
               display: "flex", alignItems: "center", gap: 6, cursor: "pointer",
@@ -757,9 +758,30 @@ export default function AdminPage() {
             </label>
           </div>
 
+          {/* Quien SOLO compite (F3) no sale por defecto: su espejo nace la
+              primera vez que entra a su panel, y una federación entera taparía
+              al personal, que es a quien se viene a buscar aquí. El buscador sí
+              los encuentra —hace falta para enlazar una ficha—, y el contador
+              lleva a ellos. */}
+          {rolFiltro === "todos" && !userSearch.trim() && users.some((u) => u.rol === "competidor") && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              title={t("admin.usuarios.masCompetidoresTitle")}
+              onClick={() => setRolFiltro("competidor")}
+              style={{ marginBottom: 10 }}
+            >
+              {t("admin.usuarios.masCompetidores", {
+                n: users.filter((u) => u.rol === "competidor").length,
+              })}
+            </button>
+          )}
+
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {users
-              .filter((u) => rolFiltro === "todos" || u.rol === rolFiltro)
+              .filter((u) => rolFiltro === "todos"
+                ? u.rol !== "competidor" || Boolean(userSearch.trim())
+                : u.rol === rolFiltro)
               .filter((u) => {
                 const q = userSearch.trim().toLowerCase();
                 if (!q) return true;
@@ -796,10 +818,10 @@ export default function AdminPage() {
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
                     <span className="badge" style={{
-                      background: u.rol === "admin" ? "var(--gold-bg)" : u.rol === "maestro" ? "var(--green-bg)" : "var(--chung-bg)",
-                      color: u.rol === "admin" ? "var(--gold)" : u.rol === "maestro" ? "var(--green)" : "var(--chung-light)",
-                      border: `1px solid ${u.rol === "admin" ? "var(--gold-border)" : u.rol === "maestro" ? "rgba(0,196,106,.35)" : "var(--chung-border)"}`,
-                    }}>{u.es_superadmin ? t("rol.superadmin") : u.rol === "admin" ? t("rol.admin") : u.rol === "maestro" ? t("rol.maestro") : t("rol.juez")}</span>
+                      background: u.rol === "admin" ? "var(--gold-bg)" : u.rol === "maestro" ? "var(--green-bg)" : u.rol === "competidor" ? "var(--bg-elevated)" : "var(--chung-bg)",
+                      color: u.rol === "admin" ? "var(--gold)" : u.rol === "maestro" ? "var(--green)" : u.rol === "competidor" ? "var(--text-muted)" : "var(--chung-light)",
+                      border: `1px solid ${u.rol === "admin" ? "var(--gold-border)" : u.rol === "maestro" ? "rgba(0,196,106,.35)" : u.rol === "competidor" ? "var(--border)" : "var(--chung-border)"}`,
+                    }}>{u.es_superadmin ? t("rol.superadmin") : u.rol === "admin" ? t("rol.admin") : u.rol === "maestro" ? t("rol.maestro") : u.rol === "competidor" ? t("rol.competidor") : t("rol.juez")}</span>
                     <button
                       className="btn btn-sm"
                       onClick={() => {
@@ -854,6 +876,10 @@ export default function AdminPage() {
                         <select className="input" value={editUserData.rol}
                           disabled={u.id === user.id}
                           onChange={(e) => setEditUserData({ ...editUserData, rol: e.target.value })}>
+                          {/* El rol actual, SIEMPRE entre las opciones (§5.7):
+                              sin esta, un competidor se vería como juez. La
+                              consola no lo reparte, pero sí lo conserva. */}
+                          {u.rol === "competidor" && <option value="competidor">{t("rol.competidor")}</option>}
                           <option value="juez">{t("rol.juez")}</option>
                           <option value="maestro">{t("rol.maestro")}</option>
                           {esSuper && <option value="admin">{t("rol.admin")}</option>}

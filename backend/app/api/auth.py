@@ -250,9 +250,11 @@ MOTIVOS_SSO = {
         "entra a DINAMYT para ver el tuyo.",
         403,
     ),
+    # Desde F3 el alumno SÍ entra (a su panel), así que esto ya solo le llega a
+    # quien no tiene ningún papel de Campeonatos en su club: ni opera ni compite.
     "sin_consola": (
-        "Tu cuenta de DINAMYT no administra ni juzga campeonatos. Lo tuyo "
-        "—tus inscripciones y tus resultados— se ve desde el portal.",
+        "Tu cuenta de DINAMYT no tiene ningún papel en Campeonatos. Si compites, "
+        "pídele a tu maestro que te marque como competidor en tu club.",
         403,
     ),
     "correo_ocupado": (
@@ -680,7 +682,10 @@ def update_user(user_id):
 
     if data.get("rol"):
         nuevo_rol = data["rol"]
-        if nuevo_rol not in ROLES_VALIDOS:
+        # El que ya tiene siempre vale, aunque la consola no lo reparta: la
+        # pantalla reenvía el rol en cada guardado, y a un competidor (F3) no se
+        # le podría corregir ni el nombre.
+        if nuevo_rol not in ROLES_VALIDOS and nuevo_rol != user.rol:
             return jsonify({"error": "Rol inválido (debe ser 'admin', 'maestro' o 'juez')"}), 400
         if user.id == current_user.id and nuevo_rol != "admin":
             return jsonify({"error": "No puedes quitarte tu propio rol de administrador"}), 400

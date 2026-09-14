@@ -14,18 +14,24 @@ Integer —y con él las FK y el RLS enteros— y se añade `eco_sub`, que es el
    que ya estaba en Campeonatos antes de la identidad única — la misma
    operación que hizo el guion de reconciliación, pero de a uno y cuando la
    persona entra.
-3. **No existe**: se crea, **solo si el pase trae un rol que opere**.
+3. **No existe**: se crea, **si el pase trae algún papel de esta app** —uno
+   que opere, o competir—.
 
-── Un alumno no crea usuario aquí, y es una decisión ────────────────────────
+── El alumno entra, y la fila nace cuando ENTRA (F3) ────────────────────────
 
-Campeonatos es una consola de operación: administra, inscribe o puntúa. Un
-alumno de un club afiliado tiene el plan —su federación lo paga— pero no tiene
-nada que hacer dentro, así que su pase no crea ninguna fila. Lo suyo (sus
-campeonatos, sus resultados) se ve en el portal, que es donde vive.
+Hasta F3 el pase de un alumno no creaba ninguna fila: Campeonatos era solo una
+consola de operación y no tenía una pantalla para él. Ahora la tiene
+(`/mi-panel`), así que `competitor` y `student` crean el espejo con el papel
+`competidor` de principal.
 
-Sin esto, la primera vez que una federación con doscientos alumnos abriera
-DINAMYT, esta tabla tendría doscientas filas de gente que no va a entrar
-nunca, y cada una consumiendo un correo único.
+La razón vieja sigue en pie y se sigue cumpliendo: que una federación con
+doscientos alumnos no llene esta tabla de gente que no va a entrar nunca. Por
+eso la fila nace **aquí, al canjear el pase** —la primera vez que la persona
+abre Campeonatos— y no al firmarlo. Quien nunca entra sigue sin existir, y en
+`/admin` los competidores quedan detrás de un contador.
+
+`sin_consola` no desaparece: es la respuesta para un pase que no trae NINGÚN
+papel de Campeonatos.
 
 ── El rol local manda sobre el del pase ─────────────────────────────────────
 
@@ -52,8 +58,9 @@ from .models.usuario import ROLES_VALIDOS, Usuario, ordenar_papeles
 
 log = logging.getLogger(__name__)
 
-# Del catálogo del ecosistema al de aquí. Los que faltan —`competitor`,
-# `student`, `guardian`, `member`— no operan nada: no abren la consola.
+# Del catálogo del ecosistema al de aquí. Los que faltan —`guardian`,
+# `member`— no tienen nada que hacer en Campeonatos. (`member` llega ya
+# traducido a `competitor` desde F1: el portal lo convierte al firmar.)
 ROL_DESDE_ECOSISTEMA = {
     "admin": "admin",
     "maestro": "maestro",
@@ -62,8 +69,7 @@ ROL_DESDE_ECOSISTEMA = {
     "coach": "maestro",
     "judge": "juez",
     "juez": "juez",
-    # Competir no abre la consola (F3 le dará su panel). Se traduce para que
-    # la lista de papeles de la fila lo pueda guardar, no para dejar entrar.
+    # Competir no abre la CONSOLA, pero sí Campeonatos: entra a su panel (F3).
     "competitor": "competidor",
     "student": "competidor",
 }
@@ -121,6 +127,18 @@ def rol_operativo(claims):
         return operativos[0]
     # El super-admin entra a administrar aunque no sea miembro de ningún club.
     return "admin" if es_super(claims) else None
+
+
+def rol_principal(claims):
+    """El papel con el que NACE la fila, o `None` si el pase no trae ninguno.
+
+    El que opera, si hay alguno; si no, `competidor` (F3): quien solo compite
+    entra a su panel. `None` es el `sin_consola` de siempre.
+    """
+    rol = rol_operativo(claims)
+    if rol:
+        return rol
+    return "competidor" if "competidor" in papeles_del_pase(claims) else None
 
 
 def _sumar_papeles_del_pase(usuario, claims):
@@ -223,7 +241,8 @@ def resolver_espejo(claims, pase=None):
     cuando no hay usuario, `motivo` dice por qué, para que quien llame pueda
     contarlo sin inventárselo:
 
-    · `"sin_consola"` — es quien dice ser, pero su rol no opera aquí.
+    · `"sin_consola"` — es quien dice ser, pero su pase no trae ningún papel
+      de Campeonatos (ni opera ni compite).
     · `"correo_ocupado"` — ese correo ya es de OTRA cuenta del ecosistema.
     · `"pase_incompleto"` — el pase no trae `sub` o `email`.
     """
@@ -268,7 +287,7 @@ def resolver_espejo(claims, pase=None):
         log.info("[ecosistema] %s enlazado con su cuenta del ecosistema.", email)
         return usuario, None
 
-    rol = rol_operativo(claims)
+    rol = rol_principal(claims)
     if not rol:
         return None, "sin_consola"
 

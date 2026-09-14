@@ -569,6 +569,67 @@ def test_un_paquete_de_la_version_anterior_se_importa_igual(destino, paquete):
     assert Usuario.query.filter(Usuario.rol != "admin").count() == 2
 
 
+# ── La ficha viaja con la cuenta de quien compite con ella (F6-c) ──────
+#
+# Sin esto, lo que se compite el 9 de octubre en el PC del evento no sabría a
+# qué panel volver: la ficha llegaría al local sin dueño.
+
+SUB_ALUMNA = "44444444-4444-4444-8444-444444444444"
+
+
+def test_la_ficha_viaja_con_su_cuenta(destino, paquete):
+    # 4 desde F3, que añadió `eco_sub` a cada ficha.
+    assert paquete["version"] >= 4
+    assert all("eco_sub" in c for c in paquete["competidores"])
+    for c in paquete["competidores"]:
+        if c["documento"] == "111":
+            c["eco_sub"] = SUB_ALUMNA
+
+    app, token = destino
+    resp = _importar(app, token, paquete)
+
+    assert resp.status_code == 200
+    assert resp.get_json()["identidades"] == {"enlazadas": 1, "omitidas": 0}
+    from app.models.competidor import Competidor
+    assert Competidor.query.filter_by(documento="111").one().eco_sub == SUB_ALUMNA
+    assert Competidor.query.filter_by(documento="222").one().eco_sub is None
+
+
+def test_no_pisa_la_cuenta_de_una_ficha(destino, paquete):
+    """La ficha de aquí ya es de otra cuenta: se deja la local y se avisa."""
+    app, token = destino
+    from app.models.competidor import Competidor
+
+    previa = Competidor(nombre_completo="ANA RUIZ", documento="111", activo=True,
+                        eco_sub=SUB_AJENO)
+    db.session.add(previa)
+    db.session.commit()
+    for c in paquete["competidores"]:
+        if c["documento"] == "111":
+            c["eco_sub"] = SUB_ALUMNA
+
+    resp = _importar(app, token, paquete)
+    cuerpo = resp.get_json()
+
+    assert resp.status_code == 200
+    assert cuerpo["identidades"] == {"enlazadas": 0, "omitidas": 1}
+    assert any("ya está enlazada aquí a otra cuenta" in a for a in cuerpo["avisos"])
+    assert Competidor.query.filter_by(documento="111").one().eco_sub == SUB_AJENO
+
+
+def test_un_paquete_sin_cuentas_en_las_fichas_se_importa_igual(destino, paquete):
+    paquete["version"] = 3
+    for c in paquete["competidores"]:
+        c.pop("eco_sub", None)
+
+    app, token = destino
+    resp = _importar(app, token, paquete)
+
+    assert resp.status_code == 200
+    from app.models.competidor import Competidor
+    assert Competidor.query.filter(Competidor.eco_sub.isnot(None)).count() == 0
+
+
 # ── De cuándo es la copia que corre aquí (F6-bis) ──────────────────────
 #
 # La bajada ya funcionaba y es re-ejecutable. Lo que faltaba era saber CUÁNDO se

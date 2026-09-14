@@ -807,6 +807,8 @@ export interface CompetidorData {
   // created_at cuando nunca se ha editado.
   updated_at?: string;
   num_inscripciones?: number;
+  /** Si la ficha ya es de una cuenta de DINAMYT (F3). Nunca dice de cuál. */
+  cuenta_enlazada?: boolean;
 }
 
 export type CompetidorInput = Partial<Omit<CompetidorData, "id" | "created_at">> & {
@@ -879,6 +881,17 @@ export async function updateCompetidorAPI(id: number, data: Partial<CompetidorIn
 export async function deleteCompetidorAPI(id: number) {
   const res = await api.delete(`/competidores/${id}`);
   return res.data;
+}
+
+/** Enlaza la ficha con la cuenta de DINAMYT de quien compite con ella (F3). */
+export async function enlazarCuentaCompetidorAPI(id: number, email: string) {
+  const res = await api.put(`/competidores/${id}/cuenta`, { email });
+  return res.data as { message: string; competidor: CompetidorData };
+}
+
+export async function desenlazarCuentaCompetidorAPI(id: number) {
+  const res = await api.delete(`/competidores/${id}/cuenta`);
+  return res.data as { message: string; competidor: CompetidorData };
 }
 
 export async function descargarPlantillaCompetidoresAPI() {
@@ -1059,6 +1072,93 @@ export async function maestroReenviarAPI(
   return res.data as { message: string; inscripcion: InscripcionData };
 }
 
+// ── El panel del competidor (F3) ──
+//
+// Todo sale de `/api/mi/*`, que filtra SIEMPRE por la cuenta de la sesión: no
+// hay ningún id que mandar desde aquí.
+export interface MiCampeonato {
+  id: number;
+  nombre: string;
+  fecha_inicio: string | null;
+  fecha_fin: string | null;
+  lugar: string | null;
+  ciudad: string | null;
+  pais: string | null;
+  estado: string;
+}
+
+export interface MiFicha {
+  uid: string;
+  nombre_completo: string;
+  documento: string | null;
+  fecha_nacimiento: string | null;
+  genero: string | null;
+  cinturon: string | null;
+  grupo_cinturon: string | null;
+  club: string | null;
+}
+
+export interface MiInscripcion {
+  id: number;
+  estado: EstadoInscripcion;
+  motivo_rechazo: string | null;
+  modalidades: string[];
+  grupo_cinturon: string | null;
+  peso: number | null;
+  ficha: string | null;
+  maestro: { nombre: string; club: string | null } | null;
+  campeonato: MiCampeonato;
+  created_at: string;
+}
+
+export interface MiResultado {
+  campeonato: MiCampeonato;
+  tipo: "combate" | "figuras";
+  categoria: string;
+  puesto: number;
+  medalla: "oro" | "plata" | "bronce" | null;
+  especial: boolean;
+  /** `false` = encontrado por nombre, en una llave sin enlace. */
+  confirmado: boolean;
+}
+
+export interface Medallero {
+  oro: number;
+  plata: number;
+  bronce: number;
+}
+
+export interface MiPanel {
+  persona: { nombre: string; email: string; roles: string[]; con_cuenta: boolean };
+  fichas: MiFicha[];
+  maestro: { nombre: string; club: string | null } | null;
+  inscripciones: MiInscripcion[];
+  proximos: MiCampeonato[];
+  resultados: MiResultado[];
+  estadisticas: {
+    combates: number;
+    victorias: number;
+    derrotas: number;
+    medallas: Medallero;
+    por_anio: Array<Medallero & { anio: string }>;
+    por_modalidad: Array<Medallero & { tipo: string }>;
+    sin_confirmar: number;
+  };
+}
+
+export async function miPanelAPI() {
+  const res = await api.get("/mi/panel");
+  return res.data as MiPanel;
+}
+
+export async function reclamarFichaAPI(documento: string, fechaNacimiento: string) {
+  const res = await api.post("/mi/ficha/reclamar", {
+    documento,
+    fecha_nacimiento: fechaNacimiento,
+  });
+  return res.data as { message: string; ficha: MiFicha };
+}
+
 // ── Ficha pública del campeonato (sin login) ──
 export interface CampeonatoPublicoCompetidor {
   nombre: string;
@@ -1233,7 +1333,8 @@ export interface UserData {
   id: number;
   email: string;
   nombre: string;
-  rol: "admin" | "juez" | "maestro";
+  // `competidor` desde F3: quien solo compite entra a `/mi-panel`.
+  rol: "admin" | "juez" | "maestro" | "competidor";
   // Jerarquía: el superadmin ve todos los workspaces; un admin normal solo
   // los jueces, campeonatos y competidores que él creó.
   es_superadmin?: boolean;
@@ -1249,8 +1350,8 @@ export interface UserData {
   puede_juzgar?: boolean;
   /**
    * Todos sus papeles, de más rango a menos (F2). `rol` es el primero y sigue
-   * decidiendo a qué pantalla entra. `competidor` puede aparecer aquí, nunca
-   * como `rol`.
+   * decidiendo a qué pantalla entra. Desde F3 `competidor` también puede ser
+   * `rol`: el de quien solo compite.
    */
   roles?: Array<"admin" | "maestro" | "juez" | "competidor">;
   activo: boolean;

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import {
   createCompetidorAPI,
   deleteCompetidorAPI,
+  desenlazarCuentaCompetidorAPI,
+  enlazarCuentaCompetidorAPI,
   exportarCompetidoresAPI,
   listClubesAPI,
   listCompetidoresAPI,
@@ -22,6 +24,7 @@ import ImportarExcelPanel from "@/components/ImportarExcelPanel";
 import ImportarPaquetePanel from "@/components/ImportarPaquetePanel";
 import { useConfirmDialog } from "@/components/ConfirmDialog";
 import { useI18n } from "@/lib/i18n";
+import { LIM } from "@/lib/limites";
 import { aviso } from "@/lib/toast";
 import { Cargando } from '@/components/Cargando';
 
@@ -42,6 +45,13 @@ export default function CompetidoresPage() {
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [form, setForm] = useState<CompetidorFormState>(COMPETIDOR_FORM_VACIO);
   const [guardando, setGuardando] = useState(false);
+
+  // Enlazar la ficha con la cuenta de DINAMYT de quien compite con ella (F3).
+  // Es el camino para quien no puede reclamarla solo desde su panel: la ficha
+  // no tiene fecha de nacimiento, o el documento quedó mal escrito.
+  const [enlazandoId, setEnlazandoId] = useState<number | null>(null);
+  const [correoEnlace, setCorreoEnlace] = useState("");
+  const [enlazando, setEnlazando] = useState(false);
 
   const { pedirConfirmacion, dialogo } = useConfirmDialog();
 
@@ -133,6 +143,42 @@ export default function CompetidoresPage() {
           await cargar();
           flash(t("comp.eliminado"));
         } catch { flash(t("comp.errorEliminar"), "error"); }
+      },
+    });
+  }
+
+  async function handleEnlazar(e: React.FormEvent, c: CompetidorData) {
+    e.preventDefault();
+    if (enlazando || !correoEnlace.trim()) return;
+    setEnlazando(true);
+    try {
+      const r = await enlazarCuentaCompetidorAPI(c.id, correoEnlace.trim());
+      setEnlazandoId(null);
+      setCorreoEnlace("");
+      await cargar();
+      flash(r.message);
+    } catch (err) {
+      // El servidor explica los dos casos que importan: que esa persona no ha
+      // entrado nunca, o que la ficha ya es de otra cuenta.
+      const m = (err as { response?: { data?: { error?: string } } }).response?.data?.error;
+      flash(m || t("comp.cuenta.error"), "error");
+    } finally {
+      setEnlazando(false);
+    }
+  }
+
+  function handleDesenlazar(c: CompetidorData) {
+    pedirConfirmacion({
+      titulo: t("comp.cuenta.confirmarTitulo"),
+      mensaje: t("comp.cuenta.confirmarMensaje", { nombre: c.nombre_completo }),
+      tipo: "peligro",
+      confirmLabel: t("comp.cuenta.desenlazar"),
+      onConfirm: async () => {
+        try {
+          const r = await desenlazarCuentaCompetidorAPI(c.id);
+          await cargar();
+          flash(r.message);
+        } catch { flash(t("comp.cuenta.error"), "error"); }
       },
     });
   }
@@ -283,6 +329,11 @@ export default function CompetidoresPage() {
                     {(c.num_inscripciones || 0) > 0 && (
                       <span className="badge badge-gray">{c.num_inscripciones} {t("comp.campeonatos")}</span>
                     )}
+                    {c.cuenta_enlazada && (
+                      <span className="badge badge-green" title={t("comp.cuenta.enlazadaTitle")}>
+                        {t("comp.cuenta.enlazada")}
+                      </span>
+                    )}
                   </div>
                   <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
                     {c.documento && <span>{t("comp.doc")} {c.documento}</span>}
@@ -303,12 +354,55 @@ export default function CompetidoresPage() {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap" }}>
+                  {c.cuenta_enlazada ? (
+                    <button className="btn btn-sm" onClick={() => handleDesenlazar(c)}>
+                      {t("comp.cuenta.desenlazar")}
+                    </button>
+                  ) : (
+                    <button
+                      className={`btn btn-sm ${enlazandoId === c.id ? "btn-primary" : ""}`}
+                      onClick={() => {
+                        setEnlazandoId(enlazandoId === c.id ? null : c.id);
+                        setCorreoEnlace("");
+                      }}
+                    >
+                      {t("comp.cuenta.enlazar")}
+                    </button>
+                  )}
                   <button className="btn btn-sm" onClick={() => abrirEditar(c)}>{t("comun.editar")}</button>
                   <button className="btn btn-sm" onClick={() => handleToggleActivo(c)}>
                     {c.activo ? t("comun.desactivar") : t("comun.reactivar")}
                   </button>
                   <button className="btn btn-danger btn-sm" onClick={() => handleEliminar(c)}>{t("comun.eliminar")}</button>
                 </div>
+                {enlazandoId === c.id && !c.cuenta_enlazada && (
+                  <form
+                    onSubmit={(e) => handleEnlazar(e, c)}
+                    style={{ flexBasis: "100%", display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}
+                  >
+                    <p style={{ margin: 0, color: "var(--text-dim)", fontSize: "0.84rem" }}>
+                      {t("comp.cuenta.ayuda")}
+                    </p>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      <input
+                        className="input"
+                        type="email"
+                        autoFocus
+                        maxLength={LIM.correo}
+                        value={correoEnlace}
+                        onChange={(e) => setCorreoEnlace(e.target.value)}
+                        placeholder={t("comp.cuenta.correo")}
+                        style={{ flex: "1 1 220px", maxWidth: 360 }}
+                      />
+                      <button type="submit" className="btn btn-primary btn-sm" disabled={enlazando || !correoEnlace.trim()}>
+                        {enlazando ? t("comp.guardando") : t("comp.cuenta.enlazar")}
+                      </button>
+                      <button type="button" className="btn btn-sm" onClick={() => setEnlazandoId(null)}>
+                        {t("comun.cancelar")}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             );
           })}

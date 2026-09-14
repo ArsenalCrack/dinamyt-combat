@@ -151,14 +151,19 @@ class TestElSetter:
     def test_lo_desconocido_y_lo_repetido_no_entran(self, app):
         assert ordenar_papeles(["maestro", "sensei", "maestro", None, ""]) == ["maestro"]
 
-    def test_sin_un_papel_que_abra_la_consola_no_hay_fila(self, app):
+    def test_sin_ningun_papel_no_hay_fila(self, app):
         u = Usuario(rol="juez")
         with pytest.raises(ValueError):
             u.roles = []
-        # Competir se puede TENER, pero hasta F3 no hay pantalla para quien
-        # solo compite: no puede ser el principal.
-        with pytest.raises(ValueError):
-            u.roles = ["competidor"]
+
+    def test_desde_F3_se_puede_ser_solo_competidor(self, app):
+        # Hasta F3 no había pantalla para quien solo compite y el setter lo
+        # rechazaba. Ahora la hay (`/mi-panel`).
+        u = Usuario(rol="juez")
+        u.roles = ["competidor"]
+        assert u.rol == "competidor"
+        assert u.puede_juzgar is False
+        assert u.puede_ser_juez is False
 
     def test_competir_se_suma_sin_cambiar_nada_mas(self, app):
         u = Usuario(rol="maestro")
@@ -220,9 +225,18 @@ class TestLaFilaNace:
         assert res.status_code == 200
         assert de_la_base().roles == ["juez"]
 
-    def test_el_alumno_sigue_sin_crear_fila(self, cliente):
-        # Eso es F3. Aquí competir no abre nada, y no deja rastro.
+    def test_el_alumno_nace_como_competidor(self, cliente):
+        # F3: competir ya abre Campeonatos — su panel, no la consola.
         res = canjear(cliente, pase(rol="competitor", roles=["competitor"]))
+
+        assert res.status_code == 200
+        assert res.get_json()["user"]["rol"] == "competidor"
+        assert de_la_base().roles == ["competidor"]
+
+    def test_sin_ningun_papel_de_campeonatos_sigue_sin_crear_fila(self, cliente):
+        # `sin_consola` no desaparece con F3: es la respuesta para quien no
+        # opera NI compite.
+        res = canjear(cliente, pase(rol="guardian", roles=["guardian"]))
 
         assert res.status_code == 403
         assert res.get_json()["motivo"] == "sin_consola"
@@ -383,7 +397,9 @@ def test_cambiarle_el_rol_quita_el_anterior_y_lo_recuerda(consola):
 def test_el_paquete_exporta_los_papeles(app):
     from app.api.sincronizacion import VERSION_PAQUETE, _usuario_a_dict
 
-    assert VERSION_PAQUETE == 3
+    # 3 desde F2; F3 la subió a 4 (las fichas llevan `eco_sub`). Lo que se
+    # prueba aquí es que no baje de la que trajo los papeles.
+    assert VERSION_PAQUETE >= 3
     u = Usuario(email="m@x.org", nombre="M", rol="maestro", puede_juzgar=True, activo=True)
     assert _usuario_a_dict(u)["roles"] == ["maestro", "juez"]
 

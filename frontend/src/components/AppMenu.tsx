@@ -7,6 +7,7 @@ import LogoutButton from "@/components/LogoutButton";
 import { PORTAL_URL } from "@/lib/portal";
 import { alternarModo, getTema, temaEfectivo, type Tema } from "@/lib/theme";
 import { guardarAparienciaEnLaCuenta } from "@/lib/api";
+import { destinoDe } from "@/lib/destino";
 import { IDIOMAS, useI18n, type ClaveTexto } from "@/lib/i18n";
 
 /**
@@ -111,7 +112,8 @@ function Inicial({ nombre, size = 24 }: { nombre: string; size?: number }) {
 
 interface SesionUser {
   nombre?: string;
-  rol?: "admin" | "juez" | "maestro";
+  rol?: "admin" | "juez" | "maestro" | "competidor";
+  roles?: string[];
 }
 
 /** Un enlace de la barra. `principal` = además se ve arriba en pantalla ancha. */
@@ -212,10 +214,11 @@ export default function AppMenu() {
 
   if (!visible || !user) return null;
 
-  const inicio = user.rol === "admin" ? "/admin" : user.rol === "maestro" ? "/maestro" : "/juez";
+  const inicio = destinoDe(user.rol);
   const rolLabel =
     user.rol === "admin" ? t("rol.admin")
     : user.rol === "maestro" ? t("rol.maestro")
+    : user.rol === "competidor" ? t("rol.competidor")
     : t("rol.juez");
 
   const nombre = user.nombre || t("menu.sesion");
@@ -223,6 +226,11 @@ export default function AppMenu() {
 
   const enlaces: Enlace[] = [
     { href: inicio, clave: "menu.inicio", principal: true },
+    // Quien opera Y compite (F3): su inicio es la consola, y el panel es otra
+    // puerta. Para quien solo compite, el panel ya ES el inicio.
+    ...(user.rol !== "competidor" && user.roles?.includes("competidor")
+      ? [{ href: "/mi-panel", clave: "menu.miPanel", principal: true } as Enlace]
+      : []),
     { href: "/campeonatos", clave: "menu.campeonatos", principal: true },
     { href: "/pantalla", clave: "menu.pantallaPublica", principal: true },
   ];

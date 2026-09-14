@@ -81,7 +81,10 @@ FORMATOS_VALIDOS = (FORMATO_CAMPEONATO, FORMATO_USUARIOS, FORMATO_COMPETIDORES)
 # 3 desde F2 (F6-b): los usuarios viajan con `roles`, la lista de papeles. Un
 # paquete de la 2 o de la 1 se importa igual: sin `roles`, la lista sale de
 # `rol` + `puede_juzgar`, que es lo que ya traían.
-VERSION_PAQUETE = 3
+# 4 desde F3 (F6-c): cada ficha viaja con `eco_sub`, la cuenta de DINAMYT de
+# quien compite con ella. Uno anterior llega con las fichas sin enlazar, que es
+# como estaban.
+VERSION_PAQUETE = 4
 
 # Tope del archivo subido (25 MB). Un campeonato de 1000 competidores con sus
 # llaves ronda los 3 MB; más que esto no es un paquete de DINAMYT.
@@ -145,6 +148,10 @@ def _usuario_a_dict(u):
 def _competidor_a_dict(c):
     return {
         "uid": asegurar_uid(c),
+        # De quién es la ficha (F6-c). Sin él, lo que se compita en el PC del
+        # evento no sabría a qué panel volver. Nunca pisa uno puesto en el
+        # destino (ver `_enlazar_ficha`).
+        "eco_sub": c.eco_sub,
         "nombre_completo": c.nombre_completo,
         "documento": c.documento,
         "fecha_nacimiento": _fecha(c.fecha_nacimiento),
@@ -669,6 +676,27 @@ def _importar_usuarios(lista, admin, informe):
     return mapa
 
 
+def _enlazar_ficha(local, eco_sub, informe):
+    """Pega a la ficha la cuenta de quien compite con ella (F6-c). Sin pisar.
+
+    El mismo criterio que `_enlazar_eco_sub`, con una diferencia a propósito:
+    aquí NO se mira si otra fila ya tiene esa cuenta. Dos usuarios no pueden
+    ser la misma persona, pero dos fichas sí —una por cada workspace que la
+    inscribió—, y las dos son suyas.
+    """
+    if not eco_sub:
+        return
+    if local.eco_sub:
+        if local.eco_sub != eco_sub:
+            informe.identidad_omitida(
+                f"La ficha de '{local.nombre_completo}' ya está enlazada aquí a "
+                "otra cuenta: se dejó el enlace local y no se aplicó el del paquete."
+            )
+        return
+    local.eco_sub = eco_sub
+    informe.identidad_enlazada()
+
+
 def _importar_competidores(lista, admin, informe):
     """Crea o actualiza competidores. Devuelve {uid del paquete: Competidor}."""
     mapa = {}
@@ -728,6 +756,7 @@ def _importar_competidores(lista, admin, informe):
         local.club = _nombre(datos.get("club"), 200) or None
         local.categoria_especial = bool(datos.get("categoria_especial"))
         local.activo = bool(datos.get("activo", True))
+        _enlazar_ficha(local, _texto(datos.get("eco_sub"), 64) or None, informe)
 
         if uid:
             mapa[uid] = local

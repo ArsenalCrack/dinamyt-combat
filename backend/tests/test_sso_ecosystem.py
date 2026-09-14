@@ -118,17 +118,19 @@ def test_a_quien_ya_estaba_se_le_ENLAZA_y_manda_su_rol_local(cliente):
     assert Usuario.query.filter_by(email="maestro@dinamyt.org").first().eco_sub == SUB_MAESTRO
 
 
-def test_un_alumno_con_el_plan_de_su_federacion_no_abre_la_consola(cliente):
+def test_un_alumno_con_el_plan_de_su_federacion_entra_a_su_panel(cliente):
     # El caso que trajo todo esto: la federación paga Campeonatos, así que su
-    # pase trae el scope. No administra, no inscribe y no puntúa.
+    # pase trae el scope. No administra, no inscribe y no puntúa — y hasta F3
+    # por eso no entraba. Ahora entra, con `competidor` de principal: el login
+    # lo manda a `/mi-panel` y `require_personal` le cierra la consola.
     res = canjear(cliente, pase(rol="competitor"))
 
-    assert res.status_code == 403
-    assert res.get_json()["motivo"] == "sin_consola"
-    assert not hay_cookie(res)
-    # Y no deja rastro: doscientos alumnos de una federación no son doscientas
-    # filas en la tabla de usuarios de la consola.
-    assert Usuario.query.count() == 0
+    assert res.status_code == 200
+    assert hay_cookie(res)
+    assert res.get_json()["user"]["rol"] == "competidor"
+    # La fila nace AHORA, al entrar, y no al firmar el pase: los doscientos
+    # alumnos de una federación que nunca abren Campeonatos siguen sin existir.
+    assert Usuario.query.count() == 1
 
 
 def test_sin_rol_de_campeonatos_tampoco(cliente):

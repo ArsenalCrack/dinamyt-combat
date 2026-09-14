@@ -13,22 +13,23 @@ from ..timeutil import iso_utc
 from ..uid import nuevo_uid
 import bcrypt
 
-# Roles válidos del sistema. `rol` es un String (no Enum de BD) para poder
+# Los roles que da la CONSOLA. `rol` es un String (no Enum de BD) para poder
 # ampliar la lista sin migrar el tipo en bases existentes; la validez se
 # comprueba en la API. La jerarquía admin>maestro>juez se apoya además en
 # `es_superadmin` (booleano aparte) y en `creado_por_id` (workspace).
 ROLES_VALIDOS = ("admin", "maestro", "juez")
 
-# ── Los papeles de una persona (F2 de PLAN-CAMPEONATOS) ─────────────────────
+# ── Los papeles de una persona (F2 y F3 de PLAN-CAMPEONATOS) ────────────────
 #
-# `ROLES_VALIDOS` son los que pueden ser el PRINCIPAL: el `rol` de la fila, el
-# que decide a qué consola entra y de qué workspace es. `PAPELES` son todos los
-# que una persona puede tener A LA VEZ, de más rango a menos.
+# `PAPELES` son todos los que una persona puede tener A LA VEZ, de más rango a
+# menos, y cualquiera puede ser el principal (`rol`).
 #
-# `competidor` está en la segunda lista y no en la primera, a propósito: hasta
-# F3 no existe ninguna pantalla para quien solo compite. Si alguien lo tuviera
-# de principal, el login lo mandaría al panel del juez, que es lo que hace con
-# todo rol que no reconoce. Se puede TENER; no se puede ser SOLO eso.
+# `competidor` es el único que NO está en `ROLES_VALIDOS`, y ahora es por otra
+# razón que en F2. Entonces no había ninguna pantalla para quien solo compite;
+# desde F3 la hay (`/mi-panel`) y el espejo de un alumno nace con ese principal.
+# Lo que sigue siendo verdad es que **la consola no lo reparte**: crear un
+# usuario o cambiarle el rol desde `/admin` sigue ofreciendo solo los tres que
+# operan. Competir lo da el pase, o reclamar la ficha.
 PAPELES = ("admin", "maestro", "juez", "competidor")
 
 
@@ -320,10 +321,10 @@ class Usuario(db.Model):
         a mano en cada endpoint es la forma segura de que acaben discrepando.
         """
         limpia = ordenar_papeles(lista)
-        if not limpia or limpia[0] not in ROLES_VALIDOS:
+        if not limpia:
             raise ValueError(
-                "Una persona necesita al menos un papel que abra la consola "
-                f"({', '.join(ROLES_VALIDOS)})."
+                "Una persona necesita al menos un papel en Campeonatos "
+                f"({', '.join(PAPELES)})."
             )
         self._roles = limpia
         self.rol = limpia[0]

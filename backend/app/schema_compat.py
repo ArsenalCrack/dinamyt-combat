@@ -58,6 +58,9 @@ OPTIONAL_COLUMNS = {
     },
     "competidores": {
         "uid": "VARCHAR(32)",
+        # La cuenta de DINAMYT de quien compite con esta ficha (F3). NULL es lo
+        # normal: la ficha existe antes que la cuenta, y se reclama después.
+        "eco_sub": "VARCHAR(64)",
         "categoria_especial": "BOOLEAN",
         # Fecha de última actualización de datos (peso/cinturón cambian entre
         # campeonatos). NULL en filas viejas = nunca actualizado tras crearse.
@@ -257,16 +260,18 @@ def _ensure_indices_uid(table_names):
     solo agrega la columna. Sin el índice, emparejar por uid al importar haría
     un recorrido completo de la tabla.
     """
-    indices = {
-        "usuarios": "uid",
-        "competidores": "uid",
-        "tatamis": "uid",
-        "asignaciones_juez": "uid",
-        "inscripciones": "uid",
-        "llaves": "uid",
-        "campeonatos": "export_uuid",
-    }
-    for table_name, column_name in indices.items():
+    indices = (
+        ("usuarios", "uid"),
+        ("competidores", "uid"),
+        # `/api/mi/*` busca las fichas de una persona por aquí en cada carga.
+        ("competidores", "eco_sub"),
+        ("tatamis", "uid"),
+        ("asignaciones_juez", "uid"),
+        ("inscripciones", "uid"),
+        ("llaves", "uid"),
+        ("campeonatos", "export_uuid"),
+    )
+    for table_name, column_name in indices:
         if table_name not in table_names:
             continue
         # SQLite y PostgreSQL admiten los dos IF NOT EXISTS; el nombre es el

@@ -61,7 +61,7 @@ def puerta():
         maestro.clubes = ["DOJANG SUR"]
         juez = Usuario(email="juez@t.local", nombre="JUEZ", rol="juez",
                        activo=True, creado_por_id=admin.id)
-        # Así nacerá el espejo de un alumno en F3: solo compite.
+        # Así nace el espejo de un alumno desde F3: solo compite.
         alumno = Usuario(email="alumno@t.local", nombre="ALUMNA", rol="competidor", activo=True)
         de_baja = Usuario(email="baja@t.local", nombre="DE BAJA", rol="juez",
                           activo=False, creado_por_id=admin.id)

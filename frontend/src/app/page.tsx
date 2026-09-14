@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Cargando } from "@/components/Cargando";
+import { destinoDe } from "@/lib/destino";
 import { useI18n } from "@/lib/i18n";
 import { haySesionProbable, obtenerUsuario } from "@/lib/sesion";
 
@@ -16,11 +17,7 @@ export default function Home() {
     // cuadra, /login o el propio backend corrigen.
     const parsed = haySesionProbable() ? obtenerUsuario<{ rol?: string }>() : null;
     if (parsed?.rol) {
-      router.replace(
-        parsed.rol === "admin" ? "/admin"
-        : parsed.rol === "maestro" ? "/maestro"
-        : "/juez"
-      );
+      router.replace(destinoDe(parsed.rol));
       return;
     }
     router.replace("/login");

@@ -112,6 +112,27 @@ class Competidor(db.Model):
     cinturon = db.Column(db.String(50), nullable=True)
     peso = db.Column(db.Float, nullable=True)  # kg
     club = db.Column(db.String(200), nullable=True)
+    # ── De quién es esta ficha (F3 de PLAN-CAMPEONATOS, parte 3) ────────────
+    #
+    # El `sub` de la cuenta de DINAMYT de la persona que compite con esta
+    # ficha. Es lo que convierte «ANA GÓMEZ» en «tú»: `/api/mi/*` solo enseña
+    # lo que cuelga de las fichas con TU `sub`.
+    #
+    # Nullable, y así seguirá en la mayoría: la ficha existe ANTES que la
+    # cuenta (D5). El atleta independiente compite sin DINAMYT, y el día que se
+    # la crea reclama su ficha por documento y fecha de nacimiento.
+    #
+    # El `sub` y no `usuarios.id`, que era la otra mitad de lo que pedía el
+    # plan: el id de la fila cambia entre la instalación de internet y la del
+    # evento, y el `sub` es el mismo en las dos. Con él viaja en el paquete sin
+    # traducir nada (F6-c).
+    #
+    # Texto también en PostgreSQL, a diferencia de `usuarios.eco_sub`: allí la
+    # columna ya existía como `uuid` cuando llegó el código; esta nace aquí.
+    # Nunca se hace JOIN entre las dos —se compara con el texto del pase—, así
+    # que no hay tipos que casar. Sin `unique`: dos fichas de la misma persona
+    # (una por workspace) pueden ser tuyas a la vez.
+    eco_sub = db.Column(db.String(64), nullable=True, index=True)
     # Categoría Especial: en figuras recibe siempre el 1er puesto sin afectar
     # el ranking normal (el motor de figuras ya lo maneja).
     categoria_especial = db.Column(db.Boolean, default=False, nullable=True)
@@ -150,6 +171,9 @@ class Competidor(db.Model):
             "peso": self.peso,
             "club": self.club,
             "categoria_especial": bool(self.categoria_especial),
+            # Solo SI está enlazada, nunca a qué cuenta: el `sub` no le sirve de
+            # nada a quien administra, y es lo único que abre el panel ajeno.
+            "cuenta_enlazada": bool(self.eco_sub),
             "activo": self.activo,
             "created_at": iso_utc(self.created_at),
             # Filas viejas sin updated_at: la última actualización conocida
