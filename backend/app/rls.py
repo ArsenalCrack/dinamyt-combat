@@ -32,10 +32,25 @@ from .extensions import db
 TABLAS_POR_CREADOR = [
     "campeonatos",
     "competidores",
-    "inscripciones",
     "llaves",
     "resultados_publicados",
 ]
+
+# ── `inscripciones` es del CAMPEONATO, no de quien la envió ─────────────────
+#
+# Estuvo en la lista de arriba, y con eso el flujo del maestro no funcionaba en
+# PostgreSQL: su solicitud se guarda con `created_by = maestro.id` —es quien la
+# envía, y `/maestro/mias` y el reenvío lo leen así—, pero su contexto de RLS es
+# el workspace del ADMIN que lo creó. La política pedía `created_by = admin.id`:
+# la solicitud se rechazaba al insertarla («new row violates row-level security
+# policy», un 500), y aunque hubiera entrado, el admin no la habría visto para
+# aceptarla. En SQLite —donde corren las pruebas— no hay RLS, así que todo
+# pasaba en verde. Lo encontró `tests/test_rls_postgres.py`.
+#
+# La inscripción vive donde vive su campeonato, y así se escribe la política.
+# La subconsulta pasa a su vez por la política de `campeonatos`, que es la
+# misma condición: no abre nada nuevo.
+TABLA_INSCRIPCIONES = "inscripciones"
 
 # `usuarios` se cuelga de quién creó la cuenta, no de created_by.
 TABLA_USUARIOS = "usuarios"
@@ -190,6 +205,21 @@ def _sentencias():
     sentencias = [_FUNCIONES, _FUNCION_ACCESO]
     for tabla in TABLAS_POR_CREADOR:
         sentencias += _politica(tabla, "created_by")
+    # Ver `TABLA_INSCRIPCIONES`: del workspace de su campeonato.
+    del_campeonato = (
+        "app_acceso_total() OR EXISTS (SELECT 1 FROM campeonatos c "
+        f"WHERE c.id = {TABLA_INSCRIPCIONES}.campeonato_id "
+        "AND c.created_by = app_workspace_actual())"
+    )
+    sentencias += [
+        f"ALTER TABLE {TABLA_INSCRIPCIONES} ENABLE ROW LEVEL SECURITY",
+        f"ALTER TABLE {TABLA_INSCRIPCIONES} FORCE ROW LEVEL SECURITY",
+        f"DROP POLICY IF EXISTS {TABLA_INSCRIPCIONES}_por_workspace ON {TABLA_INSCRIPCIONES}",
+        (
+            f"CREATE POLICY {TABLA_INSCRIPCIONES}_por_workspace ON {TABLA_INSCRIPCIONES} "
+            f"USING ({del_campeonato}) WITH CHECK ({del_campeonato})"
+        ),
+    ]
     # El propio admin dueño del workspace debe seguir viéndose a sí mismo, o se
     # quedaría fuera de su propia gestión de usuarios.
     sentencias += [
@@ -273,7 +303,7 @@ def estado_rls():
                 "  AND c.relname = ANY(:tablas) "
                 "  AND NOT (c.relrowsecurity AND c.relforcerowsecurity)"
             ),
-            {"tablas": TABLAS_POR_CREADOR + [TABLA_USUARIOS]},
+            {"tablas": TABLAS_POR_CREADOR + [TABLA_INSCRIPCIONES, TABLA_USUARIOS]},
         ).scalars().all()
     if faltan:
         return False, f"sin RLS forzado: {', '.join(faltan)}"

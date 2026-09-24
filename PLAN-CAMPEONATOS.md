@@ -14,15 +14,22 @@
 > | **F3** + **F6-c** | ✅ **hecha** | El alumno entra a **su panel** (`/mi-panel`): inscripciones con su estado, próximos campeonatos, su maestro, resultados y números. La ficha se reclama con documento y fecha, o la enlaza el admin, y viaja en el paquete. Las lecturas del personal se cerraron antes de abrir la puerta. Con cuatro cambios sobre lo escrito: ver la nota de la parte 3 dentro de F3 |
 >
 > Los carriles A y B están cerrados, y del C quedan **F4** —la organización
-> llega a Campeonatos, con F6-d— y **F5** —inscribirse por invitación—. Todo
-> el carril C tiene que estar dentro **antes del ensayo del ~26 de
-> septiembre**; F8, la subida automática, va al final.
+> llega a Campeonatos, con F6-d— y **F5** —inscribirse por invitación—. F8, la
+> subida automática, va al final.
 >
-> **⏱ Fecha límite: el 8 de octubre de 2026.** Hay campeonato el 9, 10 y 11 y
-> **no hay «después»** (decisión D6): lo que no esté dentro para entonces, no
-> existe el día del evento. La PARTE 4 es el orden que sale de eso. Lo que sí está implementado se cuenta en la
-> PARTE 1, con archivo y línea, para que el plan se apoye en lo que hay y no en
-> lo que uno recuerda que hay.
+> **⏱ Ya no hay fecha límite (D7, 24 de septiembre de 2026).** El campeonato
+> del 9, 10 y 11 de octubre **no se hace**, y el siguiente es el año que viene,
+> sin fecha todavía. Lo que ordenaba este plan —«lo que no esté el 8 no existe
+> el 9» (D6)— deja de valer: ahora se hace **bien y con pruebas**, fase a fase,
+> y lo que estaba aplazado «hasta después del campeonato» ya se puede
+> programar. La PARTE 4 está reescrita con eso. Lo que sí está implementado se
+> cuenta en la PARTE 1, con archivo y línea, para que el plan se apoye en lo
+> que hay y no en lo que uno recuerda que hay.
+>
+> ### 📍 Dónde quedamos — LEER PRIMERO (se actualiza al cerrar cada sesión)
+>
+> **Sesión del 24 de septiembre de 2026.** Ver el diario al final de este
+> archivo (**PARTE 6**): qué se hizo, qué quedó a medias y qué sigue.
 >
 > Los documentos hermanos siguen valiendo y este no los sustituye:
 > `PLAN-SINCRONIZACION-LOCAL-ONLINE.md` (cómo viajan los datos, ya funciona),
@@ -401,10 +408,28 @@ de DINAMYT o entre a un club, **su historial ya está ahí esperándolo**. O sea
 que la ficha del competidor **no depende de tener cuenta**, y la cuenta se le
 engancha después. Desarrollado en F3.
 
-**D6 · TODO tiene que estar funcional para el 9 de octubre.** No hay «después
-del campeonato». Lo que no esté antes del 8, no existe el día del evento — así
-que el plan deja de estar ordenado por prudencia y pasa a estarlo por **lo que
-más duele el sábado por la mañana**. Ver la PARTE 4, reescrita entera.
+**~~D6 · TODO tiene que estar funcional para el 9 de octubre.~~** **REVOCADA
+el 24 de septiembre de 2026**, ver D7. Decía: no hay «después del campeonato»,
+lo que no esté antes del 8 no existe el día del evento, y el plan se ordena por
+lo que más duele el sábado por la mañana.
+
+**D7 · No hay campeonato en octubre: se hace con tiempo** *(24 de septiembre de
+2026)*. El del 9, 10 y 11 de octubre no se celebra y el siguiente es el año que
+viene, sin fecha. Consecuencias:
+
+- **No hay congelación de despliegues** el 8–11 de octubre (`OPERAR.md` §1.5
+  se actualiza).
+- **El ensayo de `OPERAR.md` §6.0 pasa a «antes del próximo campeonato»**, no a
+  la última semana de septiembre. Sigue siendo obligatorio: lo que cambia es
+  cuándo.
+- **Lo aplazado «hasta después del campeonato» se puede programar**: el
+  `/sync/rol` de Campeonatos (`OPERAR.md` §6.1), el bloqueo por plan vencido
+  (PARTE 5) y retirar `POST /auth/register` en internet. Van a la PARTE 4.
+- **F9 sigue esperando un campeonato real**: su definición no era una fecha,
+  era «cuando F1–F8 lleven un campeonato encima». Eso será el año que viene.
+- **Cada fase se prueba también contra PostgreSQL** (`tests/test_rls_postgres.py`):
+  la batería corre en SQLite, donde RLS no existe, y así se escapó un fallo
+  que rompía el flujo entero del maestro (ver PARTE 6).
 
 ### Todas las preguntas, contestadas
 
@@ -1264,29 +1289,37 @@ Solo cuando F1–F8 lleven **un campeonato real** encima:
 
 ---
 
-# PARTE 4 · El orden — TODO antes del 8 de octubre
+# PARTE 4 · El orden
 
-*(reescrita el 9 de septiembre de 2026, tras D6. La versión anterior repartía el
-plan en «antes» y «después del campeonato». **Ya no hay después**: lo que no
-esté el 8, no existe el 9.)*
+*(reescrita el 24 de septiembre de 2026, tras D7. La versión del 9 de
+septiembre lo metía todo antes del 8 de octubre; ese campeonato no se hace y el
+siguiente es el año que viene. Lo que queda abajo de «EL ORDEN DE TRABAJO» es
+la historia de cómo se llegó hasta F3, y se conserva.)*
 
-### Lo único que sigue siendo intocable
+### Lo que manda ahora
 
-- **Los días 9, 10 y 11 no se despliega nada.** El 8 solo arreglos
-  (`OPERAR.md` §1.5). Eso no es prudencia opcional: es que hay gente delante y
-  una llave en marcha.
-- **La última semana de septiembre se corre el ensayo** de `OPERAR.md` §6.0, y
-  se anotan los números. Todo lo que toque login, roles o identidad **tiene que
-  estar dentro antes de ese ensayo**, o el ensayo no mide lo que va a correr.
+- **Sin fecha: cada fase entra cuando está probada**, también contra
+  PostgreSQL (ver D7). Mejor una fase bien que tres a medias.
+- **El ensayo de `OPERAR.md` §6.0 se corre antes del próximo campeonato**, con
+  todo lo que toque login, roles e identidad ya desplegado. Sigue siendo
+  obligatorio.
+- **Cada fase sigue dejando la aplicación desplegable**, y se despliega en
+  cuanto está: nada de acumular tres fases para un despliegue grande.
 
-Eso da **dos fechas reales**, y son las que ordenan lo de abajo:
+### EL ORDEN NUEVO (24 de septiembre de 2026)
 
-| | |
-|---|---|
-| **~26 de septiembre** | Todo lo que toca identidad, roles o login, DENTRO. Después se corre el ensayo sobre lo que de verdad va a correr el 9 |
-| **8 de octubre** | Todo lo demás, DENTRO. Y a partir del 9, nada |
+| # | Qué | Estado |
+|---|---|---|
+| **0** | **Desplegar lo que ya está hecho y no está en la VPS**: el portal va sin F1 (`583abc4`) y Campeonatos sin la parte 3 de F3 (`8dbc599`). Orden: Campeonatos → ecosystem (shared, migrar 0023, reiniciar) → portal | ⏳ lo hace el usuario |
+| **1** | **Arreglo de RLS en `inscripciones`** — el maestro no podía inscribir en PostgreSQL | ✅ hecho el 24 sep, sin desplegar |
+| **2** | **F4 + F6-d** — la organización llega a Campeonatos | ver PARTE 6 |
+| **3** | **F5 + F6-e** — inscribirse por invitación, y la invitación viaja en el paquete | ver PARTE 6 |
+| **4** | **F8** — la subida automática de resultados | pendiente |
+| **5** | **Lo que esperaba «a después del campeonato»**: `/sync/rol` a Campeonatos (`OPERAR.md` §6.1), bloqueo por plan vencido (PARTE 5), retirar `POST /auth/register` de la instalación de internet | pendiente, por decidir cada uno |
+| **6** | **Ensayo §6.0** con todo lo anterior dentro | antes del próximo campeonato |
+| **7** | **F9** — retirar los andamios | después del próximo campeonato |
 
-### EL ORDEN DE TRABAJO — se empieza por arriba
+### EL ORDEN DE TRABAJO — se empieza por arriba *(versión del 9 de septiembre, histórica)*
 
 *(reordenado el 9 de septiembre de 2026, al implementar F6 y descubrir que en
 el puesto 2 no se puede terminar. Ver «F6 se reparte» aquí abajo.)*
@@ -1411,3 +1444,50 @@ Escrito para que dentro de tres meses nadie lo busque aquí:
 - **No sincroniza en tiempo real.** Sigue siendo un sentido y por tandas.
 - **No toca el motor de combate ni el de figuras.** Ni una línea de
   `backend/app/engine/`.
+
+---
+
+# PARTE 6 · Diario de sesiones — dónde quedamos
+
+*Una entrada por sesión, la más reciente arriba. Es lo primero que lee la
+siguiente: qué se hizo, qué quedó a medias, qué falta desplegar y qué sigue.*
+
+## Sesión del 24 de septiembre de 2026
+
+**Contexto que cambió:** no hay campeonato en octubre (D7). Se revisó lo hecho
+antes de seguir, y se trabajó con una base PostgreSQL de verdad al lado.
+
+### Estado de la VPS al empezar (comprobado por SSH)
+
+| App | Commit en la VPS | Lo que le falta |
+|---|---|---|
+| Campeonatos (`/srv/campeonatos`) | `8dbc599` | la parte 3 de F3 (`d26d300`) y todo lo de hoy |
+| Portal + ecosystem (`/srv/dinamyt`) | `583abc4` | **F1** (`58b3e08`, migración 0023) y el botón de F3 (`696e1dd`) |
+| Membresías | `3488b31` | nada |
+
+Consecuencia: **F2 corre en producción sin F1** — no pasa nada, porque sin
+`roles_campeonatos` en el pase Campeonatos lee `role_campeonatos`, que es para
+lo que F2 se escribió así. Pero nada del carril C se ve todavía de cara al
+usuario.
+
+### 1 · El fallo que la batería no podía ver: RLS en `inscripciones` — ✅ arreglado
+
+`tests/test_rls_postgres.py` (nuevo) corre contra un PostgreSQL con
+`FORCE ROW LEVEL SECURITY` y un rol normal, como producción. La primera prueba
+—el maestro inscribe a una alumna y el admin la ve— **falló al insertar**:
+
+    new row violates row-level security policy for table "inscripciones"
+
+La solicitud del maestro se guarda con `created_by = maestro.id` (es quien la
+envía), y la política pedía `created_by = workspace` (el id del admin). En
+producción eso es un **500 en cada inscripción de un maestro**, y aunque
+hubiera entrado, el admin no la habría visto. En SQLite no hay RLS: 374 pruebas
+en verde y el flujo roto.
+
+**Arreglo** (`app/rls.py`): la política de `inscripciones` mira el workspace de
+SU CAMPEONATO, no quién la envió. Se aplica sola al reiniciar (`ensure_rls`
+reescribe las políticas). Sirve también al importador, que ya guardaba las
+solicitudes con el maestro como autor.
+
+**Cómo correr la prueba contra PostgreSQL:** ver la cabecera de
+`tests/test_rls_postgres.py`. Sin `CAMPEONATOS_PG_URL` se salta sola.
