@@ -140,6 +140,14 @@ def crear():
     estado = data.get("estado", "preparacion")
     if estado not in ESTADOS_CAMPEONATO:
         return jsonify({"error": "Estado de campeonato inválido"}), 400
+    # Antes se convertían sin mirar, y una fecha mal escrita era un 500.
+    fechas = {}
+    for campo, etiqueta in (("fecha_inicio", "de inicio"), ("fecha_fin", "de fin")):
+        valor = data.get(campo)
+        try:
+            fechas[campo] = date.fromisoformat(valor) if valor else None
+        except (TypeError, ValueError):
+            return jsonify({"error": f"La fecha {etiqueta} no es válida (AAAA-MM-DD)."}), 400
 
     camp = Campeonato(
         # El nombre del campeonato encabeza la pantalla pública, el acta y las
@@ -147,14 +155,18 @@ def crear():
         # descripción no — ahí cabe una frase, no un dato.
         nombre=mayusculas(str(data["nombre"]).strip()),
         descripcion=data.get("descripcion"),
-        fecha_inicio=date.fromisoformat(data["fecha_inicio"]) if data.get("fecha_inicio") else None,
-        fecha_fin=date.fromisoformat(data["fecha_fin"]) if data.get("fecha_fin") else None,
+        fecha_inicio=fechas["fecha_inicio"],
+        fecha_fin=fechas["fecha_fin"],
         lugar=lugar,
         ciudad=ciudad,
         pais=pais,
         estado=estado,
         activo=True,
         created_by=admin.id,
+        # La organización de quien lo crea (F4). NULL si no consta —el modo
+        # local, un admin creado a mano—, y la rellena el arranque o su
+        # próxima entrada desde el portal.
+        org_id=admin.org_id,
     )
     db.session.add(camp)
     db.session.flush()  # Para obtener el ID
@@ -193,7 +205,8 @@ def actualizar(camp_id):
     camp = Campeonato.query.get_or_404(camp_id)
     if not es_dueno_campeonato(admin, camp):
         return jsonify({"error": "Campeonato no encontrado"}), 404
-    data = request.get_json()
+    # Sin cuerpo JSON, `data.get` era un 500.
+    data = request.get_json(silent=True) or {}
 
     if data.get("nombre"):
         camp.nombre = mayusculas(str(data["nombre"]).strip())
@@ -201,12 +214,14 @@ def actualizar(camp_id):
         camp.descripcion = data["descripcion"]
     if "activo" in data:
         camp.activo = data["activo"]
-    if data.get("fecha_inicio"):
-        from datetime import date
-        camp.fecha_inicio = date.fromisoformat(data["fecha_inicio"])
-    if data.get("fecha_fin"):
-        from datetime import date
-        camp.fecha_fin = date.fromisoformat(data["fecha_fin"])
+    from datetime import date
+    for campo, etiqueta in (("fecha_inicio", "de inicio"), ("fecha_fin", "de fin")):
+        if data.get(campo):
+            # Una fecha mal escrita era un 500; ahora es una frase.
+            try:
+                setattr(camp, campo, date.fromisoformat(data[campo]))
+            except (TypeError, ValueError):
+                return jsonify({"error": f"La fecha {etiqueta} no es válida (AAAA-MM-DD)."}), 400
     for campo, etiqueta, propio in (
         ("lugar", "La sede", True), ("ciudad", "La ciudad", False), ("pais", "El país", False),
     ):

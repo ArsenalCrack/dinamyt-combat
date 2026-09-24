@@ -227,6 +227,29 @@ export async function listUsersAPI(includeInactive = false) {
   return res.data as UserData[];
 }
 
+/** Un administrador, tal como lo cuenta el informe de organizaciones. */
+export interface AdminDelInforme {
+  id: number;
+  nombre: string;
+  email: string;
+}
+
+/**
+ * El informe que D3 pide antes de decidir nada (F4): las organizaciones con
+ * MÁS DE UN administrador, y los admins que aún no tienen organización.
+ * Solo el superadministrador.
+ */
+export interface InformeAdministradores {
+  varios: { org_id: string; org_nombre: string | null; admins: AdminDelInforme[] }[];
+  con_uno: number;
+  sin_organizacion: AdminDelInforme[];
+}
+
+export async function informeAdministradoresAPI() {
+  const res = await api.get("/auth/organizaciones/administradores");
+  return res.data as InformeAdministradores;
+}
+
 export async function deleteUserAPI(id: number) {
   const res = await api.delete(`/auth/users/${id}`);
   return res.data;
@@ -1354,6 +1377,13 @@ export interface UserData {
    * `rol`: el de quien solo compite.
    */
   roles?: Array<"admin" | "maestro" | "juez" | "competidor">;
+  /**
+   * La organización del ecosistema de su pertenencia principal (F4). Se copia
+   * del pase en cada entrada desde el portal; `null` es «no consta» —el modo
+   * local, o alguien que todavía no ha vuelto a entrar desde el portal—.
+   */
+  org_id?: string | null;
+  org_nombre?: string | null;
   activo: boolean;
   creado_por_id?: number | null;
   creado_por?: {

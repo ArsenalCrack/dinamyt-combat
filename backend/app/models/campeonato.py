@@ -49,6 +49,13 @@ class Campeonato(db.Model):
     created_by = db.Column(
         db.Integer, db.ForeignKey("usuarios.id"), nullable=True
     )
+    # La organización del ecosistema que lo organiza (F4): la de quien lo
+    # creó, copiada al crearlo. NULL = «del workspace de siempre» —creado antes
+    # de F4, o en el modo local— y sigue funcionando por `created_by`, que es
+    # quien decide de quién es. `org_id` todavía NO decide nada: lo usa F5 para
+    # saber quién invita a quién, y el día que haya un solo administrador por
+    # organización las dos cosas dirán lo mismo (ver PLAN-CAMPEONATOS, F4).
+    org_id = db.Column(db.String(64), nullable=True, index=True)
     created_at = db.Column(
         db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
@@ -79,6 +86,7 @@ class Campeonato(db.Model):
             "estado": self.estado or "preparacion",
             "activo": self.activo,
             "created_by": self.created_by,
+            "org_id": self.org_id,
             "created_at": iso_utc(self.created_at),
             "num_tatamis": self.tatamis.count() if self.tatamis else 0,
             "num_inscripciones": num_aceptadas,

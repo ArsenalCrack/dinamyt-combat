@@ -148,6 +148,24 @@ class Usuario(db.Model):
     # siguiente inicio de sesión. Ver `fijar_papeles_a_mano`.
     _roles = db.Column("roles", db.JSON, nullable=True)
     _roles_quitados = db.Column("roles_quitados", db.JSON, nullable=True)
+    # ── La organización (F4 de PLAN-CAMPEONATOS) ────────────────────────────
+    #
+    # El `org_id` del pase: el club o la federación de su pertenencia
+    # principal en el ecosistema. Texto y no `uuid`, a propósito: es un dato
+    # que se COPIA del pase, no una clave con la que se relacione nada aquí, y
+    # `eco_sub` ya enseñó lo que cuesta que la misma columna tenga dos tipos
+    # según el motor (ver arriba).
+    #
+    # Se reescribe en cada entrada desde el portal (`espejo.py`): si la persona
+    # cambió de club, esto cambia con ella. NULL es «no consta» —el modo local,
+    # los usuarios creados a mano en la consola, quien aún no ha vuelto a
+    # entrar— y no es un error.
+    #
+    # `org_nombre` es solo para enseñarlo («de qué organización es lo que se
+    # está viendo», punto 5 de F4). Se pregunta al ecosistema cuando cambia la
+    # organización, igual que el club del maestro.
+    org_id = db.Column(db.String(64), nullable=True, index=True)
+    org_nombre = db.Column(db.String(150), nullable=True)
     activo = db.Column(db.Boolean, default=True, nullable=False)
     creado_por_id = db.Column(
         db.Integer, db.ForeignKey("usuarios.id"), nullable=True, index=True
@@ -416,6 +434,9 @@ class Usuario(db.Model):
             "puede_juzgar": bool(self.puede_juzgar),
             # Todos sus papeles. `rol` sigue siendo el principal.
             "roles": self.roles,
+            # De qué organización del ecosistema es (F4). NULL = no consta.
+            "org_id": self.org_id,
+            "org_nombre": self.org_nombre,
             "activo": self.activo,
             "creado_por_id": self.creado_por_id,
             "creado_por": (

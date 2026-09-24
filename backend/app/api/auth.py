@@ -588,6 +588,28 @@ def list_users():
     return jsonify([u.to_dict(include_asignaciones=True) for u in users]), 200
 
 
+@auth_bp.route("/organizaciones/administradores", methods=["GET"])
+@jwt_required()
+def informe_de_administradores():
+    """
+    GET /api/auth/organizaciones/administradores (solo superadmin)
+
+    El informe que D3 pide antes de aplicar nada: las organizaciones con MÁS
+    DE UN administrador, con nombre y correo de cada uno, más los admins que
+    todavía no tienen organización (no han vuelto a entrar desde el portal
+    desde F4, o se crearon a mano en la consola).
+
+    Solo el superadmin: un admin normal no ve a los de otros workspaces, y
+    este informe va justo de eso.
+    """
+    current_user = require_admin()
+    if not current_user or not current_user.es_super:
+        return jsonify({"error": "Solo el superadministrador"}), 403
+    from ..organizacion import informe_de_administradores as informe
+
+    return jsonify(informe()), 200
+
+
 @auth_bp.route("/clubes", methods=["GET"])
 @jwt_required()
 def listar_clubes():

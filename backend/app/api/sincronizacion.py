@@ -84,7 +84,10 @@ FORMATOS_VALIDOS = (FORMATO_CAMPEONATO, FORMATO_USUARIOS, FORMATO_COMPETIDORES)
 # 4 desde F3 (F6-c): cada ficha viaja con `eco_sub`, la cuenta de DINAMYT de
 # quien compite con ella. Uno anterior llega con las fichas sin enlazar, que es
 # como estaban.
-VERSION_PAQUETE = 4
+# 5 desde F4 (F6-d): los usuarios y el campeonato viajan con su `org_id` (y el
+# usuario con `org_nombre`). Uno anterior llega sin organización, que es como
+# estaba todo antes de F4: NULL = «no consta».
+VERSION_PAQUETE = 5
 
 # Tope del archivo subido (25 MB). Un campeonato de 1000 competidores con sus
 # llaves ronda los 3 MB; más que esto no es un paquete de DINAMYT.
@@ -141,6 +144,10 @@ def _usuario_a_dict(u):
         # Todos sus papeles (F2). `rol` y `puede_juzgar` siguen viajando para
         # la instalación que todavía no sabe leer la lista.
         "roles": u.roles,
+        # De qué organización es (F6-d). Nunca pisa la que ya tenga en el
+        # destino (ver `_poner_organizacion`).
+        "org_id": u.org_id,
+        "org_nombre": u.org_nombre,
         "activo": bool(u.activo),
     }
 
@@ -179,6 +186,9 @@ def _campeonato_a_dict(camp):
         "estado": camp.estado or "preparacion",
         "activo": bool(camp.activo),
         "config_categorias": camp.config_categorias,
+        # Quién lo organiza (F6-d). Al volver de la instalación del evento
+        # hace falta para que siga siendo de esa organización.
+        "org_id": camp.org_id,
     }
 
 
@@ -668,12 +678,45 @@ def _importar_usuarios(lista, admin, informe):
                 AsignacionJuez.query.filter_by(usuario_id=local.id).delete()
 
         _enlazar_eco_sub(local, eco_sub, informe)
+        _poner_organizacion(
+            local,
+            _texto(datos.get("org_id"), 64) or None,
+            _texto(datos.get("org_nombre"), 150) or None,
+            informe,
+            quien=f"'{local.email}'",
+        )
 
         if uid:
             mapa[uid] = local
 
     db.session.flush()
     return mapa
+
+
+def _poner_organizacion(local, org_id, org_nombre, informe, quien):
+    """La organización del paquete (F6-d). Con la misma prudencia que la identidad.
+
+      · la fila local no tiene → se le pone la del paquete (y su nombre);
+      · ya tiene la MISMA → solo se completa el nombre si faltaba;
+      · ya tiene OTRA → se deja la local y se avisa. La local es la que vino
+        del pase de la persona, que es más fresca que un paquete.
+
+    Sirve igual para usuarios y para el campeonato: los dos llevan `org_id`, y
+    solo el usuario lleva nombre (`org_nombre` se ignora si la fila no lo tiene).
+    """
+    if not org_id:
+        return
+    tiene_nombre = hasattr(local, "org_nombre")
+    if local.org_id and local.org_id != org_id:
+        informe.aviso(
+            f"{quien} ya es aquí de otra organización: se dejó la local y no "
+            "se aplicó la del paquete."
+        )
+        return
+    if not local.org_id:
+        local.org_id = org_id
+    if tiene_nombre and org_nombre and not local.org_nombre:
+        local.org_nombre = org_nombre
 
 
 def _enlazar_ficha(local, eco_sub, informe):
@@ -806,6 +849,14 @@ def _importar_campeonato(datos, admin, informe):
     camp.activo = bool(datos.get("activo", True))
     if isinstance(datos.get("config_categorias"), dict):
         camp.config_categorias = datos["config_categorias"]
+    _poner_organizacion(
+        camp, _texto(datos.get("org_id"), 64) or None, None, informe,
+        quien=f"El campeonato '{camp.nombre}'",
+    )
+    # Un campeonato nuevo sin organización en el paquete (uno de antes de F4)
+    # recibe la de quien lo importa, como si lo acabara de crear.
+    if camp.org_id is None and informe.campeonato_nuevo:
+        camp.org_id = admin.org_id
 
     db.session.flush()
     return camp

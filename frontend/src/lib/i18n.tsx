@@ -340,6 +340,18 @@ const es = {
   "mant.confActivar.mensaje":
     "Los jueces, maestros y pantallas públicas dejarán de poder usar la aplicación hasta que lo desactives. Tú seguirás entrando con normalidad.",
 
+  // La organización del ecosistema (F4 de PLAN-CAMPEONATOS)
+  "org.etiqueta": "Organización",
+  "org.todas": "Todas (superadministrador)",
+  "org.noConsta": "No consta: se sabrá la próxima vez que entres desde DINAMYT",
+  "org.sinNombre": "Organización sin nombre",
+  "org.informe.titulo": "Administradores por organización",
+  "org.informe.ayuda":
+    "La regla es un solo administrador por organización. A quien entra por primera vez ya se le aplica; a quien ya estaba no se le toca nada. Estas son las organizaciones con más de uno: decide en cada una quién se queda con la consola.",
+  "org.informe.admins": "{n} administradores",
+  "org.informe.sinOrg": "{n} administrador(es) aún sin organización (se sabrá cuando entren desde DINAMYT):",
+  "org.informe.conUno": "{n} organización(es) con un solo administrador.",
+
   // Panel de administración (principal)
   "admin.panel": "Panel de administración",
   "admin.tab.campeonatos": "Campeonatos",
@@ -1727,6 +1739,17 @@ const en: Record<ClaveTexto, string> = {
   "mant.confActivar.titulo": "Turn on maintenance mode?",
   "mant.confActivar.mensaje":
     "Judges, masters and public displays will not be able to use the application until you turn it off. You will keep working as usual.",
+
+  "org.etiqueta": "Organization",
+  "org.todas": "All (super administrator)",
+  "org.noConsta": "Unknown: it will show up next time you sign in from DINAMYT",
+  "org.sinNombre": "Unnamed organization",
+  "org.informe.titulo": "Administrators per organization",
+  "org.informe.ayuda":
+    "The rule is one administrator per organization. It already applies to anyone signing in for the first time; nobody who was already here is touched. These organizations have more than one: decide in each who keeps the console.",
+  "org.informe.admins": "{n} administrators",
+  "org.informe.sinOrg": "{n} administrator(s) with no organization yet (known once they sign in from DINAMYT):",
+  "org.informe.conUno": "{n} organization(s) with a single administrator.",
 
   "admin.panel": "Administration Panel",
   "admin.tab.campeonatos": "Championships",

@@ -55,6 +55,12 @@ from urllib.request import Request, urlopen
 from .extensions import db
 from .identidad import url_api_ecosistema
 from .models.usuario import ROLES_VALIDOS, Usuario, ordenar_papeles
+from .organizacion import (
+    ORG_NOMBRE_MAX,
+    org_del_pase,
+    rellenar_org_de_campeonatos,
+    sin_admin_si_ya_hay_otro,
+)
 
 log = logging.getLogger(__name__)
 
@@ -254,12 +260,17 @@ def resolver_espejo(claims, pase=None):
     if not sub or not email:
         return None, "pase_incompleto"
 
+    # Una sola pregunta al ecosistema por entrada, la haga quien la haga: el
+    # club del maestro y el nombre de la organización salen de la misma.
+    club = _ClubDelPase(claims, pase)
+
     usuario = Usuario.query.filter_by(eco_sub=sub).first()
     if usuario:
         # Primero los papeles y después el club: si el pase lo acaba de hacer
         # maestro, esa misma entrada ya le trae su dojang.
         _sumar_papeles_del_pase(usuario, claims)
-        _asegurar_club(usuario, claims, pase)
+        _asegurar_club(usuario, club)
+        _asegurar_organizacion(usuario, claims, club)
         # Sin esto, lo que se acaba de sumar —y el club que se le puso— se
         # descartaba al terminar la petición: nadie hacía `commit` aquí.
         if db.session.dirty:
@@ -282,7 +293,8 @@ def resolver_espejo(claims, pase=None):
             return None, "correo_ocupado"
         usuario.eco_sub = sub
         _sumar_papeles_del_pase(usuario, claims)
-        _asegurar_club(usuario, claims, pase)
+        _asegurar_club(usuario, club)
+        _asegurar_organizacion(usuario, claims, club)
         db.session.commit()
         log.info("[ecosistema] %s enlazado con su cuenta del ecosistema.", email)
         return usuario, None
@@ -291,28 +303,69 @@ def resolver_espejo(claims, pase=None):
     if not rol:
         return None, "sin_consola"
 
+    # Con TODOS los papeles del pase, no solo el principal: el maestro que
+    # además juzga nace pudiendo juzgar, sin que nadie tenga que marcarlo.
+    papeles = ordenar_papeles([rol, *papeles_del_pase(claims)])
+    # Un solo administrador por organización (F4). Al super-admin no se le
+    # aplica: no es admin de ninguna organización, y entra sin `org_id`.
+    if not es_super(claims):
+        papeles = sin_admin_si_ya_hay_otro(papeles, org_del_pase(claims), sub, email)
+
     usuario = Usuario(
         email=email,
         nombre=(str(claims.get("fullName") or email).strip().upper())[:NOMBRE_MAX],
-        rol=rol,
+        rol=papeles[0],
         eco_sub=sub,
         activo=True,
     )
-    # Con TODOS los papeles del pase, no solo el principal: el maestro que
-    # además juzga nace pudiendo juzgar, sin que nadie tenga que marcarlo.
-    usuario.roles = [rol, *papeles_del_pase(claims)]
+    usuario.roles = papeles
     # Una contraseña que nadie conoce ni puede adivinar: el espejo no se abre
     # con contraseña, se abre con el pase. La columna es NOT NULL, así que
     # dejarla vacía no es opción — y un valor fijo sería una llave maestra.
     usuario.set_password(secrets.token_urlsafe(32))
-    _asegurar_club(usuario, claims, pase)
+    _asegurar_club(usuario, club)
+    _asegurar_organizacion(usuario, claims, club)
     db.session.add(usuario)
     db.session.commit()
-    log.info("[ecosistema] espejo creado para %s (%s).", email, rol)
+    log.info("[ecosistema] espejo creado para %s (%s).", email, usuario.rol)
     return usuario, None
 
 
-def _asegurar_club(usuario, claims, pase):
+class _ClubDelPase:
+    """`club_del_pase`, preguntado como mucho UNA vez por entrada.
+
+    Lo necesitan dos cosas en la misma entrada —el club del maestro y el
+    nombre de la organización— y cada pregunta al ecosistema puede costar
+    hasta `ESPERA_CLUB_SEG`. Solo se pregunta si alguna de las dos lo pide.
+    """
+
+    def __init__(self, claims, pase):
+        self._claims = claims
+        self._pase = pase
+        self._preguntado = False
+        self._valor = None
+
+    def __call__(self):
+        if not self._preguntado:
+            self._preguntado = True
+            self._valor = club_del_pase(self._claims, self._pase)
+        return self._valor
+
+    @property
+    def ya_preguntado(self):
+        """True si esta entrada ya le preguntó al ecosistema (y lo que diga es gratis)."""
+        return self._preguntado
+
+
+# A quién se le pregunta el NOMBRE de su organización. Solo al admin, que es
+# quien lo ve (en la cabecera de `/admin`). Al juez no se le pregunta nada al
+# ecosistema, a propósito: sería una petición por cada juez que entra la mañana
+# del campeonato (ver `ROLES_CON_CLUB` y su prueba). A los demás se les guarda
+# el `org_id`, que viene en el pase y no cuesta nada.
+ROLES_CON_NOMBRE_DE_ORG = ("admin",)
+
+
+def _asegurar_club(usuario, club):
     """
     Le pone su club al maestro que todavía no tiene ninguno.
 
@@ -323,11 +376,54 @@ def _asegurar_club(usuario, claims, pase):
     """
     if usuario.rol not in ROLES_CON_CLUB or usuario.clubes:
         return
-    club = club_del_pase(claims, pase)
-    if not club:
+    datos = club()
+    if not datos:
         return
-    usuario.clubes = [club]
-    log.info("[ecosistema] %s estrena club: %s", usuario.email, club["nombre"])
+    usuario.clubes = [datos]
+    log.info("[ecosistema] %s estrena club: %s", usuario.email, datos["nombre"])
+
+
+def _asegurar_organizacion(usuario, claims, club):
+    """
+    La organización del pase, copiada a la fila (F4). En CADA entrada.
+
+    Al revés que el club del maestro, esto sí se reescribe siempre: no lo edita
+    nadie aquí, es un reflejo de dónde está la persona en el ecosistema, y si
+    se cambió de club tiene que cambiar con ella.
+
+    · Sin `org_id` en el pase —el super-admin, alguien sin pertenencia— no se
+      toca lo que hubiera: «no consta» no es «no tiene».
+    · El nombre se pregunta al ecosistema solo al ADMIN
+      (`ROLES_CON_NOMBRE_DE_ORG`), y solo cuando cambia la organización o
+      todavía no se sabe. A los demás se les pone si esta misma entrada ya
+      preguntó por su club, que es gratis. Si no contesta, se entra igual.
+    · Si quien entra es admin y su organización se acaba de saber, sus
+      campeonatos sin organización la reciben (`rellenar_org_de_campeonatos`).
+    """
+    org_id = org_del_pase(claims)
+    if not org_id:
+        return
+    cambio = org_id != usuario.org_id
+    if cambio:
+        usuario.org_id = org_id
+        # El nombre que hubiera era el de la organización anterior.
+        usuario.org_nombre = None
+    if not usuario.org_nombre and (
+        usuario.rol in ROLES_CON_NOMBRE_DE_ORG or club.ya_preguntado
+    ):
+        datos = club()
+        if datos:
+            usuario.org_nombre = datos["nombre"][:ORG_NOMBRE_MAX]
+    if cambio and usuario.rol == "admin" and usuario.id is not None:
+        # El relleno es SQL que lee `usuarios.org_id` de la base: sin el
+        # `flush`, leería el valor de antes y no rellenaría nada.
+        db.session.flush()
+        rellenados = rellenar_org_de_campeonatos(usuario.id)
+        if rellenados:
+            log.info(
+                "[organizacion] %d campeonato(s) de %s reciben su organización.",
+                rellenados, usuario.email,
+            )
 
 
 def guardar_apariencia(eco_sub, tema=None, idioma=None):

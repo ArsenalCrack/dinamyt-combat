@@ -28,6 +28,10 @@ OPTIONAL_COLUMNS = {
         # tampoco hace falta rellenarla.
         "roles": "JSON",
         "roles_quitados": "JSON",
+        # La organización del ecosistema (F4). NULL = no consta: se rellena
+        # sola la próxima vez que la persona entra desde el portal.
+        "org_id": "VARCHAR(64)",
+        "org_nombre": "VARCHAR(150)",
         # Delegación del maestro: ciudad de origen y país derivado.
         "delegacion": "VARCHAR(120)",
         "pais_delegacion": "VARCHAR(80)",
@@ -55,6 +59,9 @@ OPTIONAL_COLUMNS = {
         "ciudad": "VARCHAR(120)",
         "pais": "VARCHAR(120)",
         "estado": "VARCHAR(20)",
+        # La organización que lo organiza (F4). La rellena `rellenar_org_de_
+        # campeonatos` con la de su creador, en cuanto se conoce.
+        "org_id": "VARCHAR(64)",
     },
     "competidores": {
         "uid": "VARCHAR(32)",
@@ -245,6 +252,17 @@ def ensure_optional_columns():
     if normalizados:
         print(f"  [OK] Nombres pasados a mayúsculas en {normalizados} registro(s)")
 
+    # F4: los campeonatos sin organización reciben la de su creador, en cuanto
+    # se conoce la del creador. Idempotente: en los arranques siguientes solo
+    # escribe si alguien entró desde el portal entretanto.
+    if {"campeonatos", "usuarios"} <= table_names:
+        from .organizacion import rellenar_org_de_campeonatos
+
+        con_org = rellenar_org_de_campeonatos()
+        if con_org:
+            db.session.commit()
+            print(f"  [OK] Organización asignada a {con_org} campeonato(s)")
+
     # Los uid llevan un valor DISTINTO por fila, así que no salen de un UPDATE
     # plano como el resto: los genera el backfill de app/uid.py.
     from .uid import backfill_uids
@@ -270,6 +288,9 @@ def _ensure_indices_uid(table_names):
         ("inscripciones", "uid"),
         ("llaves", "uid"),
         ("campeonatos", "export_uuid"),
+        # F4: el informe de administradores y F5 agrupan por organización.
+        ("usuarios", "org_id"),
+        ("campeonatos", "org_id"),
     )
     for table_name, column_name in indices:
         if table_name not in table_names:

@@ -740,3 +740,71 @@ def test_en_cuanto_se_compite_el_aviso_calla(destino, paquete):
     nota = _ultima_bajada(app, token)
     assert nota["ya_se_compite"] is True
     assert nota["avisar"] is False
+
+
+# ── La organización viaja (F6-d) ─────────────────────────────────────────────
+
+ORG_FEDE = "0f000000-0000-4000-8000-00000000fede"
+ORG_OTRA = "0f000000-0000-4000-8000-0000000000aa"
+
+
+def _con_organizacion(paquete):
+    """El mismo paquete, con la organización puesta en el maestro y el campeonato."""
+    for u in paquete["usuarios"]:
+        if u["email"] == "maestro@test.local":
+            u["org_id"] = ORG_FEDE
+            u["org_nombre"] = "DOJANG SUR"
+    paquete["campeonato"]["org_id"] = ORG_FEDE
+    return paquete
+
+
+def test_el_paquete_lleva_la_organizacion(paquete):
+    # 5 desde F4, que añadió `org_id` a usuarios y campeonato.
+    assert paquete["version"] >= 5
+    assert all("org_id" in u and "org_nombre" in u for u in paquete["usuarios"])
+    assert "org_id" in paquete["campeonato"]
+
+
+def test_la_organizacion_se_pone_al_importar(destino, paquete):
+    app, token = destino
+    resp = _importar(app, token, _con_organizacion(paquete))
+    assert resp.status_code == 200, resp.get_json()
+
+    from app.models.campeonato import Campeonato
+    from app.models.usuario import Usuario
+
+    maestro = Usuario.query.filter_by(email="maestro@test.local").one()
+    assert (maestro.org_id, maestro.org_nombre) == (ORG_FEDE, "DOJANG SUR")
+    assert Campeonato.query.one().org_id == ORG_FEDE
+
+
+def test_no_pisa_la_organizacion_que_ya_estaba(destino, paquete):
+    """La de aquí vino del pase de la persona: es más fresca que un paquete."""
+    app, token = destino
+    from app.models.usuario import Usuario
+
+    previo = Usuario(email="maestro@test.local", nombre="Maestro Local", rol="maestro",
+                     activo=True, org_id=ORG_OTRA)
+    previo.set_password("secret123")
+    db.session.add(previo)
+    db.session.commit()
+
+    resp = _importar(app, token, _con_organizacion(paquete))
+    assert resp.status_code == 200
+    assert any("otra organización" in a for a in resp.get_json()["avisos"])
+    db.session.expire_all()
+    assert Usuario.query.filter_by(email="maestro@test.local").one().org_id == ORG_OTRA
+
+
+def test_un_campeonato_de_antes_de_f4_recibe_la_de_quien_lo_importa(destino, paquete):
+    app, token = destino
+    from app.models.campeonato import Campeonato
+    from app.models.usuario import Usuario
+
+    admin = Usuario.query.filter_by(email="local@test.local").one()
+    admin.org_id = ORG_FEDE
+    db.session.commit()
+
+    paquete["campeonato"].pop("org_id", None)
+    assert _importar(app, token, paquete).status_code == 200
+    assert Campeonato.query.one().org_id == ORG_FEDE

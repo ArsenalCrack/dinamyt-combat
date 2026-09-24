@@ -869,9 +869,54 @@ cara al producto**, y por eso va sola.
 
 ---
 
-## F4 · La organización llega a Campeonatos
+## F4 · La organización llega a Campeonatos — ✅ hecha (con F6-d)
 
 **Dónde:** `dinamyt-combat/backend`.
+
+> **Hecho, el 24 de septiembre de 2026.** Todo vive en `app/organizacion.py`,
+> más su enganche en `espejo.py`. Los puntos 1, 2, 4 y 5 como estaban
+> escritos; el 3, **a propósito no**:
+>
+> - **Punto 1.** `usuarios.org_id` + `usuarios.org_nombre` y `campeonatos.org_id`
+>   (texto: se copian, no se relacionan). La organización se reescribe en CADA
+>   entrada desde el portal —es un reflejo, no algo que se edite aquí—, y el
+>   nombre se pregunta solo cuando cambia. **Una sola pregunta al ecosistema
+>   por entrada** (`_ClubDelPase`): el club del maestro y el nombre de la
+>   organización salen de la misma. Sin `org_id` en el pase no se borra nada.
+> - **Punto 2.** `rellenar_org_de_campeonatos`: al arrancar y cuando entra un
+>   admin cuya organización se acaba de saber. Un campeonato que ya tiene
+>   organización no se cambia nunca (el creador pudo cambiarse de club).
+> - **Punto 3 NO se hizo: `org_id` todavía no decide quién es dueño de qué.**
+>   Tres razones, escritas también en la cabecera de `organizacion.py`: (1)
+>   RLS filtra por `created_by`, así que un segundo admin de la misma
+>   organización vería el campeonato pero no sus llaves, fichas ni resultados
+>   —una consola a medias—; (2) sería un cambio por sorpresa para los
+>   duplicados de hoy, justo lo que D3 pide no hacer; (3) con un solo admin
+>   por organización las dos reglas dicen lo mismo. Queda para cuando el
+>   informe esté limpio, y entonces se decide si hace falta.
+> - **Punto 4.** Al CREAR el espejo de un admin cuya organización ya tiene
+>   otro activo: entra sin `admin` (con sus otros papeles, o `maestro` si no
+>   le queda ninguno) y queda en el registro. El super-admin no cuenta.
+> - **Punto 5.** `/admin` dice la organización debajo del nombre. El dato sale
+>   de la lista fresca de usuarios, no de `localStorage`.
+> - **La verificación de D3.** `GET /api/auth/organizaciones/administradores`
+>   (solo superadmin) y su tarjeta en `/admin`, que no pinta nada si no hay
+>   nada que decidir.
+> - **F6-d.** Usuarios y campeonato viajan con `org_id` (el usuario, también
+>   con `org_nombre`); `VERSION_PAQUETE` 5. El importador no pisa una
+>   organización que ya esté (avisa), y un campeonato nuevo sin organización en
+>   el paquete recibe la de quien lo importa.
+>
+> **De propina:** crear o editar un campeonato con una fecha mal escrita era
+> un 500 (`date.fromisoformat` sin mirar); y editar sin cuerpo JSON, también.
+> Ahora son un 400 con una frase.
+>
+> **Pruebas:** `tests/test_organizacion.py` (19), cuatro más en
+> `test_sincronizacion.py` y el relleno contra PostgreSQL.
+>
+> **Al desplegar:** nada que migrar a mano (`schema_compat` crea las
+> columnas). El informe sale vacío hasta que los admins vuelvan a entrar desde
+> el portal: es cuando se sabe su organización.
 
 1. `usuarios.org_id` y `campeonatos.org_id` (texto, el UUID del ecosistema).
    `usuarios.org_id` se rellena desde el pase en `resolver_espejo`;
@@ -1010,7 +1055,7 @@ cambia. Multiplicado por cuarenta alumnos y por cada campeonato.
 
 ---
 
-## F6 · Los paquetes llevan la identidad — 🟡 F6-a, F6-b y F6-c hechas; F6-d viaja con F4
+## F6 · Los paquetes llevan la identidad — ✅ F6-a, F6-b, F6-c y F6-d hechas (la d, con F4, el 24 sep)
 
 **Dónde:** `dinamyt-combat/backend/app/api/sincronizacion.py`.
 
@@ -1030,7 +1075,7 @@ cambia. Multiplicado por cuarenta alumnos y por cada campeonato.
 > |---|---|---|
 > | `usuarios.roles` | Campeonatos | **F2** (nº 6) — ✅ viaja desde el 13 sep |
 > | `competidores.eco_sub` ~~/ `usuario_uid`~~ | Campeonatos | **F3** (nº 7) — ✅ viaja desde el 13 sep. Sin `usuario_uid`: el `sub` ya es el mismo en las dos instalaciones |
-> | `org_id` | **no existe en ninguna tabla** (§1.3) | **F4** (nº 8) |
+> | `org_id` | ~~no existe en ninguna tabla~~ (§1.3) | **F4** (nº 8) — ✅ viaja desde el 24 sep (versión 5) |
 >
 > O sea que F6 no se puede *terminar* en el puesto nº 2 — pero **sí se puede
 > hacer la parte que importa**, y es justo la que sostiene su lugar en la
@@ -1312,7 +1357,7 @@ la historia de cómo se llegó hasta F3, y se conserva.)*
 |---|---|---|
 | **0** | **Desplegar lo que ya está hecho y no está en la VPS**: el portal va sin F1 (`583abc4`) y Campeonatos sin la parte 3 de F3 (`8dbc599`). Orden: Campeonatos → ecosystem (shared, migrar 0023, reiniciar) → portal | ⏳ lo hace el usuario |
 | **1** | **Arreglo de RLS en `inscripciones`** — el maestro no podía inscribir en PostgreSQL | ✅ hecho el 24 sep, sin desplegar |
-| **2** | **F4 + F6-d** — la organización llega a Campeonatos | ver PARTE 6 |
+| **2** | **F4 + F6-d** — la organización llega a Campeonatos | ✅ hecho el 24 sep, sin desplegar |
 | **3** | **F5 + F6-e** — inscribirse por invitación, y la invitación viaja en el paquete | ver PARTE 6 |
 | **4** | **F8** — la subida automática de resultados | pendiente |
 | **5** | **Lo que esperaba «a después del campeonato»**: `/sync/rol` a Campeonatos (`OPERAR.md` §6.1), bloqueo por plan vencido (PARTE 5), retirar `POST /auth/register` de la instalación de internet | pendiente, por decidir cada uno |
