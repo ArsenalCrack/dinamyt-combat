@@ -599,9 +599,13 @@ def test_no_pisa_la_cuenta_de_una_ficha(destino, paquete):
     """La ficha de aquí ya es de otra cuenta: se deja la local y se avisa."""
     app, token = destino
     from app.models.competidor import Competidor
+    from app.models.usuario import Usuario
 
+    # «De aquí» es del workspace del admin que importa: desde que el documento
+    # es único por workspace, una ficha sin dueño ya no es la misma persona.
+    local = Usuario.query.filter_by(email="local@test.local").one()
     previa = Competidor(nombre_completo="ANA RUIZ", documento="111", activo=True,
-                        eco_sub=SUB_AJENO)
+                        eco_sub=SUB_AJENO, created_by=local.id)
     db.session.add(previa)
     db.session.commit()
     for c in paquete["competidores"]:
@@ -808,3 +812,48 @@ def test_un_campeonato_de_antes_de_f4_recibe_la_de_quien_lo_importa(destino, paq
     paquete["campeonato"].pop("org_id", None)
     assert _importar(app, token, paquete).status_code == 200
     assert Campeonato.query.one().org_id == ORG_FEDE
+
+
+# ── Los clubes invitados viajan (F6-e) ───────────────────────────────────────
+
+def _con_invitaciones(paquete, *estados):
+    paquete["invitaciones"] = [
+        {"uid": f"inv{n}", "org_id": f"org-{n}", "club_nombre": f"Club {n}",
+         "club_ciudad": "Cali", "estado": estado}
+        for n, estado in enumerate(estados, start=1)
+    ]
+    return paquete
+
+
+def test_el_paquete_lleva_los_clubes_invitados(paquete):
+    # 6 desde F5, que añadió las invitaciones.
+    assert paquete["version"] >= 6
+    assert "invitaciones" in paquete and "invitaciones" in paquete["incluye"]
+
+
+def test_los_clubes_invitados_se_importan(destino, paquete):
+    app, token = destino
+    resp = _importar(app, token, _con_invitaciones(paquete, "invitado", "aceptado"))
+    assert resp.status_code == 200, resp.get_json()
+
+    from app.models.invitacion import InvitacionClub
+
+    filas = {i.org_id: (i.club_nombre, i.estado) for i in InvitacionClub.query.all()}
+    assert filas == {"org-1": ("CLUB 1", "invitado"), "org-2": ("CLUB 2", "aceptado")}
+
+    # Reimportar no duplica.
+    assert _importar(app, token, _con_invitaciones(paquete, "invitado", "aceptado")).status_code == 200
+    assert InvitacionClub.query.count() == 2
+
+
+def test_un_paquete_no_baja_una_invitacion_ya_aceptada_pero_si_la_retira(destino, paquete):
+    app, token = destino
+    _importar(app, token, _con_invitaciones(paquete, "aceptado", "invitado"))
+
+    from app.models.invitacion import InvitacionClub
+
+    # El paquete dice «invitado» del 1 (aquí ya aceptó) y retira el 2.
+    _importar(app, token, _con_invitaciones(paquete, "invitado", "retirado"))
+    db.session.expire_all()
+    estados = {i.org_id: i.estado for i in InvitacionClub.query.all()}
+    assert estados == {"org-1": "aceptado", "org-2": "retirado"}

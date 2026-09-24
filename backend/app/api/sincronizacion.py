@@ -87,7 +87,9 @@ FORMATOS_VALIDOS = (FORMATO_CAMPEONATO, FORMATO_USUARIOS, FORMATO_COMPETIDORES)
 # 5 desde F4 (F6-d): los usuarios y el campeonato viajan con su `org_id` (y el
 # usuario con `org_nombre`). Uno anterior llega sin organización, que es como
 # estaba todo antes de F4: NULL = «no consta».
-VERSION_PAQUETE = 5
+# 6 desde F5 (F6-e): el campeonato viaja con sus clubes invitados. Uno anterior
+# llega sin invitaciones, que es como estaba todo antes de F5.
+VERSION_PAQUETE = 6
 
 # Tope del archivo subido (25 MB). Un campeonato de 1000 competidores con sus
 # llaves ronda los 3 MB; más que esto no es un paquete de DINAMYT.
@@ -189,6 +191,17 @@ def _campeonato_a_dict(camp):
         # Quién lo organiza (F6-d). Al volver de la instalación del evento
         # hace falta para que siga siendo de esa organización.
         "org_id": camp.org_id,
+    }
+
+
+def _invitacion_a_dict(inv):
+    """Un club invitado al campeonato (F6-e). Sin quién lo invitó: es un id."""
+    return {
+        "uid": asegurar_uid(inv),
+        "org_id": inv.org_id,
+        "club_nombre": inv.club_nombre,
+        "club_ciudad": inv.club_ciudad,
+        "estado": inv.estado,
     }
 
 
@@ -323,6 +336,10 @@ def exportar_campeonato(camp_id):
         "tatamis": [_tatami_a_dict(t) for t in tatamis],
     })
     paquete["incluye"] = ["tatamis"]
+    # Los clubes invitados (F6-e). Van siempre: son pocos, y sin ellos la otra
+    # instalación no sabe qué clubes participan.
+    paquete["invitaciones"] = [_invitacion_a_dict(i) for i in camp.invitaciones.all()]
+    paquete["incluye"].append("invitaciones")
 
     if con_usuarios:
         paquete["usuarios"] = [_usuario_a_dict(u) for u in usuarios.values()]
@@ -422,7 +439,7 @@ class Informe:
 
     SECCIONES = (
         "usuarios", "competidores", "tatamis", "asignaciones",
-        "inscripciones", "llaves",
+        "inscripciones", "llaves", "invitaciones",
     )
 
     def __init__(self):
@@ -756,7 +773,10 @@ def _importar_competidores(lista, admin, informe):
 
         local = Competidor.query.filter_by(uid=uid).first() if uid else None
         if local is None and documento:
-            local = Competidor.query.filter_by(documento=documento).first()
+            # Dentro del workspace de quien importa: el documento es único por
+            # workspace (ver `documento` en models/competidor.py), y la ficha
+            # de otro admin no es la que este paquete viene a actualizar.
+            local = Competidor.query.filter_by(documento=documento, created_by=dueno).first()
             if local is not None and uid:
                 local.uid = uid
 
@@ -776,11 +796,14 @@ def _importar_competidores(lista, admin, informe):
             informe.actualizado("competidores")
 
         local.nombre_completo = nombre
-        # El documento es único en la base: si otro atleta ya lo tiene, se
-        # conserva el local y se avisa, en vez de reventar toda la importación.
+        # El documento es único en el workspace: si otro atleta de aquí ya lo
+        # tiene, se conserva el local y se avisa, en vez de reventar toda la
+        # importación.
         if documento and documento != local.documento:
             duenno = Competidor.query.filter(
-                Competidor.documento == documento, Competidor.id != local.id
+                Competidor.documento == documento,
+                Competidor.created_by == local.created_by,
+                Competidor.id != local.id,
             ).first()
             if duenno is not None:
                 informe.aviso(
@@ -860,6 +883,70 @@ def _importar_campeonato(datos, admin, informe):
 
     db.session.flush()
     return camp
+
+
+# Del estado más temprano al más avanzado. Un paquete no BAJA una invitación
+# que aquí ya se aceptó: que el club inscribió a alguien aquí sigue siendo
+# verdad, lo diga o no el paquete. `retirado` sí se aplica siempre: lo decide
+# el administrador.
+_ORDEN_INVITACION = ("invitado", "aceptado")
+
+
+def _importar_invitaciones(lista, camp, admin, informe):
+    """Crea o actualiza los clubes invitados del paquete (F6-e)."""
+    from ..models.invitacion import ESTADOS_INVITACION, InvitacionClub
+
+    existentes = InvitacionClub.query.filter_by(campeonato_id=camp.id).all()
+    for datos in lista or []:
+        if not isinstance(datos, dict):
+            continue
+        uid = _texto(datos.get("uid"))
+        org_id = _texto(datos.get("org_id"), 64) or None
+        nombre = _nombre(datos.get("club_nombre"), 150)
+        estado = _texto(datos.get("estado")) or "invitado"
+        if not nombre:
+            informe.omitido("invitaciones", "Un club invitado del paquete no trae nombre: se omite.")
+            continue
+        if estado not in ESTADOS_INVITACION:
+            estado = "invitado"
+
+        local = next((i for i in existentes if uid and i.uid == uid), None)
+        if local is None:
+            local = next(
+                (
+                    i for i in existentes
+                    if (org_id and i.org_id == org_id)
+                    or (not org_id and not i.org_id
+                        and i.club_nombre.casefold() == nombre.casefold())
+                ),
+                None,
+            )
+        if local is None:
+            local = InvitacionClub(
+                uid=uid or nuevo_uid(),
+                campeonato_id=camp.id,
+                org_id=org_id,
+                club_nombre=nombre,
+                estado=estado,
+                invitado_por_id=admin.id,
+            )
+            db.session.add(local)
+            existentes.append(local)
+            informe.nuevo("invitaciones")
+        else:
+            if uid and not local.uid:
+                local.uid = uid
+            if local.org_id is None and org_id:
+                local.org_id = org_id
+            if estado == "retirado" or (
+                local.estado in _ORDEN_INVITACION
+                and _ORDEN_INVITACION.index(estado) > _ORDEN_INVITACION.index(local.estado)
+            ):
+                local.estado = estado
+            informe.actualizado("invitaciones")
+        local.club_nombre = nombre
+        local.club_ciudad = _texto(datos.get("club_ciudad"), 120) or local.club_ciudad
+    db.session.flush()
 
 
 def _importar_tatamis(lista, camp, informe):
@@ -1305,6 +1392,7 @@ def _ejecutar_importacion(paquete, formato, modo, forzar, admin, informe):
         _limpiar_para_reemplazar(camp, informe)
 
     tatamis = _importar_tatamis(paquete.get("tatamis"), camp, informe)
+    _importar_invitaciones(paquete.get("invitaciones"), camp, admin, informe)
     _importar_asignaciones(paquete.get("asignaciones"), usuarios, tatamis, informe)
     competidores = _importar_competidores(paquete.get("competidores"), admin, informe)
     _importar_inscripciones(

@@ -238,7 +238,12 @@ def test_el_maestro_no_inscribe_en_el_campeonato_de_otro_admin(pg, club):
     db.session.add(ajeno)
     db.session.commit()
 
-    assert _inscribir(cliente, tokens, ajeno.id).status_code == 404
+    # 403 con frase y no 404 (F5, punto 3): el campeonato activo ya es público,
+    # así que decir que existe no revela nada, y «tu club no está invitado» sí
+    # le dice al maestro qué hacer.
+    r = _inscribir(cliente, tokens, ajeno.id)
+    assert r.status_code == 403
+    assert "no está invitado" in r.get_json()["error"]
 
 
 def test_el_admin_crea_un_campeonato_con_la_red_puesta(club):
@@ -302,3 +307,126 @@ def test_la_organizacion_de_los_campeonatos_se_rellena_en_postgres(pg):
     assert rellenar_org_de_campeonatos() == 1
     db.session.commit()
     assert Campeonato.query.one().org_id == admin.org_id
+
+
+# ── F5: el maestro invitado, con la red puesta ──────────────────────────────
+
+CLUB_1 = "0c000000-0000-4000-8000-000000000001"
+
+
+@pytest.fixture()
+def invitado(pg):
+    """Un admin con su campeonato, y un maestro del PORTAL (sin creado_por_id)."""
+    app, db = pg
+    from app.models.campeonato import Campeonato
+    from app.models.usuario import Usuario
+
+    admin = Usuario(email="admin@t.local", nombre="ADMIN", rol="admin", activo=True)
+    admin.set_password("secret123")
+    maestro = Usuario(email="portal@t.local", nombre="PORTAL", rol="maestro",
+                      activo=True, org_id=CLUB_1)
+    maestro.clubes = ["CLUB UNO"]
+    maestro.set_password("secret123")
+    db.session.add_all([admin, maestro])
+    db.session.commit()
+    camp = Campeonato(nombre="COPA", estado="preparacion", activo=True, created_by=admin.id)
+    db.session.add(camp)
+    db.session.commit()
+    return app.test_client(), {"admin": _token(admin), "maestro": _token(maestro)}, camp.id
+
+
+def test_el_maestro_invitado_inscribe_en_el_workspace_de_otro(invitado):
+    """La puerta de F5 entera con RLS: sin `en_workspace` nada de esto se ve."""
+    cliente, tokens, camp_id = invitado
+    r = cliente.post(
+        f"/api/campeonatos/{camp_id}/clubes",
+        json={"org_id": CLUB_1, "nombre": "Club Uno"},
+        headers=_h(tokens["admin"]),
+    )
+    assert r.status_code == 201, r.get_json()
+
+    lista = cliente.get("/api/inscripciones/maestro/campeonatos", headers=_h(tokens["maestro"]))
+    assert [c["acceso"] for c in lista.get_json()] == ["invitado"]
+
+    r = cliente.post(
+        f"/api/inscripciones/maestro/campeonato/{camp_id}",
+        json={"competidor": {**ALUMNA, "club": "CLUB UNO"}, "peso": 40},
+        headers=_h(tokens["maestro"]),
+    )
+    assert r.status_code == 201, r.get_json()
+    ins_id = r.get_json()["inscripcion"]["id"]
+
+    mias = cliente.get("/api/inscripciones/maestro/mias", headers=_h(tokens["maestro"]))
+    assert len(mias.get_json()) == 1
+
+    del_admin = cliente.get(f"/api/inscripciones/campeonato/{camp_id}", headers=_h(tokens["admin"]))
+    assert [i["estado"] for i in del_admin.get_json()] == ["pendiente"]
+
+    clubes = cliente.get(f"/api/campeonatos/{camp_id}/clubes", headers=_h(tokens["admin"]))
+    assert [i["estado"] for i in clubes.get_json()] == ["aceptado"]
+
+    # Rechazar y corregir, también con la red puesta.
+    cliente.patch(f"/api/inscripciones/{ins_id}/estado",
+                  json={"estado": "rechazada"}, headers=_h(tokens["admin"]))
+    r = cliente.put(
+        f"/api/inscripciones/maestro/{ins_id}",
+        json={"competidor": {**ALUMNA, "club": "CLUB UNO"}, "peso": 41},
+        headers=_h(tokens["maestro"]),
+    )
+    assert r.status_code == 200, r.get_json()
+
+    alumnos = cliente.get(
+        f"/api/inscripciones/maestro/alumnos?campeonato_id={camp_id}",
+        headers=_h(tokens["maestro"]),
+    )
+    assert [a["nombre_completo"] for a in alumnos.get_json()] == ["ANA GOMEZ"]
+
+
+def test_el_mismo_documento_en_dos_workspaces_ya_no_es_un_500(pg, club):
+    """Era un 500: RLS escondía la ficha ajena y el INSERT chocaba con el índice."""
+    app, db = pg
+    cliente, tokens, camp_id = club
+    assert _inscribir(cliente, tokens, camp_id).status_code == 201
+
+    from app.models.usuario import Usuario
+
+    _sembrar()
+    otro = Usuario(email="otro@t.local", nombre="OTRO", rol="admin", activo=True)
+    otro.set_password("secret123")
+    db.session.add(otro)
+    db.session.commit()
+
+    r = cliente.post(
+        "/api/competidores",
+        json={**ALUMNA, "genero": "FEMENINO"},
+        headers=_h(_token(otro)),
+    )
+    assert r.status_code == 201, r.get_json()
+
+
+def test_la_migracion_del_documento_en_una_base_vieja(pg):
+    """Una base de antes: índice ÚNICO sobre `documento` solo. El arranque lo cambia."""
+    app, db = pg
+    from sqlalchemy import inspect, text
+
+    from app.schema_compat import _documento_unico_por_workspace
+
+    db.session.execute(text("DROP INDEX IF EXISTS uq_competidores_workspace_documento"))
+    db.session.execute(text("DROP INDEX IF EXISTS ix_competidores_documento"))
+    db.session.execute(text("CREATE UNIQUE INDEX ix_competidores_documento ON competidores (documento)"))
+    db.session.commit()
+
+    _documento_unico_por_workspace({"competidores"})
+
+    indices = {i["name"]: i for i in inspect(db.engine).get_indexes("competidores")}
+    assert indices["ix_competidores_documento"]["unique"] is False
+    assert indices["uq_competidores_workspace_documento"]["unique"] is True
+
+
+def test_borrar_un_campeonato_con_invitaciones_en_postgres(invitado):
+    """Las claves foráneas SÍ se cumplen aquí: la invitación no puede quedar colgando."""
+    cliente, tokens, camp_id = invitado
+    cliente.post(f"/api/campeonatos/{camp_id}/clubes",
+                 json={"org_id": CLUB_1, "nombre": "Club Uno"}, headers=_h(tokens["admin"]))
+    r = cliente.delete(f"/api/campeonatos/{camp_id}", headers=_h(tokens["admin"]))
+    assert r.status_code == 200, r.get_json()

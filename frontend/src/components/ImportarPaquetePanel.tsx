@@ -28,6 +28,7 @@ const SECCIONES: { clave: keyof InformeImportacion["resumen"]; labelKey: ClaveTe
   { clave: "asignaciones", labelKey: "sync.seccion.asignaciones" },
   { clave: "inscripciones", labelKey: "sync.seccion.inscripciones" },
   { clave: "llaves", labelKey: "sync.seccion.llaves" },
+  { clave: "invitaciones", labelKey: "sync.seccion.invitaciones" },
 ];
 
 interface Props {

@@ -29,6 +29,7 @@ import { aviso } from "@/lib/toast";
 import { enMayusculas } from "@/lib/texto";
 import QRCode from "qrcode";
 import { Cargando } from '@/components/Cargando';
+import ClubesInvitados from "@/components/ClubesInvitados";
 
 interface Tatami {
   id: number;
@@ -551,6 +552,10 @@ export default function CampeonatoDetailPage() {
           </button>
         </div>
       )}
+
+      {/* Qué clubes inscriben aquí (F5). Va antes de los tatamis: se decide
+          mientras el campeonato se prepara, que es cuando se abre esta ficha. */}
+      <ClubesInvitados campId={camp.id} />
 
       {dialogo}
 

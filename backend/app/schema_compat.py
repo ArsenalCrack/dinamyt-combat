@@ -247,6 +247,7 @@ def ensure_optional_columns():
     db.session.commit()
 
     _ensure_indices_uid(table_names)
+    _documento_unico_por_workspace(table_names)
 
     normalizados = _normalizar_mayusculas(table_names)
     if normalizados:
@@ -269,6 +270,53 @@ def ensure_optional_columns():
     rellenados = backfill_uids()
     if rellenados:
         print(f"  [OK] Identidad de sincronización asignada a {rellenados} registro(s)")
+
+
+def _documento_unico_por_workspace(table_names):
+    """El documento del competidor pasa de único GLOBAL a único por workspace.
+
+    Hasta el 24 de septiembre de 2026 `competidores.documento` se declaraba
+    `unique=True, index=True`, y SQLAlchemy lo crea como un ÍNDICE único aparte
+    (`ix_competidores_documento`), no como restricción dentro de la tabla. Eso
+    es lo que permite cambiarlo aquí sin reconstruir la tabla, también en
+    SQLite:
+
+      1. si ese índice es único, se borra y se vuelve a crear sin serlo (sigue
+         haciendo falta para buscar por documento);
+      2. se crea el único por (created_by, documento).
+
+    El orden importa y no puede fallar: con el global puesto, los datos ya
+    cumplen el por-workspace, que es más flojo. Idempotente.
+
+    Por qué: ver el comentario de `documento` en models/competidor.py.
+    """
+    if "competidores" not in table_names:
+        return
+    inspector = inspect(db.engine)
+    for indice in inspector.get_indexes("competidores"):
+        if indice.get("column_names") == ["documento"] and indice.get("unique"):
+            nombre = indice["name"]
+            db.session.execute(text(f'DROP INDEX IF EXISTS "{nombre}"'))
+            db.session.execute(
+                text(f'CREATE INDEX IF NOT EXISTS "{nombre}" ON competidores (documento)')
+            )
+            print("  [OK] El documento del competidor pasa a ser único por workspace")
+    # En PostgreSQL el único global podría ser además una RESTRICCIÓN (si la
+    # tabla la creó otra herramienta); `get_indexes` no siempre la enseña.
+    if db.engine.dialect.name == "postgresql":
+        db.session.execute(
+            text(
+                "ALTER TABLE competidores "
+                "DROP CONSTRAINT IF EXISTS competidores_documento_key"
+            )
+        )
+    db.session.execute(
+        text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_competidores_workspace_documento "
+            "ON competidores (created_by, documento)"
+        )
+    )
+    db.session.commit()
 
 
 def _ensure_indices_uid(table_names):

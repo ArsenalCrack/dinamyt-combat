@@ -61,6 +61,9 @@ def _auth(token):
 @pytest.fixture()
 def entorno():
     """Un admin, su maestro, y DOS campeonatos en preparación."""
+    # Aquí y no solo al importar: otro módulo (test_sincronizacion) cambia la
+    # URL en la clase, y según el orden esta prueba heredaba su base con datos.
+    DevelopmentConfig.SQLALCHEMY_DATABASE_URI = "sqlite://"
     app = create_app("development")
     with app.app_context():
         db.create_all()
@@ -249,7 +252,15 @@ class TestElMismoAlumnoDosVeces:
 class TestElAislamientoSigueEnPie:
     """Reutilizar la ficha no puede abrir la de otro administrador."""
 
-    def test_el_documento_de_otro_workspace_sigue_siendo_un_error(self, entorno):
+    def test_el_documento_de_otro_workspace_ni_se_toca_ni_se_nombra(self, entorno):
+        """Cambió de signo el 24 de septiembre de 2026, a propósito.
+
+        Hasta entonces el documento era único en TODA la base, así que esto era
+        un 400 que, de paso, confirmaba que esa persona existía en el workspace
+        de otro administrador. Ahora es único por workspace (ver `documento` en
+        models/competidor.py): el maestro recibe la ficha de SU workspace, y la
+        del otro sigue exactamente como estaba, sin que nadie sepa que existe.
+        """
         app, token, primera, _ = entorno
         cliente = app.test_client()
 
@@ -269,11 +280,17 @@ class TestElAislamientoSigueEnPie:
             db.session.commit()
 
         respuesta = _inscribir(cliente, token, primera, documento="1088123456")
-        assert respuesta.status_code == 400
-        error = respuesta.get_json()["error"]
-        assert "Ya existe un competidor con documento" in error
-        # Y sin decir de quién es: es de otro workspace.
-        assert "registrado por otro administrador" in error
+        assert respuesta.status_code == 201, respuesta.get_json()
+        assert respuesta.get_json()["reutilizada"] is False
+
+        with app.app_context():
+            from app.models.competidor import Competidor
+
+            fichas = Competidor.query.filter_by(documento="1088123456").all()
+            assert len(fichas) == 2
+            ajena = next(f for f in fichas if f.club == "OTRO DOJANG")
+            # La del otro workspace, intacta: ni su club ni su inscripción.
+            assert ajena.inscripciones.count() == 0
 
     def test_un_uid_que_no_es_suyo_no_existe(self, entorno):
         app, token, primera, _ = entorno

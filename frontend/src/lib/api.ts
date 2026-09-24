@@ -227,6 +227,61 @@ export async function listUsersAPI(includeInactive = false) {
   return res.data as UserData[];
 }
 
+// ── Clubes invitados a un campeonato (F5 de PLAN-CAMPEONATOS) ──────────────
+
+export type EstadoInvitacion = "invitado" | "aceptado" | "retirado";
+
+export interface InvitacionClub {
+  id: number;
+  uid: string;
+  campeonato_id: number;
+  org_id: string | null;
+  club_nombre: string;
+  club_ciudad: string | null;
+  estado: EstadoInvitacion;
+  /** Si abre la puerta a maestros de fuera (por `org_id`) o es solo un nombre. */
+  por_organizacion: boolean;
+  invitado_por: string | null;
+  created_at: string;
+}
+
+export interface ClubDelDirectorio {
+  org_id: string | null;
+  nombre: string;
+  ciudad: string | null;
+  /** Afiliado a la organización de quien invita: sale primero. */
+  afiliado: boolean;
+  ya_invitado: boolean;
+}
+
+export async function listInvitacionesAPI(campId: number) {
+  const res = await api.get(`/campeonatos/${campId}/clubes`);
+  return res.data as InvitacionClub[];
+}
+
+export async function invitarClubAPI(
+  campId: number,
+  club: { org_id?: string | null; nombre: string; ciudad?: string | null },
+) {
+  const res = await api.post(`/campeonatos/${campId}/clubes`, club);
+  return res.data as { message: string; invitacion: InvitacionClub };
+}
+
+export async function retirarInvitacionAPI(campId: number, invId: number) {
+  const res = await api.delete(`/campeonatos/${campId}/clubes/${invId}`);
+  return res.data as { message: string; invitacion: InvitacionClub };
+}
+
+/**
+ * El directorio de clubes del ecosistema. `disponible: false` cuando no se
+ * puede preguntar (modo local, o el puente apagado): entonces `clubes` son los
+ * que ya conoce este workspace, y se invita por nombre.
+ */
+export async function buscarClubesAPI(campId: number, q: string) {
+  const res = await api.get(`/campeonatos/${campId}/clubes/buscar`, { params: { q } });
+  return res.data as { disponible: boolean; clubes: ClubDelDirectorio[] };
+}
+
 /** Un administrador, tal como lo cuenta el informe de organizaciones. */
 export interface AdminDelInforme {
   id: number;
@@ -485,7 +540,9 @@ export interface InformeImportacion {
   exportado_at?: string | null;
   origen?: { admin?: string } | null;
   resumen: Partial<Record<
-    "usuarios" | "competidores" | "tatamis" | "asignaciones" | "inscripciones" | "llaves",
+    | "usuarios" | "competidores" | "tatamis" | "asignaciones" | "inscripciones" | "llaves"
+    // F6-e: los clubes invitados al campeonato.
+    | "invitaciones",
     ContadoresSeccion
   >>;
   /**
@@ -1034,6 +1091,14 @@ export interface MaestroCampeonato {
   ciudad: string | null;
   pais: string | null;
   puede_inscribir: boolean;
+  /**
+   * Por qué puerta lo ve (F5): «casa» = del admin que creó al maestro, como
+   * siempre; «invitado» = invitaron a su club.
+   */
+  acceso?: "casa" | "invitado";
+  invitacion?: "invitado" | "aceptado" | null;
+  /** La organización de quien lo organiza, si se sabe. */
+  organiza?: string | null;
 }
 
 export async function maestroCampeonatosAPI() {

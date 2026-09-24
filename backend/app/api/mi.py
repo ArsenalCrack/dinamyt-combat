@@ -460,32 +460,58 @@ def reclamar_ficha():
         }), 429
 
     with sin_workspace():
-        ficha = Competidor.query.filter_by(documento=documento).first()
-        if ficha is None or ficha.fecha_nacimiento is None or ficha.fecha_nacimiento != nacimiento:
+        # Todas las fichas con ese documento Y esa fecha: desde el 24 de
+        # septiembre de 2026 el documento es único por WORKSPACE, así que quien
+        # compitió con dos organizaciones tiene una ficha en cada una, y las
+        # dos son suyas (F3). Reclamar una sola dejaría la mitad del historial
+        # fuera de su panel.
+        candidatas = [
+            f for f in Competidor.query.filter_by(documento=documento).all()
+            if f.fecha_nacimiento is not None and f.fecha_nacimiento == nacimiento
+        ]
+        if not candidatas:
             return jsonify({"error": NO_ENCONTRADA}), 404
 
-        if ficha.eco_sub and ficha.eco_sub != sub:
+        ajenas = [f for f in candidatas if f.eco_sub and f.eco_sub != sub]
+        libres = [f for f in candidatas if f not in ajenas]
+        if not libres:
             log.warning(
                 "[mi] %s intentó reclamar la ficha %s, enlazada a otra cuenta.",
-                user.email, ficha.uid,
+                user.email, ajenas[0].uid,
             )
             return jsonify({
                 "error": "Esa ficha ya está enlazada a otra cuenta de DINAMYT. "
                          "Escribe al administrador del campeonato para que lo revise.",
                 "motivo": "ficha_ocupada",
             }), 409
+        if ajenas:
+            # Las que ya son de otra cuenta no se pisan (la misma prudencia de
+            # siempre), pero no bloquean las que sí están libres.
+            log.warning(
+                "[mi] %s reclamó fichas libres; %d con su documento son de otra cuenta.",
+                user.email, len(ajenas),
+            )
 
         limpiar_intentos(clave)
-        if ficha.eco_sub != sub:
-            ficha.eco_sub = sub
+        ficha = libres[0]
+        nuevas = [f for f in libres if f.eco_sub != sub]
+        if nuevas:
+            for f in nuevas:
+                f.eco_sub = sub
             # Quien reclama una ficha compite, aunque su pase no lo dijera (un
             # juez que también compite). Salvo que la consola se lo quitara.
             if not user.tiene_rol("competidor") and "competidor" not in user.roles_quitados:
                 user.roles = [*user.roles, "competidor"]
             db.session.commit()
-            log.info("[mi] %s reclamó su ficha %s.", user.email, ficha.uid)
+            log.info(
+                "[mi] %s reclamó %d ficha(s): %s.",
+                user.email, len(nuevas), ", ".join(f.uid or "?" for f in nuevas),
+            )
 
         return jsonify({
             "message": "Ficha enlazada con tu cuenta.",
             "ficha": _ficha(ficha),
+            # Cuántas quedaron enlazadas: una por cada organización con la que
+            # compitió.
+            "fichas": len(libres),
         }), 200

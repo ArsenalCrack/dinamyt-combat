@@ -193,10 +193,12 @@ def _decir_como_quedo_el_ecosistema(app):
         # La combinación de la avería: se entra desde DINAMYT, pero el tema y el
         # idioma no viajan en ninguna de las dos direcciones.
         log.warning(
-            "[ecosistema] EL ESPEJO DE APARIENCIA ESTÁ APAGADO: falta "
-            "ECOSYSTEM_SYNC_SECRET. Se entra desde DINAMYT, pero el tema y el "
-            "idioma elegidos en el portal NO llegan aquí, ni los de aquí allá. "
-            "Tiene que ser el MISMO valor que en ecosystem-api. Ver OPERAR.md §1.4."
+            "[ecosistema] EL ESPEJO ESTÁ APAGADO: falta ECOSYSTEM_SYNC_SECRET. "
+            "Se entra desde DINAMYT, pero el tema y el idioma elegidos en el "
+            "portal NO llegan aquí, ni los de aquí allá; y al invitar clubes a "
+            "un campeonato NO se puede buscar en el directorio de DINAMYT (solo "
+            "por nombre, que no abre la puerta a maestros de fuera). Tiene que "
+            "ser el MISMO valor que en ecosystem-api. Ver OPERAR.md §1.4."
         )
     else:
         log.warning(

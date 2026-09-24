@@ -28,14 +28,20 @@ from ..models.competidor import (
     cinturones_localizados,
     normalizar_cinturon,
 )
+from ..invitaciones import (
+    CASA,
+    INVITADO,
+    campeonato_para_el_maestro,
+    invitaciones_de,
+    marcar_aceptada,
+)
+from ..rls import en_workspace, sin_workspace
 from .scoping import (
     es_dueno_campeonato,
     es_dueno_competidor,
-    filtrar_campeonatos,
     filtrar_competidores,
     require_admin as _require_admin,
     require_maestro,
-    usuario_actual,
     workspace_owner_id,
 )
 
@@ -202,14 +208,18 @@ def _aplicar_datos(comp, data, parciales=False, actor=None):
         if error:
             return error
         if doc and doc != comp.documento:
-            otro = Competidor.query.filter_by(documento=doc).first()
+            # Único DENTRO DEL WORKSPACE de esta ficha (ver `documento` en
+            # models/competidor.py). Antes se miraba en todo el sistema, y en
+            # PostgreSQL eso era un 500: RLS escondía la ficha del otro
+            # workspace, esto no la veía y el INSERT chocaba con el índice.
+            otro = Competidor.query.filter_by(
+                documento=doc, created_by=comp.created_by
+            ).first()
             if otro and otro.id != comp.id:
-                # El documento es único en TODO el sistema. Si el homónimo es
-                # de otro workspace, no revelar su nombre.
                 if actor is None or es_dueno_competidor(actor, otro):
                     quien = f" ({otro.nombre_completo})"
                 else:
-                    quien = " (registrado por otro administrador)"
+                    quien = ""
                 return f"Ya existe un competidor con documento {doc}{quien}"
         if doc or not parciales:
             comp.documento = doc
@@ -994,13 +1004,17 @@ def moderar_inscripcion(ins_id):
 #  Flujo del MAESTRO (inscribe a sus alumnos → solicitud "pendiente")
 # ══════════════════════════════════════════════════════════════════
 
-def _alumnos_del_maestro(maestro):
+def _alumnos_del_maestro(maestro, workspace=None):
     """Query de las fichas que YA existen de los alumnos de este maestro.
 
-    Son los competidores de su workspace apuntados a uno de sus dojangs. El
+    Son los competidores de un workspace apuntados a uno de sus dojangs. El
     club se guarda en MAYÚSCULAS (`_mayusculas`), así que la comparación va en
     mayúsculas por los dos lados: una ficha vieja escrita a mano en minúsculas
     no puede quedarse fuera de la lista de sus propios alumnos.
+
+    `workspace` es el del campeonato cuando el maestro entra por invitación
+    (F5): sus alumnos de ESE campeonato viven donde vive el campeonato. Sin él,
+    el suyo de siempre (`workspace_owner_id`).
 
     Devuelve None si el maestro todavía no tiene club, que es el mismo caso
     que ya trata `_club_del_maestro`: sin dojang no hay alumnos que enseñar.
@@ -1008,11 +1022,13 @@ def _alumnos_del_maestro(maestro):
     clubes = [_mayusculas(c) for c in maestro.nombres_clubes]
     if not clubes:
         return None
-    query = filtrar_competidores(maestro, Competidor.query.filter_by(activo=True))
+    if workspace is None:
+        workspace = workspace_owner_id(maestro)
+    query = Competidor.query.filter_by(activo=True, created_by=workspace)
     return query.filter(func.upper(Competidor.club).in_(clubes))
 
 
-def _ficha_del_alumno(maestro, uid_pedido, datos):
+def _ficha_del_alumno(maestro, uid_pedido, datos, workspace=None):
     """(competidor, reutilizada, error, codigo): la ficha que le toca a este alumno.
 
     Tres caminos, y solo el último crea fila:
@@ -1026,13 +1042,17 @@ def _ficha_del_alumno(maestro, uid_pedido, datos):
       · nada de lo anterior → ficha nueva, que es como se da de alta a quien
         compite por primera vez.
 
-    La ficha de OTRO administrador no se reutiliza ni se nombra: el aislamiento
-    por workspace manda, y el error de documento ocupado lo pone
-    `_aplicar_datos`, que ya sabe cuánto detalle puede enseñar.
+    La ficha de OTRO workspace no se reutiliza ni se nombra: el aislamiento
+    manda. Desde que el documento es único por workspace (24 sep 2026), esa
+    persona recibe aquí una ficha propia y la otra ni se toca.
+
+    `workspace` es el del campeonato (ver `_alumnos_del_maestro`).
     """
+    if workspace is None:
+        workspace = workspace_owner_id(maestro)
     uid_pedido = str(uid_pedido or "").strip()
     if uid_pedido:
-        query = _alumnos_del_maestro(maestro)
+        query = _alumnos_del_maestro(maestro, workspace)
         comp = query.filter_by(uid=uid_pedido).first() if query is not None else None
         if comp is None:
             # 404 y no 403: no se confirma que esa ficha exista en otro club.
@@ -1043,13 +1063,11 @@ def _ficha_del_alumno(maestro, uid_pedido, datos):
     if error:
         return None, False, error, 400
     if doc:
-        previa = Competidor.query.filter_by(documento=doc).first()
-        if previa is not None and es_dueno_competidor(maestro, previa):
+        previa = Competidor.query.filter_by(documento=doc, created_by=workspace).first()
+        if previa is not None:
             return previa, True, None, None
 
-    nueva = Competidor(
-        nombre_completo="", activo=True, created_by=workspace_owner_id(maestro)
-    )
+    nueva = Competidor(nombre_completo="", activo=True, created_by=workspace)
     return nueva, False, None, None
 
 
@@ -1058,27 +1076,52 @@ def _ficha_del_alumno(maestro, uid_pedido, datos):
 def maestro_campeonatos():
     """
     GET /api/inscripciones/maestro/campeonatos
-    Campeonatos activos del workspace del maestro con su estado. Solo puede
-    inscribir en los que estén en 'preparacion' (puede_inscribir=True).
+    Campeonatos activos a los que el maestro puede inscribir, con su estado.
+    Solo puede inscribir en los que estén en 'preparacion' (puede_inscribir).
+
+    Son la SUMA de dos puertas (ver `app/invitaciones.py`): los de su
+    workspace de siempre (`acceso: "casa"`) y aquellos a los que invitaron a
+    su club (`acceso: "invitado"`, F5). `organiza` es la organización de quien
+    lo creó, para que un maestro invitado por dos federaciones sepa cuál es
+    cuál.
     """
     maestro = require_maestro()
     if not maestro:
         return jsonify({"error": "Solo maestros"}), 403
 
-    query = filtrar_campeonatos(maestro, Campeonato.query.filter_by(activo=True))
-    camps = query.order_by(Campeonato.created_at.desc()).all()
-    return jsonify([{
-        "id": c.id,
-        "nombre": c.nombre,
-        "descripcion": c.descripcion,
-        "estado": c.estado or "preparacion",
-        "fecha_inicio": c.fecha_inicio.isoformat() if c.fecha_inicio else None,
-        "fecha_fin": c.fecha_fin.isoformat() if c.fecha_fin else None,
-        "lugar": c.lugar,
-        "ciudad": c.ciudad,
-        "pais": c.pais,
-        "puede_inscribir": (c.estado or "preparacion") == "preparacion",
-    } for c in camps]), 200
+    invitaciones = {inv.campeonato_id: inv for inv in invitaciones_de(maestro)}
+    # Con la red levantada y el filtro a mano: el maestro invitado no ve el
+    # campeonato de otro workspace con su propio contexto.
+    with sin_workspace():
+        camps = (
+            Campeonato.query.filter(Campeonato.activo.is_(True))
+            .filter(db.or_(
+                Campeonato.created_by == workspace_owner_id(maestro),
+                Campeonato.id.in_(list(invitaciones) or [-1]),
+            ))
+            .order_by(Campeonato.created_at.desc())
+            .all()
+        )
+        cuerpo = []
+        for c in camps:
+            de_la_casa = c.created_by == workspace_owner_id(maestro)
+            invitacion = invitaciones.get(c.id)
+            cuerpo.append({
+                "id": c.id,
+                "nombre": c.nombre,
+                "descripcion": c.descripcion,
+                "estado": c.estado or "preparacion",
+                "fecha_inicio": c.fecha_inicio.isoformat() if c.fecha_inicio else None,
+                "fecha_fin": c.fecha_fin.isoformat() if c.fecha_fin else None,
+                "lugar": c.lugar,
+                "ciudad": c.ciudad,
+                "pais": c.pais,
+                "puede_inscribir": (c.estado or "preparacion") == "preparacion",
+                "acceso": CASA if de_la_casa else INVITADO,
+                "invitacion": invitacion.estado if invitacion and not de_la_casa else None,
+                "organiza": c.creador.org_nombre if c.creador else None,
+            })
+    return jsonify(cuerpo), 200
 
 
 @inscripciones_bp.route("/maestro/alumnos", methods=["GET"])
@@ -1104,45 +1147,53 @@ def maestro_alumnos():
         return jsonify({"error": "Solo maestros"}), 403
 
     camp_id = request.args.get("campeonato_id")
+    workspace = None
     if camp_id:
         try:
             camp_id = int(camp_id)
         except (TypeError, ValueError):
             return jsonify({"error": "campeonato_id inválido"}), 400
+        # Con campeonato, sus alumnos de ESE campeonato: los del workspace
+        # donde vive (el suyo, o el del admin que lo invitó — F5).
+        camp, _, _, error, codigo = campeonato_para_el_maestro(maestro, camp_id)
+        if error:
+            return jsonify({"error": error}), codigo
+        workspace = camp.created_by
 
-    query = _alumnos_del_maestro(maestro)
-    if query is None:
-        return jsonify([]), 200
-    alumnos = query.order_by(Competidor.nombre_completo.asc()).limit(2000).all()
-    ids = [a.id for a in alumnos]
-    if not ids:
-        return jsonify([]), 200
+    with en_workspace(workspace if workspace is not None else workspace_owner_id(maestro)):
+        query = _alumnos_del_maestro(maestro, workspace)
+        if query is None:
+            return jsonify([]), 200
+        alumnos = query.order_by(Competidor.nombre_completo.asc()).limit(2000).all()
+        ids = [a.id for a in alumnos]
+        if not ids:
+            return jsonify([]), 200
 
-    conteos = dict(
-        db.session.query(Inscripcion.competidor_id, func.count(Inscripcion.id))
-        .filter(Inscripcion.competidor_id.in_(ids))
-        .group_by(Inscripcion.competidor_id)
-        .all()
-    )
-    estados = {}
-    if camp_id:
-        estados = dict(
-            db.session.query(Inscripcion.competidor_id, Inscripcion.estado)
-            .filter(
-                Inscripcion.campeonato_id == camp_id,
-                Inscripcion.competidor_id.in_(ids),
-            ).all()
+        conteos = dict(
+            db.session.query(Inscripcion.competidor_id, func.count(Inscripcion.id))
+            .filter(Inscripcion.competidor_id.in_(ids))
+            .group_by(Inscripcion.competidor_id)
+            .all()
         )
+        estados = {}
+        if camp_id:
+            estados = dict(
+                db.session.query(Inscripcion.competidor_id, Inscripcion.estado)
+                .filter(
+                    Inscripcion.campeonato_id == camp_id,
+                    Inscripcion.competidor_id.in_(ids),
+                ).all()
+            )
 
-    return jsonify([
-        {
-            **a.to_dict(num_inscripciones=conteos.get(a.id, 0)),
-            "uid": a.uid,
-            "inscrito": a.id in estados,
-            "estado_inscripcion": estados.get(a.id),
-        }
-        for a in alumnos
-    ]), 200
+        return jsonify([
+            {
+                **a.to_dict(num_inscripciones=conteos.get(a.id, 0)),
+                "uid": a.uid,
+                "inscrito": a.id in estados,
+                "estado_inscripcion": estados.get(a.id),
+            }
+            for a in alumnos
+        ]), 200
 
 
 @inscripciones_bp.route("/maestro/campeonato/<int:camp_id>", methods=["POST"])
@@ -1174,14 +1225,25 @@ def maestro_inscribir(camp_id):
     if not maestro:
         return jsonify({"error": "Solo maestros"}), 403
 
-    campeonato = Campeonato.query.get_or_404(camp_id)
-    if not es_dueno_campeonato(maestro, campeonato):
-        return jsonify({"error": "Campeonato no encontrado"}), 404
+    # Por qué puerta entra (F5): de la casa, o su club invitado. Sin ninguna,
+    # 403 con una frase si el campeonato está publicado.
+    campeonato, _, invitacion, error, codigo = campeonato_para_el_maestro(maestro, camp_id)
+    if error:
+        return jsonify({"error": error}), codigo
     if (campeonato.estado or "preparacion") != "preparacion":
         return jsonify({
             "error": "Este campeonato ya no está en preparación: no acepta nuevas inscripciones."
         }), 409
 
+    # Todo lo que sigue se escribe en el workspace DEL CAMPEONATO: es ese admin
+    # quien tiene que ver la ficha y aceptar la solicitud. Para el maestro de
+    # la casa es su mismo workspace, así que no cambia nada.
+    with en_workspace(campeonato.created_by):
+        return _inscribir_como_maestro(maestro, campeonato, invitacion)
+
+
+def _inscribir_como_maestro(maestro, campeonato, invitacion):
+    """El cuerpo de `maestro_inscribir`, ya dentro del workspace del campeonato."""
     data = request.get_json() or {}
     datos = dict(data.get("competidor") or {})
     club, error = _club_del_maestro(maestro, datos.get("club"))
@@ -1201,7 +1263,7 @@ def maestro_inscribir(camp_id):
             return jsonify({"error": error}), 400
 
     comp, reutilizada, error, codigo = _ficha_del_alumno(
-        maestro, data.get("competidor_uid"), datos
+        maestro, data.get("competidor_uid"), datos, workspace=campeonato.created_by
     )
     if error:
         return jsonify({"error": error}), codigo
@@ -1254,6 +1316,9 @@ def maestro_inscribir(camp_id):
         created_by=maestro.id,
     )
     db.session.add(inscripcion)
+    # Participar ES aceptar la invitación: el admin ve en la ficha del
+    # campeonato qué clubes invitados ya inscribieron a alguien.
+    marcar_aceptada(invitacion)
     db.session.commit()
     mensaje = f"Solicitud enviada: {comp.nombre_completo}. El administrador la revisará."
     if reutilizada:
@@ -1286,8 +1351,12 @@ def maestro_mis_inscripciones():
             query = query.filter_by(campeonato_id=int(camp_id))
         except (TypeError, ValueError):
             return jsonify({"error": "campeonato_id inválido"}), 400
-    inscripciones = query.order_by(Inscripcion.created_at.desc()).all()
-    return jsonify([i.to_dict() for i in inscripciones]), 200
+    # Con la red levantada: las solicitudes a campeonatos a los que invitaron
+    # a su club viven en el workspace de OTRO admin (F5). Lo que acota es el
+    # filtro de arriba —las que envió él—, igual que `/api/mi/*`.
+    with sin_workspace():
+        inscripciones = query.order_by(Inscripcion.created_at.desc()).all()
+        return jsonify([i.to_dict() for i in inscripciones]), 200
 
 
 @inscripciones_bp.route("/maestro/<int:ins_id>", methods=["PUT"])
@@ -1307,21 +1376,37 @@ def maestro_reenviar(ins_id):
     if not maestro:
         return jsonify({"error": "Solo maestros"}), 403
 
-    inscripcion = Inscripcion.query.get_or_404(ins_id)
-    if inscripcion.created_by != maestro.id:
-        return jsonify({"error": "Inscripción no encontrada"}), 404
+    # Se busca con la red levantada (puede ser de un campeonato de otro
+    # workspace, F5) y lo que acota es que la envió él.
+    with sin_workspace():
+        inscripcion = db.session.get(Inscripcion, ins_id)
+        if inscripcion is None or inscripcion.created_by != maestro.id:
+            return jsonify({"error": "Inscripción no encontrada"}), 404
+        camp_id = inscripcion.campeonato_id
 
     if inscripcion.estado != "rechazada":
         return jsonify({
             "error": "Solo puedes corregir inscripciones rechazadas."
         }), 409
 
-    campeonato = Campeonato.query.get(inscripcion.campeonato_id)
-    if not campeonato or (campeonato.estado or "preparacion") != "preparacion":
+    # Y la puerta tiene que seguir abierta: si el admin retiró la invitación a
+    # su club, lo que quedó inscrito lo modera el admin, pero ya no se corrige
+    # desde aquí.
+    campeonato, _, _, error, codigo = campeonato_para_el_maestro(maestro, camp_id)
+    if error:
+        return jsonify({"error": error}), codigo
+    if (campeonato.estado or "preparacion") != "preparacion":
         return jsonify({
             "error": "Este campeonato ya no está en preparación: no acepta correcciones."
         }), 409
 
+    with en_workspace(campeonato.created_by):
+        inscripcion = db.session.get(Inscripcion, ins_id)
+        return _reenviar_como_maestro(maestro, inscripcion)
+
+
+def _reenviar_como_maestro(maestro, inscripcion):
+    """El cuerpo de `maestro_reenviar`, ya dentro del workspace del campeonato."""
     data = request.get_json() or {}
     datos = dict(data.get("competidor") or {})
 

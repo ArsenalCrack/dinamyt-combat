@@ -490,6 +490,55 @@ def guardar_apariencia(eco_sub, tema=None, idioma=None):
         return False
 
 
+def buscar_clubes(texto=None, federacion=None):
+    """
+    El directorio de clubes del ecosistema, para invitarlos a un campeonato (F5).
+
+    Pregunta a `GET /sync/clubes` por el canal servidor-a-servidor: el admin
+    que invita ya no tiene aquí su pase —lo canjeó por la cookie al entrar—.
+    Con `federacion` (la `org_id` del admin), sus clubes afiliados salen
+    primero y marcados.
+
+    Devuelve la lista `[{id, name, city, afiliado}]`, o **None si no se pudo
+    preguntar**: sin `ECOSYSTEM_SYNC_SECRET` (el modo local, o una variable
+    que falta) o sin red. Quien llama lo dice en pantalla —y se puede invitar
+    igual escribiendo el nombre—: ningún puente nuevo se calla (§1.6-bis del
+    plan).
+    """
+    from urllib.parse import urlencode
+
+    secreto = os.getenv("ECOSYSTEM_SYNC_SECRET", "").strip()
+    raiz = url_api_ecosistema()
+    if not secreto or not raiz:
+        return None
+    consulta = urlencode(
+        {k: v for k, v in (("search", texto), ("federacion", federacion)) if v}
+    )
+    try:
+        peticion = Request(
+            f"{raiz}/sync/clubes" + (f"?{consulta}" if consulta else ""),
+            headers={"x-dinamyt-sync": secreto},
+            method="GET",
+        )
+        with urlopen(peticion, timeout=ESPERA_CLUB_SEG) as respuesta:
+            datos = json.loads(respuesta.read().decode("utf-8"))
+    except (URLError, ValueError, OSError) as exc:
+        log.warning("[ecosistema] no se pudo buscar clubes: %s", exc)
+        return None
+    if not isinstance(datos, list):
+        return None
+    return [
+        {
+            "org_id": str(c.get("id") or ""),
+            "nombre": str(c.get("name") or "").strip().upper(),
+            "ciudad": c.get("city"),
+            "afiliado": bool(c.get("afiliado")),
+        }
+        for c in datos
+        if isinstance(c, dict) and c.get("id") and c.get("name")
+    ]
+
+
 def leer_apariencia(eco_sub):
     """
     La VUELTA: qué tema y qué idioma tiene esa persona en su cuenta de DINAMYT.

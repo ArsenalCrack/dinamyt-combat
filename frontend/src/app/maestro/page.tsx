@@ -441,9 +441,21 @@ export default function MaestroPage() {
                     <span className="badge badge-gray" style={{ marginLeft: 8 }}>
                       {t(`camp.estado.${c.estado}` as ClaveTexto)}
                     </span>
+                    {c.acceso === "invitado" && (
+                      <span className="badge" style={{ marginLeft: 8, color: "var(--gold)", borderColor: "var(--gold-border)" }}>
+                        {t("maestro.invitado")}
+                      </span>
+                    )}
                     {(c.ciudad || c.pais || c.fecha_inicio) && (
                       <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 2 }}>
                         {[c.fecha_inicio, [c.ciudad, c.pais].filter(Boolean).join(", ")].filter(Boolean).join(" · ")}
+                      </div>
+                    )}
+                    {/* Quien inscribe en campeonatos de dos federaciones
+                        necesita saber de cuál es cada uno (F5). */}
+                    {c.organiza && (
+                      <div style={{ color: "var(--text-muted)", fontSize: "0.8rem", marginTop: 2 }}>
+                        {t("maestro.organiza", { org: c.organiza })}
                       </div>
                     )}
                   </div>

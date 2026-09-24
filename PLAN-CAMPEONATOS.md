@@ -911,7 +911,7 @@ cara al producto**, y por eso va sola.
 > un 500 (`date.fromisoformat` sin mirar); y editar sin cuerpo JSON, también.
 > Ahora son un 400 con una frase.
 >
-> **Pruebas:** `tests/test_organizacion.py` (19), cuatro más en
+> **Pruebas:** `tests/test_organizacion.py` (21), cuatro más en
 > `test_sincronizacion.py` y el relleno contra PostgreSQL.
 >
 > **Al desplegar:** nada que migrar a mano (`schema_compat` crea las
@@ -942,9 +942,76 @@ organizaciones con más de un admin. Si sale largo, F0.2 se decide otra vez.
 
 ---
 
-## F5 · Inscribirse por invitación, no por herencia
+## F5 · Inscribirse por invitación, no por herencia — ✅ hecha (con F6-e)
 
-**Dónde:** `dinamyt-combat` (backend + frontend).
+**Dónde:** `dinamyt-combat` (backend + frontend), y una ruta en el ecosystem.
+
+> **Hecho, el 24 de septiembre de 2026.** Los cuatro puntos, con tres
+> decisiones que el plan no tomaba y un arreglo de fondo que hizo falta antes:
+>
+> - **Punto 1.** `campeonato_clubes` (`models/invitacion.py`): `org_id` (el
+>   club del ecosistema), `club_nombre` (siempre, y lo único en local),
+>   `estado` y `uid`. **`aceptado` lo pone el sistema** con la primera
+>   solicitud del club: participar ES aceptar, no hay botón que pulsar.
+> - **Punto 2.** Sección «Clubes invitados» en la ficha del campeonato
+>   (`components/ClubesInvitados.tsx`): buscar, invitar, retirar. El buscador
+>   pregunta al directorio de DINAMYT por el canal servidor-a-servidor —
+>   **ruta nueva en el ecosystem, `GET /sync/clubes`**, con los afiliados a la
+>   federación que invita primero—. Sin conexión lo dice, sugiere los clubes
+>   que ya conoce el workspace, y deja invitar por nombre.
+> - **Punto 3.** Sin invitación, 403 «Tu club no está invitado a este
+>   campeonato.» (`app/invitaciones.py`).
+> - **Punto 4 (migración blanda), por otro camino: no se crean filas.** La
+>   puerta vieja —«el campeonato es del admin que me creó»— se CONSERVA y se
+>   SUMA a la nueva. Crear invitaciones para todos los maestros de hoy habría
+>   obligado a invitar a los propios maestros en cada campeonato nuevo, y en
+>   el modo local (sin ecosistema) es la única puerta que hay.
+>
+> **Decisión 1 · un nombre no es una llave.** La invitación solo por nombre
+> NO deja entrar a nadie de fuera del workspace. Un nombre lo escribe
+> cualquier admin en la ficha de cualquier maestro: si abriera la puerta, el
+> admin de otra federación se colaría en tus campeonatos poniéndole a su
+> maestro el nombre de un club invitado. Hay prueba.
+>
+> **Decisión 2 · todo lo del maestro invitado vive en el workspace del
+> CAMPEONATO.** La ficha del alumno y la solicitud son de ese admin: es quien
+> las ve y las acepta. Para operar ahí, `rls.en_workspace()` —solo después de
+> comprobar la invitación—; y las lecturas del maestro (`/maestro/mias`, su
+> lista de campeonatos) van con la red levantada y filtradas a mano, como
+> `/api/mi/*`.
+>
+> **Decisión 3 · retirar no borra.** El club deja de ver el campeonato y ya no
+> corrige sus rechazadas; lo que inscribió se queda y lo modera el admin.
+> Volver a invitar lo reabre (la misma fila).
+>
+> **El arreglo de fondo: el documento es único por WORKSPACE.** Era único en
+> toda la base, y eso chocaba con que la ficha es del workspace que la
+> inscribió. Dos síntomas: en PostgreSQL, un admin que daba de alta a alguien
+> con ficha en OTRO workspace recibía un **500** (RLS escondía la ficha ajena
+> y el INSERT chocaba); y con F5, la misma alumna no podía ir a campeonatos de
+> dos federaciones. Ahora `(created_by, documento)` es único, `schema_compat`
+> cambia las bases viejas al arrancar (el índice era aparte, así que no hay
+> que reconstruir la tabla ni en SQLite), `_aplicar_datos` y el importador
+> comparan dentro del workspace, y **reclamar la ficha enlaza TODAS** las que
+> tengan ese documento y esa fecha (una por organización con la que compitió).
+> La prueba que fijaba el 400 viejo cambió de signo, a propósito.
+>
+> **F6-e.** Las invitaciones viajan en el paquete (`VERSION_PAQUETE` 6). Un
+> paquete no BAJA una invitación que aquí ya se aceptó; `retirado` sí se
+> aplica.
+>
+> **Pruebas:** `tests/test_invitaciones.py` (23), tres en
+> `test_sincronizacion.py`, cinco contra PostgreSQL (el flujo entero del
+> maestro invitado con RLS, el documento en dos workspaces, la migración del
+> índice y el borrado en cascada), y `clubes.spec.ts` en el ecosystem.
+>
+> **Al desplegar:** el ecosystem (la ruta `/sync/clubes`) y Campeonatos, en
+> cualquier orden: sin la ruta, el buscador dice que no hay directorio y se
+> invita por nombre. Nada que migrar a mano.
+>
+> **Lo que queda fuera, a propósito:** avisar al maestro de que lo invitaron
+> (hoy lo ve al entrar en su lista), y un interruptor por campeonato de «solo
+> clubes invitados» que cierre también la puerta vieja. Ver PARTE 6.
 
 1. Tabla `campeonato_clubes`: `campeonato_id`, `org_id` (o nombre de club en
    local), `estado` (`invitado` | `aceptado` | `retirado`), `invitado_por_id`,
@@ -1358,7 +1425,7 @@ la historia de cómo se llegó hasta F3, y se conserva.)*
 | **0** | **Desplegar lo que ya está hecho y no está en la VPS**: el portal va sin F1 (`583abc4`) y Campeonatos sin la parte 3 de F3 (`8dbc599`). Orden: Campeonatos → ecosystem (shared, migrar 0023, reiniciar) → portal | ⏳ lo hace el usuario |
 | **1** | **Arreglo de RLS en `inscripciones`** — el maestro no podía inscribir en PostgreSQL | ✅ hecho el 24 sep, sin desplegar |
 | **2** | **F4 + F6-d** — la organización llega a Campeonatos | ✅ hecho el 24 sep, sin desplegar |
-| **3** | **F5 + F6-e** — inscribirse por invitación, y la invitación viaja en el paquete | ver PARTE 6 |
+| **3** | **F5 + F6-e** — inscribirse por invitación, y la invitación viaja en el paquete | ✅ hecho el 24 sep, sin desplegar |
 | **4** | **F8** — la subida automática de resultados | pendiente |
 | **5** | **Lo que esperaba «a después del campeonato»**: `/sync/rol` a Campeonatos (`OPERAR.md` §6.1), bloqueo por plan vencido (PARTE 5), retirar `POST /auth/register` de la instalación de internet | pendiente, por decidir cada uno |
 | **6** | **Ensayo §6.0** con todo lo anterior dentro | antes del próximo campeonato |

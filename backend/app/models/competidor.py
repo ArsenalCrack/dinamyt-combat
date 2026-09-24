@@ -96,14 +96,36 @@ def normalizar_cinturon(nombre):
 
 class Competidor(db.Model):
     __tablename__ = "competidores"
+    __table_args__ = (
+        # El documento es único DENTRO DE CADA WORKSPACE, no en todo el sistema.
+        # Ver el comentario de `documento` y `_documento_unico_por_workspace`
+        # en schema_compat.py, que cambia las bases que ya existían.
+        db.Index(
+            "uq_competidores_workspace_documento", "created_by", "documento", unique=True
+        ),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     # Identidad estable entre instancias (local ↔ online). Ver app/uid.py.
     uid = db.Column(db.String(32), nullable=True, index=True, default=nuevo_uid)
     nombre_completo = db.Column(db.String(200), nullable=False)
     # Documento de identidad: identificador natural para no duplicar atletas
-    # (único cuando existe; puede faltar en registros rápidos).
-    documento = db.Column(db.String(30), nullable=True, unique=True, index=True)
+    # (puede faltar en registros rápidos).
+    #
+    # ── Único por WORKSPACE, no en todo el sistema (24 sep 2026) ──
+    #
+    # Fue único en toda la base, y eso chocaba con que la ficha es DEL
+    # workspace que la inscribió (F3: «una persona puede tener una ficha en
+    # cada workspace, y las dos son suyas»). Dos síntomas:
+    #
+    #   · En PostgreSQL, un admin que daba de alta a alguien que ya tenía ficha
+    #     en OTRO workspace recibía un 500: RLS le escondía la ficha ajena, la
+    #     comprobación de duplicado no la veía, y el INSERT chocaba.
+    #   · Con F5, el maestro invitado a campeonatos de dos federaciones no podía
+    #     inscribir a la misma alumna en la segunda.
+    #
+    # Dentro de un workspace sigue sin poder repetirse (`__table_args__`).
+    documento = db.Column(db.String(30), nullable=True, index=True)
     fecha_nacimiento = db.Column(db.Date, nullable=True)
     genero = db.Column(db.String(20), nullable=True)  # MASCULINO | FEMENINO
     # Grupo para categorizar (BLANCO..NEGRO): se DERIVA del cinturón elegido

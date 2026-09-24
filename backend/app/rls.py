@@ -52,6 +52,12 @@ TABLAS_POR_CREADOR = [
 # misma condición: no abre nada nuevo.
 TABLA_INSCRIPCIONES = "inscripciones"
 
+# Las tablas que son de su campeonato, con la política de arriba. Las
+# invitaciones a clubes (F5) también: se crean, se leen y se retiran desde la
+# ficha del campeonato, y el maestro invitado las lee con la red levantada y
+# filtrando por SU organización (ver `api/competidores.py`).
+TABLAS_POR_CAMPEONATO = [TABLA_INSCRIPCIONES, "campeonato_clubes"]
+
 # `usuarios` se cuelga de quién creó la cuenta, no de created_by.
 TABLA_USUARIOS = "usuarios"
 
@@ -168,6 +174,28 @@ def sin_workspace():
         fijar_contexto(*antes)
 
 
+@contextmanager
+def en_workspace(workspace_id):
+    """Opera dentro de OTRO workspace durante un bloque, y devuelve el de antes.
+
+    Para el maestro invitado a un campeonato de otro administrador (F5): lo
+    que inscribe —la ficha del alumno, la solicitud— es del workspace de ESE
+    campeonato, porque es ese admin quien la tiene que ver y aceptar. Su propio
+    contexto de RLS es el de quien lo creó (o él mismo, si llegó del portal), y
+    ahí PostgreSQL no le dejaría ni leer el campeonato.
+
+    **Solo se usa después de comprobar la invitación.** Es la misma disciplina
+    que `sin_workspace`: la red se mueve porque la API ya decidió, nunca para
+    decidir. En SQLite no hace nada.
+    """
+    antes = _contexto_actual()
+    fijar_contexto(workspace_id, False)
+    try:
+        yield
+    finally:
+        fijar_contexto(*antes)
+
+
 # ── Creación de las políticas ───────────────────────────────────────────────
 
 _FUNCIONES = """
@@ -206,20 +234,21 @@ def _sentencias():
     for tabla in TABLAS_POR_CREADOR:
         sentencias += _politica(tabla, "created_by")
     # Ver `TABLA_INSCRIPCIONES`: del workspace de su campeonato.
-    del_campeonato = (
-        "app_acceso_total() OR EXISTS (SELECT 1 FROM campeonatos c "
-        f"WHERE c.id = {TABLA_INSCRIPCIONES}.campeonato_id "
-        "AND c.created_by = app_workspace_actual())"
-    )
-    sentencias += [
-        f"ALTER TABLE {TABLA_INSCRIPCIONES} ENABLE ROW LEVEL SECURITY",
-        f"ALTER TABLE {TABLA_INSCRIPCIONES} FORCE ROW LEVEL SECURITY",
-        f"DROP POLICY IF EXISTS {TABLA_INSCRIPCIONES}_por_workspace ON {TABLA_INSCRIPCIONES}",
-        (
-            f"CREATE POLICY {TABLA_INSCRIPCIONES}_por_workspace ON {TABLA_INSCRIPCIONES} "
-            f"USING ({del_campeonato}) WITH CHECK ({del_campeonato})"
-        ),
-    ]
+    for tabla in TABLAS_POR_CAMPEONATO:
+        del_campeonato = (
+            "app_acceso_total() OR EXISTS (SELECT 1 FROM campeonatos c "
+            f"WHERE c.id = {tabla}.campeonato_id "
+            "AND c.created_by = app_workspace_actual())"
+        )
+        sentencias += [
+            f"ALTER TABLE {tabla} ENABLE ROW LEVEL SECURITY",
+            f"ALTER TABLE {tabla} FORCE ROW LEVEL SECURITY",
+            f"DROP POLICY IF EXISTS {tabla}_por_workspace ON {tabla}",
+            (
+                f"CREATE POLICY {tabla}_por_workspace ON {tabla} "
+                f"USING ({del_campeonato}) WITH CHECK ({del_campeonato})"
+            ),
+        ]
     # El propio admin dueño del workspace debe seguir viéndose a sí mismo, o se
     # quedaría fuera de su propia gestión de usuarios.
     sentencias += [
@@ -303,7 +332,7 @@ def estado_rls():
                 "  AND c.relname = ANY(:tablas) "
                 "  AND NOT (c.relrowsecurity AND c.relforcerowsecurity)"
             ),
-            {"tablas": TABLAS_POR_CREADOR + [TABLA_INSCRIPCIONES, TABLA_USUARIOS]},
+            {"tablas": TABLAS_POR_CREADOR + TABLAS_POR_CAMPEONATO + [TABLA_USUARIOS]},
         ).scalars().all()
     if faltan:
         return False, f"sin RLS forzado: {', '.join(faltan)}"
