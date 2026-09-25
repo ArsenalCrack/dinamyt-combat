@@ -2,6 +2,10 @@
 backend/.env
 .env
 .env.local
+# Las copias a mano del .env (en la VPS hay una, backend/.env.bak-2026-08-30):
+# llevan los mismos secretos y un `git add -A` las subiría.
+.env.bak*
+*.env.bak*
 
 # ── Base de datos local y estado de tatamis ──
 backend/instance/

@@ -13,9 +13,15 @@
 > | **F2** + **F6-b** | ✅ **hecha** | Campeonatos guarda y lee varios papeles, el pase los SUMA a quien ya estaba, y lo que quita la consola se recuerda. El paquete lleva `roles`. Con una contradicción del plan resuelta: ver la nota dentro de F2 |
 > | **F3** + **F6-c** | ✅ **hecha** | El alumno entra a **su panel** (`/mi-panel`): inscripciones con su estado, próximos campeonatos, su maestro, resultados y números. La ficha se reclama con documento y fecha, o la enlaza el admin, y viaja en el paquete. Las lecturas del personal se cerraron antes de abrir la puerta. Con cuatro cambios sobre lo escrito: ver la nota de la parte 3 dentro de F3 |
 >
-> Los carriles A y B están cerrados, y del C quedan **F4** —la organización
-> llega a Campeonatos, con F6-d— y **F5** —inscribirse por invitación—. F8, la
-> subida automática, va al final.
+> | **F4** + **F6-d** | ✅ **hecha** | La organización del ecosistema llega a Campeonatos (`org_id` en usuarios y campeonatos), la regla del admin único al crear el espejo y el informe de D3 para el superadmin. El punto 3 (que `org_id` decida quién es dueño) **a propósito no**: ver la nota dentro de F4 |
+> | **F5** + **F6-e** | ✅ **hecha** | El admin invita clubes desde la ficha del campeonato (buscador contra el directorio de DINAMYT, `GET /sync/clubes`), el maestro invitado inscribe en el workspace del campeonato, y la invitación viaja en el paquete. El documento pasó a ser único **por workspace** |
+> | **F8** | ✅ **hecha, sin puerta** | Los resultados del PC del evento suben solos a internet con la sesión del propio admin (nada guardado en el PC). Endurecida el 25 de septiembre. **Pero el portal todavía no devuelve el pase al PC del evento**, así que de cara al usuario no arranca: ver la nota ⚠️ dentro de F8 |
+>
+> **Todas las fases de F1 a F8 están escritas y probadas** (también contra
+> PostgreSQL con RLS). **Nada del carril C está desplegado todavía**: la VPS
+> sigue con Campeonatos en `8dbc599` y el portal en `583abc4` (comprobado el
+> 25 sep). Lo que queda es desplegar (PARTE 4, nº 0), las decisiones del nº 5,
+> el ensayo §6.0 y, tras un campeonato real, F9.
 >
 > **⏱ Ya no hay fecha límite (D7, 24 de septiembre de 2026).** El campeonato
 > del 9, 10 y 11 de octubre **no se hace**, y el siguiente es el año que viene,
@@ -28,7 +34,7 @@
 >
 > ### 📍 Dónde quedamos — LEER PRIMERO (se actualiza al cerrar cada sesión)
 >
-> **Sesión del 24 de septiembre de 2026.** Ver el diario al final de este
+> **Sesión del 25 de septiembre de 2026.** Ver el diario al final de este
 > archivo (**PARTE 6**): qué se hizo, qué quedó a medias y qué sigue.
 >
 > Los documentos hermanos siguen valiendo y este no los sustituye:
@@ -1329,10 +1335,109 @@ que hay en la carpeta del evento dice «2-INICIAR».
 
 ---
 
-## F8 · La subida automática de resultados
+## F8 · La subida automática de resultados — ✅ hecha
 
 **Dónde:** `dinamyt-combat/backend`. **Depende de F6** (sin `eco_sub` en el
 paquete, lo que sube son filas huérfanas).
+
+> **Hecho, el 24 de septiembre de 2026** (`app/cartero.py`, `api/subida.py`,
+> `components/SubidaResultados.tsx`). El diseño de abajo —la sesión del propio
+> admin, nada guardado en el PC— tal cual, con un cambio en la cola y dos
+> arreglos que hacían falta ANTES para que la vuelta sirviera de algo:
+>
+> - **Cambio · la cola no guarda copias, guarda qué se subió**
+>   (`subidas_resultados`: una fila por `export_uuid` con la huella sha256 de
+>   lo último que llegó). «Pendiente» es todo campeonato cuyos resultados de
+>   HOY no coinciden con los subidos, y lo que sube se construye en el momento
+>   con la MISMA función que el USB (`sobre_de_resultados`). Así no hace falta
+>   engancharse a los tres sitios donde termina una llave (dos son de los
+>   sockets), y una copia encolada no se queda vieja si alguien corrige un
+>   podio después.
+> - **El pase, solo en memoria.** Lo guarda la entrada con DINAMYT de un ADMIN
+>   (`recordar_pase`, solo si hay destino), abre sesión en internet con él
+>   (`POST /api/auth/sesion`, leyendo la cookie de entre las DOS `Set-Cookie`)
+>   y se olvida al salir. Un hilo de fondo vacía la cola mientras el pase dure
+>   (cada minuto; espera creciente 1 → 60 min tras un fallo). Nunca con una
+>   llave activa.
+> - **Se ve:** la línea en `/admin` con los pendientes, el destino, el último
+>   intento, el último error, por qué no sube y [Subir ahora]. Y al arrancar:
+>   destino con pase (info), o destino SIN pase (aviso: nadie podrá subir).
+> - **Configuración del PC del evento:** `CAMPEONATOS_ONLINE_URL` (la raíz de
+>   internet) y `ECOSYSTEM_JWKS_URL` (para poder entrar con DINAMYT cuando
+>   vuelva la red). Va en `INICIAR-LOCAL.md`.
+>
+> **Arreglo 1 · lo que volvía del evento no se veía.** El campeonato sigue
+> activo en internet —es el mismo del que salió— y sin combates propios, y en
+> `/resultados` ganaba siempre el vivo: «0 resultados», y los que volvieron
+> escondidos. Ahora manda el que tiene algo que enseñar, y el enlace por id
+> del campeonato lleva a lo publicado.
+>
+> **Arreglo 2 · cualquier admin con el archivo pisaba lo publicado por otro**
+> (y en PostgreSQL era un 500: RLS le escondía el snapshot ajeno y el INSERT
+> chocaba). Ahora es un 409 con una frase.
+>
+> **Arreglo 3 · el QR del juez ya no sale a la red.** `verificar_pase`
+> descargaba el JWKS para CUALQUIER token. Con `ECOSYSTEM_JWKS_URL` puesta en
+> el PC del evento (que F8 pide) y sin internet, cada juez que entraba por QR
+> esperaba el tiempo de espera de esa descarga. Un token que no es RS256 del
+> ecosistema se descarta sin preguntar.
+>
+> **Pruebas:** `tests/test_subida_resultados.py` (13) con DOS instalaciones
+> reales en el mismo proceso —el cartero habla con la de internet por su
+> cliente de pruebas, no con un simulacro—, `test_vuelta_resultados.py` (5),
+> una en `test_identidad_ecosystem.py` y dos contra PostgreSQL.
+>
+> **Endurecida el 25 de septiembre de 2026**, al revisarla antes del commit.
+> Tres agujeros que la primera versión dejaba:
+>
+> - **Resultados falsos sobre un campeonato ajeno.** El arreglo 1 hace que lo
+>   publicado TAPE al campeonato vivo sin combates. Eso convertía el
+>   `export_uuid` en una llave: quien lo tuviera —viaja en el paquete que se
+>   baja al PC del evento, lo ve cualquiera que toque ese PC— publicaba
+>   resultados que se veían como los de otro organizador. Ahora
+>   `importar_resultados` mira, con la red levantada, el campeonato vivo de
+>   ese `export_uuid`: si existe y no es tuyo (`es_dueno_campeonato`), 409
+>   `campeonato_de_otro`. Vale igual para el USB que para el cartero.
+> - **El botón y el hilo se cruzaban.** Dos pasadas a la vez creaban dos
+>   veces la fila del mismo `export_uuid` (única): el botón devolvía un 500, o
+>   el hilo moría en silencio. Ahora hay UNA pasada a la vez (`_vaciando`); la
+>   segunda no espera, contesta `subiendo` y la pantalla lo dice.
+> - **El pase viajaba en claro si el destino era `http://`.** Lo primero que
+>   el cartero envía es el pase de DINAMYT del admin. Un destino que no es
+>   `https://` (salvo `localhost`, para ensayar) cuenta como ninguno, y el
+>   arranque avisa de que la subida quedó apagada y por qué.
+>
+> **Límite conocido, a propósito:** el pase del ecosistema dura 30 minutos
+> (`B3-RIESGOS.md` §1.3), así que el cartero trabaja durante la media hora
+> siguiente a que el admin entre con DINAMYT. Si no terminó, basta con volver
+> a entrar. Y una llave que quedó `activa` sin terminar (un combate
+> abandonado) frena la subida de TODO: la línea de `/admin` lo dice («hay un
+> combate en marcha»), y el USB sigue ahí.
+>
+> ### ⚠️ Lo que F8 NO tiene todavía: la puerta de entrada (25 sep 2026)
+>
+> Todo lo de arriba funciona **una vez que el pase llega** al backend del PC
+> del evento. Lo que no funciona es que llegue: «Entrar con DINAMYT» manda al
+> portal con `?redirect=<origen de este PC>/login`, y el portal solo devuelve
+> el `#token=` a los orígenes de `NEXT_PUBLIC_CAMPEONATOS_URL`,
+> `…_MEMBRESIAS_URL` y `…_ACADEMY_URL` (`destinoSeguro`,
+> `apps/ecosystem-portal/src/lib/apps.ts:66`). El PC del evento
+> (`http://localhost:3000`, o su IP de la LAN) no es ninguno: la persona
+> entra al portal y se queda en su panel. Las pruebas no lo ven porque
+> entregan el pase directamente a `POST /api/auth/sesion`.
+>
+> **Hay que decidirlo, y es del usuario** (toca la lista blanca del portal en
+> producción):
+>
+> | Opción | Qué es | Coste |
+> |---|---|---|
+> | **A · Volver a este mismo PC** (recomendada) | El portal acepta también `http://localhost:3000` y `http://127.0.0.1:3000` como vuelta **de Campeonatos**, nada más (el patrón de «loopback» de las apps nativas, RFC 8252 §7.3). El admin sube desde el navegador del PC del evento | Un programa que escuche en ese puerto de ese PC recibiría un pase de 30 min. Si ya hay algo así en el PC, el PC está perdido de todos modos. La IP de la LAN NO entra: esa sí la puede suplantar otro en la red del evento |
+> | **B · Dejarlo dormido** | F8 queda escrita y probada, sin puerta. La vuelta sigue siendo el USB | Nada, salvo que la subida automática no existe de cara al usuario |
+> | C · Llave de máquina | La descartada arriba | Una llave viva en un portátil que viaja |
+>
+> Con A: un cambio de pocas líneas en `destinoSeguro` (más su prueba) y
+> recompilar el portal (§1.3 de `OPERAR.md`: es `NEXT_PUBLIC_*`, no basta con
+> reiniciar).
 
 **La regla del diseño no cambia y no se toca:** sigue siendo un solo sentido, y
 **solo suben podios y rankings**
@@ -1422,11 +1527,11 @@ la historia de cómo se llegó hasta F3, y se conserva.)*
 
 | # | Qué | Estado |
 |---|---|---|
-| **0** | **Desplegar lo que ya está hecho y no está en la VPS**: el portal va sin F1 (`583abc4`) y Campeonatos sin la parte 3 de F3 (`8dbc599`). Orden: Campeonatos → ecosystem (shared, migrar 0023, reiniciar) → portal | ⏳ lo hace el usuario |
+| **0** | **Desplegar lo que ya está hecho y no está en la VPS** (comprobado el 25 sep: sigue igual): el portal va sin F1 (`583abc4`) y Campeonatos sin la parte 3 de F3 (`8dbc599`), ni F4, F5 ni F8. Orden: Campeonatos → ecosystem (shared, migrar 0023, reiniciar; trae `/sync/clubes`) → portal. Los comandos, en el diario (PARTE 6) | ⏳ lo hace el usuario |
 | **1** | **Arreglo de RLS en `inscripciones`** — el maestro no podía inscribir en PostgreSQL | ✅ hecho el 24 sep, sin desplegar |
 | **2** | **F4 + F6-d** — la organización llega a Campeonatos | ✅ hecho el 24 sep, sin desplegar |
 | **3** | **F5 + F6-e** — inscribirse por invitación, y la invitación viaja en el paquete | ✅ hecho el 24 sep, sin desplegar |
-| **4** | **F8** — la subida automática de resultados | pendiente |
+| **4** | **F8** — la subida automática de resultados | ✅ hecho el 24 sep, endurecido el 25, sin desplegar. **Le falta la puerta**: el portal no devuelve el pase al PC del evento (ver la nota ⚠️ dentro de F8) — decisión A/B del usuario |
 | **5** | **Lo que esperaba «a después del campeonato»**: `/sync/rol` a Campeonatos (`OPERAR.md` §6.1), bloqueo por plan vencido (PARTE 5), retirar `POST /auth/register` de la instalación de internet | pendiente, por decidir cada uno |
 | **6** | **Ensayo §6.0** con todo lo anterior dentro | antes del próximo campeonato |
 | **7** | **F9** — retirar los andamios | después del próximo campeonato |
@@ -1563,6 +1668,105 @@ Escrito para que dentro de tres meses nadie lo busque aquí:
 
 *Una entrada por sesión, la más reciente arriba. Es lo primero que lee la
 siguiente: qué se hizo, qué quedó a medias, qué falta desplegar y qué sigue.*
+
+## Sesión del 25 de septiembre de 2026
+
+**Contexto:** la sesión del 24 se cortó por el límite de uso con F8 escrita y
+en verde pero **sin commit**, y con F4 y F5 con commit pero **sin empujar**
+(ni en `dinamyt-combat` ni el `/sync/clubes` del monorepo). Esta sesión la
+cierra.
+
+### Qué se hizo
+
+1. **F8 revisada antes del commit, y tres agujeros cerrados** (detalle en la
+   nota «Endurecida» dentro de F8): resultados falsos sobre un campeonato
+   ajeno vía `export_uuid` (409 `campeonato_de_otro`), el botón y el hilo del
+   cartero cruzándose (una pasada a la vez), y el pase viajando en claro a un
+   destino `http://` (solo `https://` o `localhost`). +6 pruebas.
+2. **El hueco que las pruebas no veían: F8 no tiene puerta** (nota ⚠️ dentro
+   de F8). El portal no devuelve el pase al PC del evento. Documentado aquí y
+   en `INICIAR-LOCAL.md` §7.2; **decisión A/B pendiente del usuario**.
+3. **Commits:** `e67acbf` (F8) en `dinamyt-combat`; empujados con él
+   `248df50` (RLS de inscripciones), `d7f145a` (F4) y `7d5bf4f` (F5). En el
+   monorepo, `0c30eeb` (`/sync/clubes`) y el espejo de `productos/campeonatos`.
+4. **La VPS, comprobada por SSH:** igual que el 24. Campeonatos en `8dbc599`,
+   portal en `583abc4`, Membresías en `3488b31`; los seis servicios activos.
+
+### Baterías al cerrar
+
+- Campeonatos, SQLite: **444 en verde** (12 saltadas: son las de PostgreSQL).
+- Campeonatos contra PostgreSQL 18 con `FORCE ROW LEVEL SECURITY` y un rol
+  sin superusuario: **13/13**.
+- Frontend de Campeonatos: `tsc` y `eslint` limpios.
+- Ecosystem (el 24, con `/sync/clubes`): 362/362 y `tsc` limpio.
+
+### Hallazgos que siguen en pie
+
+- **F8 sin puerta** (arriba). Mientras no se decida, la vuelta es el USB.
+- **`/srv/campeonatos/backend/.env.bak-2026-08-30`**: una copia del `.env`
+  —con sus secretos— dentro de la carpeta del repositorio en la VPS. No la
+  sirve nada (el backend no expone archivos de su carpeta), pero **git no la
+  ignora** —por eso sale como `??` en `git status`—: un `git add -A` en el
+  servidor la subiría a GitHub con los secretos. Desde esta sesión el
+  `.gitignore` ignora `*.env.bak*` (tras el `git pull` deja de salir), pero el
+  archivo sigue ahí: moverlo fuera del repo o borrarlo. Lo hace el usuario.
+- **Una llave abandonada en `activa` frena toda la subida** (F8). Se ve en
+  `/admin`; no se arregla solo.
+- Lo que F5 dejó fuera a propósito: avisar al maestro de que lo invitaron, y
+  el interruptor «solo clubes invitados» que cierre la puerta vieja.
+
+### Cómo desplegar lo pendiente (`OPERAR.md` §1.2, §2.3, §2.4-bis)
+
+Orden: **respaldo → Campeonatos → ecosystem (shared, migrar 0023) → portal**.
+Campeonatos no migra (`schema_compat` crea al arrancar las columnas de F4,
+la tabla de F5, la de F8 y el índice nuevo del documento), pero ese arranque
+hace `ALTER TABLE`: si se cuelga es §5.1-ter (`NRestarts`, `pg_stat_activity`).
+
+```bash
+sudo -v && sudo -u postgres pg_dump -Fc dinamyt > ~/respaldo-$(date +%F).dump && sudo mv ~/respaldo-$(date +%F).dump /var/backups/ && sudo ls -lh /var/backups/
+```
+
+```bash
+cd /srv/campeonatos && git fetch && git log --oneline -1 origin/main && git status --short
+```
+
+```bash
+cd /srv/campeonatos && git pull && backend/venv/bin/pip install -r backend/requirements.txt && cd frontend && npm ci && npm run build && sudo systemctl restart campeonatos-api campeonatos-web && systemctl is-active campeonatos-api campeonatos-web
+```
+
+```bash
+cd /srv/dinamyt && git fetch && git log --oneline -1 origin/main && git status --short
+```
+
+```bash
+cd /srv/dinamyt && git pull && pnpm install --frozen-lockfile && pnpm --filter @dinamyt/shared build && pnpm --filter @dinamyt/ecosystem-api build && pnpm --filter @dinamyt/ecosystem-portal build
+```
+
+```bash
+cd /srv/dinamyt/apps/ecosystem-api && pnpm db:migrar
+```
+
+```bash
+sudo systemctl restart dinamyt-id dinamyt-portal && sudo systemctl status dinamyt-id --no-pager
+```
+
+Comprobaciones que no mienten: las rutas nuevas dan **401, no 404**
+(`curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:5000/api/subida/estado`
+y `…/api/mi/panel`); a los cinco minutos, `systemctl show campeonatos-api -p
+NRestarts` sigue igual; y `curl -s -o /dev/null -w "%{http_code}
+"
+http://127.0.0.1:3001/sync/clubes` da **401** (un 404 querría decir que falta
+`ECOSYSTEM_SYNC_SECRET`: entonces el buscador de clubes no funciona).
+
+### Qué sigue, en orden
+
+1. **Desplegar** (arriba). Es lo único que hace visible el carril C.
+2. **Decidir la puerta de F8** (A o B). Si es A, es una tarde: el cambio en
+   `destinoSeguro`, su prueba y recompilar el portal.
+3. **Las tres decisiones del nº 5 de la PARTE 4**: `/sync/rol` a Campeonatos,
+   el bloqueo por plan vencido y retirar `POST /auth/register` de internet.
+4. **El ensayo de `OPERAR.md` §6.0** con todo desplegado.
+5. **F9**, solo después de un campeonato real.
 
 ## Sesión del 24 de septiembre de 2026
 
