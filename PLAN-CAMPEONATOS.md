@@ -20,8 +20,10 @@
 > **Todas las fases de F1 a F8 están escritas y probadas** (también contra
 > PostgreSQL con RLS). **Nada del carril C está desplegado todavía**: la VPS
 > sigue con Campeonatos en `8dbc599` y el portal en `583abc4` (comprobado el
-> 25 sep). Lo que queda es desplegar (PARTE 4, nº 0), las decisiones del nº 5,
-> el ensayo §6.0 y, tras un campeonato real, F9.
+> 25 sep). **El nº 5 también está hecho** (D8, D9, D10: el alta de jueces
+> nace en DINAMYT, el portal quita lo que dio, y el plan vencido lo corta el
+> pase). Lo que queda es desplegar (PARTE 4, nº 0), el ensayo §6.0 y, tras un
+> campeonato real, F9.
 >
 > **⏱ Ya no hay fecha límite (D7, 24 de septiembre de 2026).** El campeonato
 > del 9, 10 y 11 de octubre **no se hace**, y el siguiente es el año que viene,
@@ -436,6 +438,34 @@ viene, sin fecha. Consecuencias:
 - **Cada fase se prueba también contra PostgreSQL** (`tests/test_rls_postgres.py`):
   la batería corre en SQLite, donde RLS no existe, y así se escapó un fallo
   que rompía el flujo entero del maestro (ver PARTE 6).
+
+**D8, D9 y D10 · Lo aplazado, decidido** *(25 de septiembre de 2026, por el
+usuario; las tres con la opción recomendada)*. Es el nº 5 de la PARTE 4:
+
+- **D8 · El alta de jueces nace en DINAMYT** (como Membresías, `OPERAR.md`
+  §4.4). Con el puente entero —API del ecosistema **y**
+  `ECOSYSTEM_SYNC_SECRET`—, `POST /api/auth/register` pide la cuenta a
+  DINAMYT (`POST /sync/alta`, `app: campeonatos`, en la organización del
+  admin) y el espejo nace enlazado y sin contraseña que valga. **Solo
+  jueces**: el maestro es gestor de club en DINAMYT (dueño en Membresías) y
+  ese mando no se reparte de servidor a servidor; entra con su cuenta desde
+  su club, y a su club se le invita (F5). Sin el puente —el PC del evento—
+  todo sigue como siempre. *Por qué el secreto y no `ECOSYSTEM_JWKS_URL`:*
+  el PC del evento lleva la segunda desde F8, y el día del campeonato no
+  tiene internet; con ella, ese día no se podría crear un juez.
+- **D9 · Lo que dio el portal, el portal lo quita — al entrar, sin canal.**
+  `usuarios.roles_del_portal` recuerda la procedencia; si un pase con la
+  LISTA `roles_campeonatos` ya no trae un papel que vino del portal, se
+  retira. Lo puesto a mano en la consola y `admin` no se tocan nunca. Cierra
+  la parte de Campeonatos de «el cambio de rol solo viaja a Membresías»
+  (`OPERAR.md` §6.1) sin `/sync/rol`: el espejo no tiene contraseña, así que
+  la siguiente entrada es justo cuando importa.
+- **D10 · El plan vencido lo corta el pase, y basta.** Un club que no paga ya
+  no trae Campeonatos en `app_scopes`. Con D8, toda cuenta nueva de internet
+  solo entra por el pase; y desde D10 **la consola no le pone contraseña a
+  una cuenta de DINAMYT** (con el puente), que era la otra puerta. Quedan las
+  cuentas viejas con contraseña propia (10 sin enlace el 31 ago). Nunca
+  afecta al modo local.
 
 ### Todas las preguntas, contestadas
 
@@ -1552,7 +1582,7 @@ la historia de cómo se llegó hasta F3, y se conserva.)*
 | **2** | **F4 + F6-d** — la organización llega a Campeonatos | ✅ hecho el 24 sep, sin desplegar |
 | **3** | **F5 + F6-e** — inscribirse por invitación, y la invitación viaja en el paquete | ✅ hecho el 24 sep, sin desplegar |
 | **4** | **F8** — la subida automática de resultados | ✅ hecho el 24 sep, endurecido el 25, y con puerta el 25 (opción A: el portal vuelve a `localhost:3000`). Sin desplegar |
-| **5** | **Lo que esperaba «a después del campeonato»**: `/sync/rol` a Campeonatos (`OPERAR.md` §6.1), bloqueo por plan vencido (PARTE 5), retirar `POST /auth/register` de la instalación de internet | pendiente, por decidir cada uno |
+| **5** | **Lo que esperaba «a después del campeonato»**: `/sync/rol` a Campeonatos (`OPERAR.md` §6.1), bloqueo por plan vencido (PARTE 5), retirar `POST /auth/register` de la instalación de internet | ✅ decidido y hecho el 25 sep (D8, D9, D10), sin desplegar |
 | **6** | **Ensayo §6.0** con todo lo anterior dentro | antes del próximo campeonato |
 | **7** | **F9** — retirar los andamios | después del próximo campeonato |
 
@@ -1664,16 +1694,16 @@ Escrito para que dentro de tres meses nadie lo busque aquí:
 - **No junta COMBAT con PROJECT.** Eso es `PLAN_FUSION.md` del monorepo.
 - **No arregla la sesión revocada de los 30 minutos.** Es el precio del diseño y
   está aceptado (`B3-RIESGOS.md` §1.3).
-- **No cierra el bloqueo por plan vencido.** `OPERAR.md` §6.1 lo tiene abierto y
-  razonado: el 9 de octubre Campeonatos no puede depender de la red, y un club
-  cerrado por una columna mal puesta a mitad de un campeonato es peor que un club
-  que operó un mes de más. Lo que sí corta hoy a un club vencido es el pase — sin
-  `app_scopes` no entra quien llegue del portal. Después de F4 habría por fin
-  dónde colgarlo (`campeonatos.org_id`), pero sigue siendo otra conversación.
-- **No retira `POST /auth/register`.** Está previsto «después del campeonato»
-  (`OPERAR.md` §4.13) y es independiente de todo esto. **Y ahora menos que
-  nunca**: es la puerta por la que el modo local crea usuarios sin ecosistema, o
-  sea la que hace falta el 9 de octubre.
+- **No añade un bloqueo por plan vencido aparte** *(decidido el 25 sep 2026,
+  D10)*. Lo corta el pase —sin `app_scopes` no entra quien llegue del portal—,
+  y desde D8 y D10 las cuentas nuevas de internet no tienen otra entrada. Sin
+  canal `/sync/plan` ni marca por organización: un club cerrado por una
+  columna mal puesta a mitad de un campeonato sigue siendo peor que un club
+  que operó un mes de más.
+- **No retira `POST /auth/register`: lo convierte** *(D8, 25 sep 2026)*. En
+  internet, el juez nace en DINAMYT; en el modo local sigue siendo la puerta
+  por la que se crean usuarios sin ecosistema, que es la que hace falta el día
+  del evento.
 - **No toca cómo entran las personas en el modo local.** Contraseña de esa
   instalación y QR del tatami, como hoy (§F0-bis, `INICIAR-LOCAL.md` §3.1). Lo
   único que F8 añade ocurre **después** del evento y con red.
@@ -1778,15 +1808,70 @@ NRestarts` sigue igual; y `curl -s -o /dev/null -w "%{http_code}
 http://127.0.0.1:3001/sync/clubes` da **401** (un 404 querría decir que falta
 `ECOSYSTEM_SYNC_SECRET`: entonces el buscador de clubes no funciona).
 
+### La segunda mitad de la sesión: la puerta de F8 y el nº 5
+
+El usuario decidió **A** para la puerta de F8 y **las tres recomendadas** del
+nº 5 (D8, D9, D10, junto a D7 en la PARTE 3). Hecho:
+
+1. **La puerta de F8** — el portal devuelve el pase a `localhost:3000` /
+   `127.0.0.1:3000` y a nada más (`87945ee`, con la primera prueba del portal,
+   `apps.test.mts`); en Campeonatos, el botón avisa si se abrió desde la IP de
+   la LAN (`fdd510e`).
+2. **D8 · el alta de jueces nace en DINAMYT.** Ecosystem: `/sync/alta` acepta
+   `app: campeonatos` y solo traduce `juez → judge`. Campeonatos: la rama
+   nueva de `register`, `GET /api/auth/alta` para que `/admin` sepa qué
+   formulario enseñar (sin contraseña, solo juez, con el enlace de invitación
+   a la vista si el correo no salió).
+3. **D9 · `roles_del_portal`** y `_retirar_lo_que_el_portal_ya_no_da`.
+4. **D10 · la consola no pone contraseña a una cuenta de DINAMYT** (con el
+   puente). `to_dict` lleva `cuenta_de_dinamyt` (no el `sub`).
+5. **El arranque ya no grita en el PC del evento**: con
+   `CAMPEONATOS_ONLINE_URL` y sin secreto dice «PC DEL EVENTO» (info), no
+   «EL ESPEJO ESTÁ APAGADO».
+
+**Tres fallos encontrados por el camino, y arreglados:**
+
+- **Ecosystem · un alta con forma de éxito y sin `ecoSub`.** Si la persona ya
+  era miembro sin contraseña (reenviar una invitación sin abrir),
+  `inviteMember` devolvía como `miembro` una fila leída sin `userId`, y
+  `/sync/alta` contestaba 200 sin `ecoSub`. Membresías lo guarda sin mirar:
+  **nacía una ficha suelta**. Arreglado el `select` y puesta una guarda en el
+  controlador (500 en vez de un falso éxito). Las pruebas no lo veían porque
+  simulan el servicio.
+- **Campeonatos · dar de alta (o cambiar el correo a) uno que ya es de OTRO
+  workspace era un 500 en PostgreSQL.** `usuarios` está bajo RLS: la
+  comprobación «el correo ya existe» no veía a los ajenos, y el `INSERT`
+  chocaba con el índice único. Existía antes de hoy en producción. Ahora
+  `_correo_ocupado` mira con la red levantada. Probado que la prueba nueva
+  falla sin el arreglo (`UniqueViolation`).
+- **`OPERAR.md` §1.5 seguía congelando el 9-11 de octubre**, aunque D7 decía
+  que se quitaba. Actualizado.
+
+**Baterías:** Campeonatos 469 en SQLite + 16 contra PostgreSQL; ecosystem
+368/368 y `tsc` limpio; portal 4/4 y `tsc` limpio; frontend de Campeonatos
+`tsc` y `eslint` limpios.
+
+**Lo que se aparta de lo que se le propuso al usuario, y hay que decírselo:**
+el alta convertida es **solo para jueces**. La propuesta decía «juez/maestro»;
+al leer `inviteMember` salió que un maestro en DINAMYT es gestor de club
+(`espejarAlta` lo hace dueño en Membresías) y que una federación ni lo admite.
+Los maestros entran con su cuenta desde su club (F5).
+
+**Al desplegar esto:** Campeonatos crea sola la columna `roles_del_portal`;
+el ecosystem no migra nada nuevo (sigue la 0023 pendiente de F1); el portal
+se recompila. Orden: Campeonatos → ecosystem → portal, igual que arriba.
+
 ### Qué sigue, en orden
 
-1. **Desplegar** (arriba). Es lo único que hace visible el carril C.
-2. **Decidir la puerta de F8** (A o B). Si es A, es una tarde: el cambio en
-   `destinoSeguro`, su prueba y recompilar el portal.
-3. **Las tres decisiones del nº 5 de la PARTE 4**: `/sync/rol` a Campeonatos,
-   el bloqueo por plan vencido y retirar `POST /auth/register` de internet.
-4. **El ensayo de `OPERAR.md` §6.0** con todo desplegado.
-5. **F9**, solo después de un campeonato real.
+1. **Desplegar** (arriba). Es lo único que hace visible el carril C, la puerta
+   de F8 y el nº 5.
+2. **El ensayo de `OPERAR.md` §6.0** con todo desplegado. Añadirle: dar de
+   alta un juez desde `/admin` (le llega el correo o el enlace) y quitarle el
+   papel de juez en el portal (lo pierde al volver a entrar).
+3. **Lo que F5 dejó fuera** (avisar al maestro de que lo invitaron; el
+   interruptor «solo clubes invitados») y **Academy**, que sigue sin
+   `/sync/rol` ni bloqueo por plan (`OPERAR.md` §6.1).
+4. **F9**, solo después de un campeonato real.
 
 ## Sesión del 24 de septiembre de 2026
 
