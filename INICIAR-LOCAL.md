@@ -263,6 +263,52 @@ todo aparece "sin conexión" aunque el servidor "esté encendido".
 
 ---
 
+## 7.2) Después del evento: los resultados suben solos (F8)
+
+*(añadido el 24 de septiembre de 2026)*
+
+> ⚠️ **Todavía no se puede usar (25 sep 2026).** El paso 1 de abajo —entrar
+> con DINAMYT en ESTE PC— no termina: el portal solo devuelve la sesión a las
+> direcciones de internet de las apps (`destinoSeguro` en
+> `apps/ecosystem-portal/src/lib/apps.ts`), y este PC no es ninguna de ellas.
+> Entras al portal y te quedas en tu panel, sin volver aquí. Falta decidir si
+> el portal acepta volver a `http://localhost` (ver `PLAN-CAMPEONATOS.md`,
+> F8). **Hasta entonces, el USB** (paso 3).
+
+Cuando el PC vuelve a tener internet, los resultados **suben solos** a la
+instalación de internet — sin USB. Hace falta configurarlo **una vez**, en
+`backend/.env` de este PC:
+
+```
+CAMPEONATOS_ONLINE_URL=https://campeonatos.dinamyt.org
+ECOSYSTEM_JWKS_URL=https://id.dinamyt.org/auth/jwks
+```
+
+**Tiene que ser `https://`.** Lo primero que viaja es tu sesión de DINAMYT, y
+en claro la leería cualquiera en la red del evento: con `http://` la subida
+queda apagada y la ventana negra del backend lo dice al arrancar.
+
+Con eso puesto, **durante el evento no cambia nada**: sin internet, los jueces
+siguen entrando por QR (ya no se espera al ecosistema) y el admin con la
+contraseña local.
+
+**El lunes, con red:**
+
+1. Abre Campeonatos **en este mismo PC** (`http://localhost:3000`) y **entra
+   con tu cuenta de DINAMYT** (no con la contraseña local). Es tu sesión la
+   que sube: aquí no se guarda ninguna llave. Dura media hora; si no terminó,
+   vuelve a entrar. Solo suben los campeonatos que organizas tú.
+2. En `/admin` aparece «N campeonato(s) con resultados pendientes de subir».
+   Se van solos en uno o dos minutos; o pulsa **Subir ahora**.
+3. Si algo falla, la línea dice por qué (sin destino, sin sesión, un combate
+   en marcha, el último error) y **el USB de siempre sigue funcionando**:
+   Reportes → Exportar resultados → en internet, Importar resultados.
+
+No sube nada mientras haya una llave activa. Y lo que ya subió no se vuelve a
+subir; si corriges un podio, sube la corrección.
+
+---
+
 ## 8) Si algo falla
 
 - **Los celulares no cargan la página:** ¿corriste `abrir-firewall.bat` como

@@ -58,26 +58,42 @@ def listar_campeonatos():
         .order_by(Campeonato.created_at.desc())
         .all()
     )
+    publicados = {
+        p.export_uuid: p
+        for p in ResultadoPublicado.query.order_by(
+            ResultadoPublicado.importado_at.desc()
+        ).all()
+    }
     result = []
-    uuids_vivos = set()
+    ya_puestos = set()
     for c in campeonatos:
-        if c.export_uuid:
-            uuids_vivos.add(c.export_uuid)
+        en_vivo = _contar_resultados(c.id)
+        publicado = publicados.get(c.export_uuid) if c.export_uuid else None
+        # ── Lo que vuelve del evento tiene que verse ──
+        #
+        # El camino normal es: se crea aquí, se BAJA al PC del evento, se
+        # compite allí y los resultados VUELVEN con el mismo `export_uuid`.
+        # Aquí el campeonato sigue activo y sin un solo combate, y antes ganaba
+        # siempre el vivo: la lista decía «0 resultados» y los que volvieron no
+        # se veían en ninguna parte. Manda el que tiene algo que enseñar.
+        if publicado is not None and en_vivo == 0:
+            result.append(publicado.to_selector())
+            ya_puestos.add(c.export_uuid)
+            continue
+        if publicado is not None:
+            # Los dos tienen resultados: el vivo es el de esta instalación.
+            ya_puestos.add(c.export_uuid)
         result.append({
             "id": c.id,
             "nombre": c.nombre,
-            "num_resultados": _contar_resultados(c.id),
+            "num_resultados": en_vivo,
             "publicado": False,
         })
 
-    # Snapshots importados (no duplicar los que ya existen en vivo aquí mismo).
-    publicados = ResultadoPublicado.query.order_by(
-        ResultadoPublicado.importado_at.desc()
-    ).all()
-    for p in publicados:
-        if p.export_uuid in uuids_vivos:
-            continue
-        result.append(p.to_selector())
+    # Los snapshots de campeonatos que aquí no existen (o no están activos).
+    for uuid_pub, p in publicados.items():
+        if uuid_pub not in ya_puestos:
+            result.append(p.to_selector())
 
     return jsonify(result), 200
 
@@ -261,6 +277,12 @@ def resultados_campeonato(camp_id):
         return jsonify({"error": "Campeonato no encontrado"}), 404
 
     data = _construir_resultados(cid)
+    # Sin nada en vivo, lo que volvió del evento (ver `listar_campeonatos`): un
+    # enlace al id del campeonato no puede quedarse vacío teniendo resultados.
+    if not data.get("resultados") and camp.export_uuid:
+        pub = ResultadoPublicado.query.filter_by(export_uuid=camp.export_uuid).first()
+        if pub is not None:
+            return jsonify(pub.to_resultados()), 200
     return jsonify({
         "campeonato": {"id": camp.id, "nombre": camp.nombre},
         **data,
@@ -274,6 +296,29 @@ def resultados_campeonato(camp_id):
 def _slug(texto, defecto="campeonato"):
     limpio = re.sub(r"[^a-zA-Z0-9._-]+", "-", (texto or "").strip()).strip("-")
     return (limpio or defecto).lower()[:60]
+
+
+def sobre_de_resultados(camp):
+    """El archivo de resultados de un campeonato, tal como viaja a internet.
+
+    Lo usan las dos vueltas: el USB (`exportar_resultados`) y la subida
+    automática (`app/cartero.py`, F8). Que sea la MISMA función es lo que
+    garantiza que lo que sube solo es exactamente lo que se subiría a mano.
+    Genera (una vez) el `export_uuid` del campeonato si no lo tiene.
+    """
+    if not camp.export_uuid:
+        camp.export_uuid = uuid.uuid4().hex
+        db.session.commit()
+
+    data = _construir_resultados(camp.id)
+    return {
+        "formato": FORMATO_EXPORT,
+        "version": 1,
+        "export_uuid": camp.export_uuid,
+        "exportado_at": datetime.now(timezone.utc).isoformat(),
+        "campeonato": {"nombre": camp.nombre},
+        **data,
+    }
 
 
 @resultados_bp.route("/campeonato/<int:camp_id>/exportar", methods=["GET"])
@@ -293,19 +338,7 @@ def exportar_resultados(camp_id):
         # 404 (no 403) para no revelar campeonatos de otro workspace.
         return jsonify({"error": "Campeonato no encontrado"}), 404
 
-    if not camp.export_uuid:
-        camp.export_uuid = uuid.uuid4().hex
-        db.session.commit()
-
-    data = _construir_resultados(camp.id)
-    envelope = {
-        "formato": FORMATO_EXPORT,
-        "version": 1,
-        "export_uuid": camp.export_uuid,
-        "exportado_at": datetime.now(timezone.utc).isoformat(),
-        "campeonato": {"nombre": camp.nombre},
-        **data,
-    }
+    envelope = sobre_de_resultados(camp)
     cuerpo = json.dumps(envelope, ensure_ascii=False, indent=2)
     filename = f"resultados-{_slug(camp.nombre)}.json"
     return Response(
@@ -359,6 +392,43 @@ def importar_resultados():
         "categorias": envelope.get("categorias", []),
         "tatamis": envelope.get("tatamis", []),
     }
+
+    # ── Reemplazar vale para quien lo publicó, no para quien tenga el archivo ──
+    #
+    # Se busca con la red levantada: en PostgreSQL, RLS le escondía a otro
+    # admin el snapshot ajeno, así que esto no lo veía, intentaba crearlo y
+    # chocaba con el `export_uuid` único (un 500). Y en SQLite, sin RLS, lo
+    # PISABA: cualquier admin con el archivo reemplazaba lo publicado por otro.
+    from ..rls import sin_workspace
+
+    with sin_workspace():
+        previo = ResultadoPublicado.query.filter_by(export_uuid=export_uuid).first()
+        ajeno = previo is not None and not (
+            admin.es_super or previo.created_by == admin.id
+        )
+    if ajeno:
+        return jsonify({
+            "error": "Estos resultados los publicó otro administrador. Pídele que "
+                     "los actualice, o que los quite para poder publicarlos tú.",
+            "motivo": "publicado_por_otro",
+        }), 409
+
+    # ── Y el campeonato vivo de ese `export_uuid`, también ──
+    #
+    # Desde F8 lo que vuelve del evento SE MUESTRA en lugar del campeonato vivo
+    # que no tiene combates (`listar_campeonatos`). Sin esta puerta, cualquier
+    # admin con el `export_uuid` —viaja en el paquete que se baja al PC del
+    # evento— publicaría resultados que se verían como los de un campeonato
+    # ajeno. Solo sube resultados a un campeonato quien es su dueño.
+    with sin_workspace():
+        vivo = Campeonato.query.filter_by(export_uuid=export_uuid).first()
+        vivo_ajeno = vivo is not None and not es_dueno_campeonato(admin, vivo)
+    if vivo_ajeno:
+        return jsonify({
+            "error": "Estos resultados son de un campeonato de otro administrador. "
+                     "Tiene que subirlos quien lo organiza.",
+            "motivo": "campeonato_de_otro",
+        }), 409
 
     pub = ResultadoPublicado.query.filter_by(export_uuid=export_uuid).first()
     nuevo = pub is None

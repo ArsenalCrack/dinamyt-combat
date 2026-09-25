@@ -237,3 +237,26 @@ def test_un_pase_CON_kid_va_por_el_camino_estandar():
     assert _ClienteDeMentira.consultas == 1
     # Y sin bajarse el JWKS a mano: de eso ya se encarga PyJWKClient.
     assert _Red.descargas == 0
+
+
+def test_un_token_que_no_es_pase_no_sale_a_la_red(monkeypatch):
+    """El QR del juez no puede esperar al JWKS (F8: el PC del evento sin red).
+
+    Con la URL del ecosistema puesta y sin internet, cada entrada por QR
+    esperaba el tiempo de espera de la descarga del JWKS. Un token HS256 —o de
+    otro emisor— se descarta sin preguntar a nadie.
+    """
+    import jwt as pyjwt
+
+    from app import identidad
+
+    llamadas = []
+    monkeypatch.setattr(identidad, "url_jwks", lambda: "https://ejemplo.invalid/auth/jwks")
+    monkeypatch.setattr(
+        identidad, "_llave_del_pase",
+        lambda token, url: llamadas.append(url) or (_ for _ in ()).throw(OSError("sin red")),
+    )
+
+    qr_del_juez = pyjwt.encode({"sub": "7", "iss": "otro"}, "secreto-local", algorithm="HS256")
+    assert identidad.verificar_pase(qr_del_juez) is None
+    assert llamadas == []

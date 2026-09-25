@@ -203,6 +203,23 @@ def verificar_pase(token):
         # Modo local: no hay a quién preguntar, y no es un error.
         return None
 
+    # ── Lo que no es un pase se descarta SIN salir a la red ──
+    #
+    # Por aquí pasa también el QR del juez (HS256, firmado por esta misma
+    # instalación), y antes se descargaba el JWKS para él igual que para un
+    # pase. Con la URL del ecosistema puesta y sin internet —el PC del evento
+    # que el admin configura para subir los resultados al volver (F8)—, cada
+    # juez que entraba por QR esperaba el tiempo de espera de esa descarga. Un
+    # pase del ecosistema es RS256 y lo emite el ecosistema: si la cabecera o
+    # el emisor dicen otra cosa, no hay nada que verificar.
+    try:
+        cabecera = jwt.get_unverified_header(token)
+        emisor = jwt.decode(token, options={"verify_signature": False}).get("iss")
+    except Exception:  # noqa: BLE001 — ilegible: no es un pase
+        return None
+    if cabecera.get("alg") != "RS256" or emisor != EMISOR_ECOSYSTEM:
+        return None
+
     try:
         claims = jwt.decode(
             token,

@@ -227,6 +227,36 @@ export async function listUsersAPI(includeInactive = false) {
   return res.data as UserData[];
 }
 
+// ── La subida automática de resultados (F8 de PLAN-CAMPEONATOS) ─────────────
+
+export interface EstadoSubida {
+  /** La instalación de internet a la que se sube, o null si no hay destino. */
+  destino: string | null;
+  pendientes: { campeonato_id: number; nombre: string; export_uuid: string }[];
+  subidos: {
+    export_uuid: string;
+    nombre: string | null;
+    enviado_at: string | null;
+    enviado_por: string | null;
+  }[];
+  ultimo_intento_at: string | null;
+  ultimo_error: string | null;
+  /** Si hay un admin con sesión de DINAMYT viva en esta instalación. */
+  sesion_viva: boolean;
+  /** Por qué no se sube ahora mismo, o null si nada lo impide. */
+  motivo: "sin_destino" | "sin_sesion" | "en_combate" | null;
+}
+
+export async function estadoSubidaAPI() {
+  const res = await api.get("/subida/estado");
+  return res.data as EstadoSubida;
+}
+
+export async function subirResultadosAPI() {
+  const res = await api.post("/subida/intentar");
+  return res.data as EstadoSubida;
+}
+
 // ── Clubes invitados a un campeonato (F5 de PLAN-CAMPEONATOS) ──────────────
 
 export type EstadoInvitacion = "invitado" | "aceptado" | "retirado";

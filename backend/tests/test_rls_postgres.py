@@ -430,3 +430,50 @@ def test_borrar_un_campeonato_con_invitaciones_en_postgres(invitado):
                  json={"org_id": CLUB_1, "nombre": "Club Uno"}, headers=_h(tokens["admin"]))
     r = cliente.delete(f"/api/campeonatos/{camp_id}", headers=_h(tokens["admin"]))
     assert r.status_code == 200, r.get_json()
+
+
+def test_otro_admin_no_pisa_resultados_publicados_ni_revienta(pg, club):
+    """Era un 500 en PostgreSQL: RLS escondía el snapshot ajeno y el INSERT chocaba."""
+    app, db = pg
+    cliente, tokens, _ = club
+    sobre = {
+        "formato": "dinamyt-resultados", "version": 1,
+        "export_uuid": "e0000000000000000000000000000001",
+        "campeonato": {"nombre": "COPA"}, "resultados": [],
+    }
+    assert cliente.post("/api/resultados/importar", json=sobre,
+                        headers=_h(tokens["admin"])).status_code == 200
+
+    from app.models.usuario import Usuario
+
+    _sembrar()
+    otro = Usuario(email="otro@t.local", nombre="OTRO", rol="admin", activo=True)
+    otro.set_password("secret123")
+    db.session.add(otro)
+    db.session.commit()
+    r = cliente.post("/api/resultados/importar", json=sobre, headers=_h(_token(otro)))
+    assert r.status_code == 409, r.get_json()
+
+
+def test_otro_admin_no_publica_sobre_un_campeonato_ajeno_en_postgres(pg, club):
+    """RLS le esconde el campeonato ajeno: la puerta tiene que verlo igual."""
+    app, db = pg
+    cliente, _, camp_id = club
+    from app.models.campeonato import Campeonato
+    from app.models.usuario import Usuario
+
+    _sembrar()
+    camp = db.session.get(Campeonato, camp_id)
+    camp.export_uuid = "c0000000000000000000000000000002"
+    otro = Usuario(email="otro2@t.local", nombre="OTRO", rol="admin", activo=True)
+    otro.set_password("secret123")
+    db.session.add(otro)
+    db.session.commit()
+    sobre = {
+        "formato": "dinamyt-resultados", "version": 1,
+        "export_uuid": camp.export_uuid,
+        "campeonato": {"nombre": "FALSA"}, "resultados": [],
+    }
+    r = cliente.post("/api/resultados/importar", json=sobre, headers=_h(_token(otro)))
+    assert r.status_code == 409, r.get_json()
+    assert r.get_json()["motivo"] == "campeonato_de_otro"

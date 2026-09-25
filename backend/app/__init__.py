@@ -207,6 +207,35 @@ def _decir_como_quedo_el_ecosistema(app):
             "Ver OPERAR.md §1.4."
         )
 
+    # ── La subida automática de resultados (F8) ──
+    # Solo tiene sentido en el PC del evento, que es el único con destino. Lo
+    # que no puede pasar es tener destino y no poder usarlo sin que se note:
+    # sin pase, ningún admin puede entrar con DINAMYT, y el cartero sale con
+    # la sesión de un admin que entró así (ver `app/cartero.py`).
+    from . import cartero
+
+    crudo = cartero.destino_configurado()
+    destino = cartero.destino()
+    if crudo and not destino:
+        log.warning(
+            "[subida] CAMPEONATOS_ONLINE_URL (%s) NO ES https://: la subida queda "
+            "APAGADA, porque lo primero que viaja es el pase de DINAMYT del admin "
+            "y en claro lo lee cualquiera en la red del evento.",
+            crudo,
+        )
+    elif destino and pase:
+        log.info(
+            "[subida] los resultados suben a %s cuando un admin entra con DINAMYT.",
+            destino,
+        )
+    elif destino:
+        log.warning(
+            "[subida] HAY DESTINO (%s) PERO NO HAY PASE: falta ECOSYSTEM_JWKS_URL, "
+            "así que nadie puede entrar con DINAMYT y los resultados NO van a "
+            "subir solos. Se pueden llevar a mano (Reportes → Exportar).",
+            destino,
+        )
+
 
 def registrar_contexto_rls(app):
     """Fija en cada request el workspace con el que se consultará la BD.

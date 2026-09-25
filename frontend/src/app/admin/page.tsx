@@ -24,6 +24,7 @@ import ClubesInput from "@/components/ClubesInput";
 import { useConfirmDialog } from "@/components/ConfirmDialog";
 import ImportarPaquetePanel from "@/components/ImportarPaquetePanel";
 import InformeAdministradoresCard from "@/components/InformeAdministradores";
+import SubidaResultados from "@/components/SubidaResultados";
 import UltimaBajada from "@/components/UltimaBajada";
 import PaisCiudadSelect from "@/components/PaisCiudadSelect";
 import { useI18n, type ClaveTexto } from "@/lib/i18n";
@@ -461,6 +462,9 @@ export default function AdminPage() {
           {/* De cuándo es la copia que corre en este PC. En la instalación de
               internet no pinta nada: nunca ha importado un paquete. */}
           <UltimaBajada refrescar={bajadaKey} />
+          {/* Lo que falta por subir a internet (F8). Solo en el PC del evento:
+              en la instalación de internet no hay destino ni nada pendiente. */}
+          <SubidaResultados />
 
           <div className="admin-section-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10, marginBottom: 16 }}>
             <h2 style={{ fontFamily: "var(--font-body)", fontWeight: 700, fontSize: "1.1rem" }}>
