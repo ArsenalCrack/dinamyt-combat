@@ -477,3 +477,84 @@ def test_otro_admin_no_publica_sobre_un_campeonato_ajeno_en_postgres(pg, club):
     r = cliente.post("/api/resultados/importar", json=sobre, headers=_h(_token(otro)))
     assert r.status_code == 409, r.get_json()
     assert r.get_json()["motivo"] == "campeonato_de_otro"
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  nº 5 de la PARTE 4 (25 sep 2026): el correo es único en TODA la base
+# ══════════════════════════════════════════════════════════════════════════
+
+def _otro_admin_con_su_juez(db):
+    from app.models.usuario import Usuario
+
+    _sembrar()
+    otro = Usuario(email="otro-admin@t.local", nombre="OTRO", rol="admin", activo=True)
+    otro.set_password("secret123")
+    db.session.add(otro)
+    db.session.commit()
+    juez = Usuario(email="juez-ajeno@t.local", nombre="JUEZ AJENO", rol="juez",
+                   activo=True, creado_por_id=otro.id,
+                   eco_sub="aa000000-0000-4000-8000-0000000000aa")
+    juez.set_password("secret123")
+    db.session.add(juez)
+    db.session.commit()
+    return otro, juez
+
+
+def test_dar_de_alta_un_correo_de_otro_workspace_es_409_y_no_500(pg, club):
+    """RLS escondía al usuario ajeno: el correo salía libre y el INSERT chocaba."""
+    app, db = pg
+    cliente, tokens, _ = club
+    _otro_admin_con_su_juez(db)
+
+    r = cliente.post("/api/auth/register", headers=_h(tokens["admin"]), json={
+        "email": "juez-ajeno@t.local", "password": "secret123",
+        "nombre": "Juez", "rol": "juez",
+    })
+    assert r.status_code == 409, r.get_json()
+
+
+def test_cambiar_el_correo_al_de_otro_workspace_es_409_y_no_500(pg, club):
+    app, db = pg
+    cliente, tokens, _ = club
+    _otro_admin_con_su_juez(db)
+    from app.models.usuario import Usuario
+
+    _sembrar()
+    maestro_id = Usuario.query.filter_by(email="maestro@t.local").one().id
+    r = cliente.put(f"/api/auth/users/{maestro_id}", headers=_h(tokens["admin"]),
+                    json={"email": "juez-ajeno@t.local"})
+    assert r.status_code == 409, r.get_json()
+
+
+def test_el_alta_en_dinamyt_con_la_red_puesta(pg, club, monkeypatch):
+    """El juez nace en el workspace del admin; un sub que ya es de otro, 409."""
+    app, db = pg
+    cliente, tokens, _ = club
+    from app.api import auth as auth_api
+    from app.models.usuario import Usuario
+
+    _sembrar()
+    admin = Usuario.query.filter_by(email="admin@t.local").one()
+    admin.org_id = "0f000000-0000-4000-8000-00000000fede"
+    db.session.commit()
+    app.config["ECOSYSTEM_JWKS_URL"] = "https://id.ejemplo.invalid/auth/jwks"
+    monkeypatch.setenv("ECOSYSTEM_SYNC_SECRET", "secreto")
+
+    subs = iter(["aa000000-0000-4000-8000-0000000000b1", "aa000000-0000-4000-8000-0000000000aa"])
+    monkeypatch.setattr(auth_api, "alta_de_juez_en_dinamyt",
+                        lambda *a, **k: {"ecoSub": next(subs), "cuenta": "nueva", "invitacion": None})
+    _otro_admin_con_su_juez(db)
+
+    r = cliente.post("/api/auth/register", headers=_h(tokens["admin"]),
+                     json={"email": "juez-nuevo@t.local", "nombre": "Juez Nuevo", "rol": "juez"})
+    assert r.status_code == 201, r.get_json()
+    lista = cliente.get("/api/auth/users", headers=_h(tokens["admin"])).get_json()
+    nuevo = next(u for u in lista if u["email"] == "juez-nuevo@t.local")
+    assert nuevo["cuenta_de_dinamyt"] is True
+    assert nuevo["roles"] == ["juez"]
+
+    # La misma cuenta de DINAMYT ya tiene espejo, en el workspace de otro admin.
+    r = cliente.post("/api/auth/register", headers=_h(tokens["admin"]),
+                     json={"email": "otro-correo@t.local", "nombre": "Juez", "rol": "juez"})
+    assert r.status_code == 409, r.get_json()
+    assert "juez-ajeno@t.local" in r.get_json()["error"]

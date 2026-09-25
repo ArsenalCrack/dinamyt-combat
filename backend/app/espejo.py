@@ -48,7 +48,7 @@ import json
 import os
 import logging
 import secrets
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
@@ -184,9 +184,62 @@ def _sumar_papeles_del_pase(usuario, claims):
         return False
     antes = usuario.roles
     usuario.roles = antes + nuevos
+    # Lo que da el portal lo puede quitar el portal (ver la función de abajo).
+    usuario.roles_del_portal = usuario.roles_del_portal + nuevos
     log.info(
         "[ecosistema] %s suma %s desde su pase (tenía %s).",
         usuario.email, ", ".join(nuevos), ", ".join(antes),
+    )
+    return True
+
+
+def _retirar_lo_que_el_portal_ya_no_da(usuario, claims):
+    """
+    Le quita a la fila los papeles que dio el portal y su pase ya no trae.
+
+    Devuelve True si cambió algo.
+
+    ── Lo que cierra (nº 5 de la PARTE 4, decidido el 25 sep 2026) ──
+
+    Hasta aquí el portal podía DAR y solo la consola QUITAR (D2). Así, a quien
+    le quitaban el papel de juez o de maestro en el portal lo conservaba aquí
+    para siempre. Ahora la regla es por procedencia: **lo que dio el portal, el
+    portal lo quita**; lo que se puso a mano en la consola, no. Sin canal
+    nuevo: se aplica al entrar, que es cuando importa (el espejo no tiene
+    contraseña que valga: solo entra con el pase).
+
+    ── Lo que NO toca, a propósito ──
+
+    · `admin`: el mando de los campeonatos no lo quita nadie desde fuera
+      (`roles_del_portal` nunca lo guarda).
+    · Lo que la consola dio o quitó (`fijar_papeles_a_mano` lo saca de la
+      lista de procedencia).
+    · Nada, si el pase no trae la LISTA `roles_campeonatos` (F1): un portal sin
+      actualizar solo manda el papel principal, y quitar lo demás por eso sería
+      degradar a la gente por un pase incompleto.
+
+    Si no le queda ningún papel, se queda con `competidor`: entra a su panel,
+    que es lo que puede ver cualquiera sobre sí mismo.
+    """
+    if not usuario.activo or not isinstance((claims or {}).get("roles_campeonatos"), list):
+        return False
+    del_pase = set(papeles_del_pase(claims))
+    retirados = [
+        p for p in usuario.roles_del_portal
+        if p in usuario.roles and p not in del_pase
+    ]
+    if not retirados:
+        return False
+    antes = usuario.roles
+    quedan = [p for p in antes if p not in retirados] or ["competidor"]
+    usuario.roles = quedan
+    usuario.roles_del_portal = [
+        p for p in usuario.roles_del_portal if p not in retirados
+    ]
+    log.info(
+        "[ecosistema] %s pierde %s: el portal se lo dio y su pase ya no lo trae "
+        "(tenía %s).",
+        usuario.email, ", ".join(retirados), ", ".join(antes),
     )
     return True
 
@@ -269,6 +322,7 @@ def resolver_espejo(claims, pase=None):
         # Primero los papeles y después el club: si el pase lo acaba de hacer
         # maestro, esa misma entrada ya le trae su dojang.
         _sumar_papeles_del_pase(usuario, claims)
+        _retirar_lo_que_el_portal_ya_no_da(usuario, claims)
         _asegurar_club(usuario, club)
         _asegurar_organizacion(usuario, claims, club)
         # Sin esto, lo que se acaba de sumar —y el club que se le puso— se
@@ -319,6 +373,8 @@ def resolver_espejo(claims, pase=None):
         activo=True,
     )
     usuario.roles = papeles
+    # Nace con lo que trae el pase: todo es «del portal» (menos `admin`).
+    usuario.roles_del_portal = papeles
     # Una contraseña que nadie conoce ni puede adivinar: el espejo no se abre
     # con contraseña, se abre con el pase. La columna es NOT NULL, así que
     # dejarla vacía no es opción — y un valor fijo sería una llave maestra.
@@ -488,6 +544,96 @@ def guardar_apariencia(eco_sub, tema=None, idioma=None):
             exc,
         )
         return False
+
+
+# ── El alta de un juez, en DINAMYT (nº 5 de la PARTE 4, 25 sep 2026) ─────────
+#
+# Cuánto se espera al ecosistema: el admin está delante de un formulario, y el
+# alta crea una cuenta y quizá manda un correo. Más que la pregunta del club.
+ESPERA_ALTA_SEG = 15
+
+
+class AltaFallida(Exception):
+    """El alta en DINAMYT no se hizo. `mensaje` se le enseña al admin tal cual."""
+
+    def __init__(self, mensaje, codigo=502):
+        super().__init__(mensaje)
+        self.mensaje = mensaje
+        self.codigo = codigo
+
+
+def alta_en_dinamyt_activa():
+    """
+    ¿Las cuentas que se dan de alta aquí nacen en DINAMYT?
+
+    Sí cuando está el puente ENTERO: la API del ecosistema y
+    `ECOSYSTEM_SYNC_SECRET`. **No** basta con `ECOSYSTEM_JWKS_URL`: el PC del
+    evento la lleva desde F8 (para entrar con DINAMYT cuando vuelve la red) y
+    el día del campeonato no tiene internet. Si el alta dependiera de esa
+    variable, ese día no se podría crear un juez — y romper el modo local es lo
+    único que no se hace (`OPERAR.md` §1.5). El secreto del espejo no viaja en
+    un portátil: solo lo tiene la instalación de internet.
+    """
+    return bool(os.getenv("ECOSYSTEM_SYNC_SECRET", "").strip() and url_api_ecosistema())
+
+
+def alta_de_juez_en_dinamyt(email, nombre, org_id, invitado_por=None):
+    """
+    Crea en DINAMYT la cuenta de un juez y lo mete en la organización del admin.
+
+    Es la misma invitación que hace el portal (`POST /sync/alta` con
+    `app: campeonatos`): la persona pone su contraseña con el enlace, aquí no
+    se reparte ninguna. Devuelve `{ecoSub, cuenta, invitacion}`.
+
+    **Lanza `AltaFallida` si no se hizo**, al revés que el resto del espejo: si
+    se siguiera adelante, la fila nacería suelta, que es justo lo que esto
+    cierra. El mensaje de DINAMYT («una organización solo agrega
+    administradores y jueces», «el usuario ya es miembro») llega tal cual.
+    """
+    secreto = os.getenv("ECOSYSTEM_SYNC_SECRET", "").strip()
+    raiz = url_api_ecosistema()
+    if not secreto or not raiz:
+        raise AltaFallida("Esta instalación no está conectada a DINAMYT.", 503)
+    cuerpo = {
+        "ecoOrgId": org_id,
+        "email": email,
+        "fullName": nombre,
+        "role": "juez",
+        "app": "campeonatos",
+        "invitadoPor": str(invitado_por) if invitado_por else None,
+    }
+    try:
+        peticion = Request(
+            f"{raiz}/sync/alta",
+            data=json.dumps(cuerpo).encode("utf-8"),
+            headers={"content-type": "application/json", "x-dinamyt-sync": secreto},
+            method="POST",
+        )
+        with urlopen(peticion, timeout=ESPERA_ALTA_SEG) as respuesta:
+            datos = json.loads(respuesta.read().decode("utf-8") or "{}")
+    except HTTPError as exc:
+        try:
+            error = json.loads(exc.read().decode("utf-8") or "{}")
+        except ValueError:
+            error = {}
+        mensaje = error.get("message") or error.get("error")
+        if isinstance(mensaje, list):
+            mensaje = " ".join(str(m) for m in mensaje)
+        log.warning("[ecosistema] el alta de %s no se hizo (%s): %s", email, exc.code, mensaje)
+        raise AltaFallida(
+            str(mensaje or f"DINAMYT respondió {exc.code}."),
+            400 if 400 <= exc.code < 500 else 502,
+        ) from exc
+    except (URLError, ValueError, OSError) as exc:
+        log.warning("[ecosistema] el alta de %s no llegó a DINAMYT: %s", email, exc)
+        raise AltaFallida(
+            "No se pudo hablar con DINAMYT. Inténtalo de nuevo en un momento.", 502
+        ) from exc
+    if not isinstance(datos, dict) or not datos.get("ecoSub"):
+        # Una respuesta con forma de éxito y sin cuenta es como nace una fila
+        # suelta: aquí es un error, igual que allá.
+        raise AltaFallida("DINAMYT no devolvió la cuenta del juez.", 502)
+    return datos
 
 
 def buscar_clubes(texto=None, federacion=None):

@@ -3,6 +3,7 @@ API: Autenticación
 Endpoints: login, register, me
 """
 
+import secrets
 from datetime import datetime, timedelta, timezone
 
 from flask import Blueprint, request, jsonify
@@ -14,12 +15,21 @@ from flask_jwt_extended import (
     unset_jwt_cookies,
     verify_jwt_in_request,
 )
-from ..espejo import es_super, guardar_apariencia, leer_apariencia, resolver_espejo
+from ..espejo import (
+    AltaFallida,
+    alta_de_juez_en_dinamyt,
+    alta_en_dinamyt_activa,
+    es_super,
+    guardar_apariencia,
+    leer_apariencia,
+    resolver_espejo,
+)
 from ..extensions import db
 from ..geo import pais_de_ciudad, pais_valido
 from ..identidad import abre_campeonatos, hay_ecosistema, verificar_pase
 from ..models.asignacion import AsignacionJuez
 from ..models.usuario import ROLES_VALIDOS, Usuario
+from ..rls import sin_workspace
 from ..security import (
     intento_bloqueado,
     ip_cliente,
@@ -46,6 +56,23 @@ DELEGACION_MAX = 120
 # Cuántos dojangs puede dirigir un maestro. No hay un límite "real": es un
 # tope de cordura para que un cliente no llene la columna JSON.
 CLUBES_MAX = 20
+
+
+def _correo_ocupado(email, excepto_id=None):
+    """¿Ese correo ya es de alguien en Campeonatos? Mirando TODOS los workspaces.
+
+    `usuarios.email` es único en toda la base, pero en PostgreSQL la red de RLS
+    solo deja ver los usuarios del propio workspace. Preguntado con la red
+    puesta, el correo de alguien de OTRO admin salía libre, el `INSERT` chocaba
+    con el índice único y el admin veía un 500 (en SQLite, donde corren casi
+    todas las pruebas, no pasaba). Es la misma clase de fallo que el documento
+    del competidor en F5.
+    """
+    with sin_workspace():
+        consulta = Usuario.query.filter(Usuario.email == email)
+        if excepto_id is not None:
+            consulta = consulta.filter(Usuario.id != excepto_id)
+        return consulta.first() is not None
 
 
 def mayusculas(valor):
@@ -426,7 +453,7 @@ def register():
     if not current_user:
         return jsonify({"error": "Solo administradores pueden crear usuarios"}), 403
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({"error": "Datos requeridos"}), 400
 
@@ -434,6 +461,12 @@ def register():
     password = data.get("password", "")
     nombre = mayusculas(data.get("nombre", "").strip())
     rol = data.get("rol", "juez")
+
+    # En la instalación de internet la cuenta nace en DINAMYT (nº 5 de la
+    # PARTE 4 del plan). Sin el puente —el PC del evento, sin internet— sigue
+    # como siempre: con la contraseña que pone el admin.
+    if alta_en_dinamyt_activa():
+        return _alta_de_juez_por_dinamyt(current_user, email, nombre, rol)
 
     if not email or not password or not nombre:
         return jsonify({"error": "Email, contraseña y nombre son requeridos"}), 400
@@ -456,7 +489,7 @@ def register():
         return jsonify({"error": "El club es obligatorio para un maestro"}), 400
     puede_juzgar = bool(data.get("puede_juzgar")) if rol == "maestro" else False
 
-    if Usuario.query.filter_by(email=email).first():
+    if _correo_ocupado(email):
         return jsonify({"error": f"El email '{email}' ya está registrado"}), 409
 
     new_user = Usuario(
@@ -482,7 +515,127 @@ def register():
     return jsonify({
         "message": f"Usuario '{nombre}' creado exitosamente",
         "user": new_user.to_dict(),
+        "cuenta": "local",
     }), 201
+
+
+def _alta_de_juez_por_dinamyt(admin, email, nombre, rol):
+    """
+    `POST /register` cuando la instalación está conectada a DINAMYT.
+
+    ── Qué cambió (decidido el 25 sep 2026, nº 5 de la PARTE 4 del plan) ──
+
+    El formulario de `/admin` creaba una cuenta de AQUÍ, con la contraseña que
+    ponía el admin: una identidad que DINAMYT no conoce, que ningún aviso del
+    ecosistema alcanza, y que el pase no puede cortar (un club que deja de
+    pagar ya no entra desde el portal, pero esa contraseña seguía abriendo).
+    Contradecía la regla de todo el ecosistema: las cuentas nacen allí. Es lo
+    mismo que hizo Membresías el 30 de agosto (`OPERAR.md` §4.4).
+
+    Ahora, en orden: (1) DINAMYT crea la cuenta y la mete en la organización
+    del admin como juez (`POST /sync/alta`), y (2) aquí nace el espejo **ya
+    enlazado** (`eco_sub`). Si (1) falla, aquí no se crea nada y el admin lee
+    el motivo que dio DINAMYT. La contraseña la pone el juez con el enlace de
+    invitación; si el correo no salió, el enlace vuelve para mandarlo a mano.
+
+    ── Solo jueces, y es a propósito ──
+
+    · **`maestro` no**: en DINAMYT es un gestor de club (en Membresías es el
+      dueño), y el mando de un club no se reparte desde otra app. Los maestros
+      entran con su propia cuenta desde su club, y a su club se le invita al
+      campeonato (F5).
+    · **`admin` no**: los administradores se crean en DINAMYT, mirando.
+    · El juez es de la FEDERACIÓN: si la organización del admin es un club,
+      DINAMYT lo rechaza y lo dice.
+    """
+    if rol != "juez":
+        return jsonify({
+            "error": (
+                "Los maestros entran con su propia cuenta de DINAMYT, desde su "
+                "club: invita a su club al campeonato («Clubes invitados»)."
+                if rol == "maestro" else
+                "Los administradores se crean en DINAMYT."
+            ),
+            "motivo": "solo_jueces",
+        }), 400
+    if not email or not nombre:
+        return jsonify({"error": "El correo y el nombre son requeridos"}), 400
+    if _correo_ocupado(email):
+        return jsonify({"error": f"El email '{email}' ya está registrado"}), 409
+    if not admin.org_id:
+        return jsonify({
+            "error": (
+                "Campeonatos todavía no sabe de qué organización eres. Entra una "
+                "vez con «Entrar con el portal DINAMYT» y vuelve a intentarlo."
+            ),
+            "motivo": "sin_organizacion",
+        }), 409
+
+    try:
+        alta = alta_de_juez_en_dinamyt(email, nombre, admin.org_id, admin.eco_sub)
+    except AltaFallida as exc:
+        mensaje = exc.mensaje
+        if "ya es miembro" in mensaje:
+            # Ya tiene cuenta y ya es de la organización: no hace falta darlo
+            # de alta, solo que entre una vez. El sub no se sabe desde aquí.
+            mensaje = (
+                "Ya es de tu organización en DINAMYT. Pídele que entre una vez a "
+                "Campeonatos desde el portal: aparecerá en tu lista y podrás "
+                "asignarlo."
+            )
+        return jsonify({"error": mensaje, "motivo": "dinamyt"}), exc.codigo
+
+    eco_sub = str(alta["ecoSub"])
+    # Con la red levantada, por lo mismo que el correo: el espejo puede ser de
+    # otro workspace, y el `eco_sub` es único en producción.
+    with sin_workspace():
+        ya = Usuario.query.filter_by(eco_sub=eco_sub).first()
+        ya_email = ya.email if ya is not None else None
+    if ya is not None:
+        # Esa cuenta de DINAMYT ya tiene espejo aquí, con otro correo.
+        return jsonify({
+            "error": f"Esa persona ya está en Campeonatos como '{ya_email}'.",
+            "motivo": "ya_esta",
+        }), 409
+
+    nuevo = Usuario(
+        email=email,
+        nombre=nombre,
+        rol="juez",
+        activo=True,
+        creado_por_id=admin.id,
+        eco_sub=eco_sub,
+        org_id=admin.org_id,
+        org_nombre=admin.org_nombre,
+    )
+    nuevo.roles = ["juez"]
+    # El papel vive ahora en DINAMYT: si allí se lo quitan, aquí también.
+    nuevo.roles_del_portal = ["juez"]
+    # Como todo espejo: una contraseña que nadie conoce. Se entra con el pase.
+    nuevo.set_password(secrets.token_urlsafe(32))
+    db.session.add(nuevo)
+    db.session.commit()
+
+    return jsonify({
+        "message": f"Juez '{nombre}' dado de alta en DINAMYT",
+        "user": nuevo.to_dict(),
+        "cuenta": alta.get("cuenta") or "nueva",
+        "invitacion": alta.get("invitacion"),
+    }), 201
+
+
+@auth_bp.route("/alta", methods=["GET"])
+@jwt_required()
+def como_se_da_de_alta():
+    """
+    GET /api/auth/alta (solo Admin) — qué formulario enseña `/admin`.
+
+    `en_dinamyt`: las cuentas nacen en DINAMYT (solo jueces, sin contraseña).
+    Si no, el de siempre: la contraseña la pone el admin.
+    """
+    if not require_admin():
+        return jsonify({"error": "Solo administradores"}), 403
+    return jsonify({"en_dinamyt": alta_en_dinamyt_activa()}), 200
 
 
 @auth_bp.route("/me", methods=["GET"])
@@ -711,14 +864,22 @@ def update_user(user_id):
 
     if data.get("email"):
         email = data["email"].strip().lower()
-        existente = Usuario.query.filter(
-            Usuario.email == email, Usuario.id != user.id
-        ).first()
+        existente = _correo_ocupado(email, excepto_id=user.id)
         if existente:
             return jsonify({"error": f"El email '{email}' ya está registrado"}), 409
         user.email = email
 
     if data.get("password"):
+        # Una cuenta de DINAMYT no tiene contraseña de aquí: se entra con el
+        # pase, y el pase es lo que corta a un club que dejó de pagar (nº 5 de
+        # la PARTE 4 del plan: «basta el pase»). Ponerle una desde la consola
+        # abría una puerta que no pasa por DINAMYT. En el PC del evento, sin
+        # el puente, sigue pudiéndose: allí es la única entrada.
+        if user.eco_sub and alta_en_dinamyt_activa():
+            return jsonify({
+                "error": "Es una cuenta de DINAMYT: su contraseña se cambia en DINAMYT.",
+                "motivo": "cuenta_de_dinamyt",
+            }), 409
         if len(data["password"]) < 6:
             return jsonify({"error": "La contraseña debe tener al menos 6 caracteres"}), 400
         user.set_password(data["password"])

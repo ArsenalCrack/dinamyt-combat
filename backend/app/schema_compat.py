@@ -28,6 +28,9 @@ OPTIONAL_COLUMNS = {
         # tampoco hace falta rellenarla.
         "roles": "JSON",
         "roles_quitados": "JSON",
+        # Los que dio el pase, y por eso el pase puede quitar (nº 5, 25 sep 2026).
+        # NULL = no consta = no se quita nada: no hace falta rellenarla.
+        "roles_del_portal": "JSON",
         # La organización del ecosistema (F4). NULL = no consta: se rellena
         # sola la próxima vez que la persona entra desde el portal.
         "org_id": "VARCHAR(64)",

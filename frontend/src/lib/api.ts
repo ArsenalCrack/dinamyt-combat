@@ -202,9 +202,24 @@ export async function abrirSesionConToken(token: string) {
   return res.data as { user: UserData };
 }
 
+/** Lo que contesta el alta. `cuenta: "local"` = con contraseña de aquí. */
+export interface AltaDeUsuario {
+  message: string;
+  user: UserData;
+  cuenta: "local" | "nueva" | "invitada" | "existente";
+  /** Solo si la cuenta nació en DINAMYT sin contraseña. */
+  invitacion?: {
+    enviadaPorCorreo: boolean;
+    /** Solo cuando el correo NO salió: se manda a mano. */
+    enlace?: string;
+    venceEnDias: number;
+  } | null;
+}
+
 export async function registerUserAPI(data: {
   email: string;
-  password: string;
+  /** Sin él cuando la cuenta nace en DINAMYT (`modoDeAltaAPI`). */
+  password?: string;
   nombre: string;
   rol: string;
   /** Dojangs del maestro, cada uno con su delegación. El primero es el principal. */
@@ -212,7 +227,18 @@ export async function registerUserAPI(data: {
   puede_juzgar?: boolean;
 }) {
   const res = await api.post("/auth/register", data);
-  return res.data;
+  return res.data as AltaDeUsuario;
+}
+
+/**
+ * ¿Las cuentas que se dan de alta aquí nacen en DINAMYT? (nº 5 del plan)
+ *
+ * En la instalación de internet, sí: solo jueces y sin contraseña. En el PC
+ * del evento, no: el formulario de siempre.
+ */
+export async function modoDeAltaAPI() {
+  const res = await api.get("/auth/alta");
+  return res.data as { en_dinamyt: boolean };
 }
 
 export async function getMeAPI() {
@@ -1478,6 +1504,8 @@ export interface UserData {
    * local, o alguien que todavía no ha vuelto a entrar desde el portal—.
    */
   org_id?: string | null;
+  /** Entra con su cuenta de DINAMYT: su contraseña no se cambia aquí. */
+  cuenta_de_dinamyt?: boolean;
   org_nombre?: string | null;
   activo: boolean;
   creado_por_id?: number | null;

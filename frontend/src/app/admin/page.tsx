@@ -12,6 +12,7 @@ import {
   listUsersAPI,
   obtenerMantenimientoAPI,
   registerUserAPI,
+  modoDeAltaAPI,
   updateUserAPI,
   type ClubMaestro,
   type EstadoCampeonato,
@@ -109,6 +110,12 @@ export default function AdminPage() {
   const [mant, setMant] = useState<EstadoMantenimiento | null>(null);
   const [mantMensaje, setMantMensaje] = useState("");
   const [guardandoMant, setGuardandoMant] = useState(false);
+  // El alta de jueces nace en DINAMYT en la instalación de internet (nº 5 del
+  // plan): sin contraseña, solo jueces. En el PC del evento, como siempre.
+  const [altaEnDinamyt, setAltaEnDinamyt] = useState(false);
+  // El enlace de invitación, cuando el correo no salió: se queda a la vista
+  // hasta que el admin lo copie o lo cierre, no en un aviso que se va solo.
+  const [enlaceInvitacion, setEnlaceInvitacion] = useState<{ enlace: string; dias: number } | null>(null);
   const [editingUser, setEditingUser] = useState<UserData | null>(null);
   const [editUserData, setEditUserData] = useState({
     nombre: "", email: "", password: "", rol: "juez", clubes: [] as ClubMaestro[],
@@ -132,7 +139,7 @@ export default function AdminPage() {
 
   async function loadData(includeInactive = false) {
     try {
-      const [c, u, cl, m] = await Promise.all([
+      const [c, u, cl, m, modo] = await Promise.all([
         listCampeonatosAPI(),
         listUsersAPI(includeInactive),
         // Clubes que ya existen en el workspace: al asignarle un dojang a un
@@ -143,8 +150,11 @@ export default function AdminPage() {
         // Solo lo pinta el superadmin, pero se pide siempre: si falla, el
         // panel entero seguiría cargando igual (de ahí el catch).
         obtenerMantenimientoAPI().catch(() => null),
+        // Si no contesta, el formulario de siempre: el backend decide igual.
+        modoDeAltaAPI().catch(() => null),
       ]);
       setCampeonatos(c);
+      setAltaEnDinamyt(Boolean(modo?.en_dinamyt));
       setUsers(u);
       setClubes(cl);
       if (m) {
@@ -288,27 +298,43 @@ export default function AdminPage() {
 
   async function handleCreateUser(e: React.FormEvent) {
     e.preventDefault();
-    if (newUser.rol === "maestro" && newUser.clubes.length === 0) {
+    if (!altaEnDinamyt && newUser.rol === "maestro" && newUser.clubes.length === 0) {
       flash(t("admin.usuarios.clubReq"), "error");
       return;
     }
     try {
-      await registerUserAPI({
-        email: newUser.email,
-        password: newUser.password,
-        nombre: newUser.nombre,
-        rol: newUser.rol,
-        ...(newUser.rol === "maestro"
-          ? {
-              clubes: newUser.clubes,
-              puede_juzgar: newUser.puede_juzgar,
-            }
-          : {}),
-      });
+      const alta = await registerUserAPI(
+        altaEnDinamyt
+          ? { email: newUser.email, nombre: newUser.nombre, rol: "juez" }
+          : {
+              email: newUser.email,
+              password: newUser.password,
+              nombre: newUser.nombre,
+              rol: newUser.rol,
+              ...(newUser.rol === "maestro"
+                ? {
+                    clubes: newUser.clubes,
+                    puede_juzgar: newUser.puede_juzgar,
+                  }
+                : {}),
+            },
+      );
       setShowNewUser(false);
       setNewUser({ email: "", password: "", nombre: "", rol: "juez", clubes: [], puede_juzgar: false });
       await loadData(showInactive);
-      flash(t("admin.usuarios.creado"), "ok");
+      // Qué pasó con la contraseña, que es lo que el admin tiene que saber:
+      // la pone el juez, y el enlace le llegó, o hay que mandárselo, o ya
+      // tenía cuenta.
+      if (alta.invitacion?.enlace) {
+        setEnlaceInvitacion({ enlace: alta.invitacion.enlace, dias: alta.invitacion.venceEnDias });
+        flash(t("admin.usuarios.altaEnlace"), "ok");
+      } else if (alta.invitacion?.enviadaPorCorreo) {
+        flash(t("admin.usuarios.altaCorreo"), "ok");
+      } else if (alta.cuenta === "existente") {
+        flash(t("admin.usuarios.altaExistente"), "ok");
+      } else {
+        flash(t("admin.usuarios.creado"), "ok");
+      }
     } catch (err) {
       const m = (err as { response?: { data?: { error?: string } } }).response?.data?.error;
       flash(m || t("admin.usuarios.errorCrear"), "error");
@@ -692,6 +718,30 @@ export default function AdminPage() {
             </div>
           )}
 
+          {enlaceInvitacion && (
+            <div className="card animate-slide" role="status" style={{ marginBottom: 16, borderColor: "var(--gold-border)" }}>
+              <div className="card-title">{t("admin.usuarios.enlaceTitulo", { dias: enlaceInvitacion.dias })}</div>
+              <p style={{ color: "var(--text-dim)", fontSize: "0.84rem", margin: "0 0 8px" }}>
+                {t("admin.usuarios.altaEnlace")}
+              </p>
+              <input className="input" readOnly value={enlaceInvitacion.enlace}
+                onFocus={(e) => e.target.select()} style={{ fontSize: "0.8rem" }} />
+              <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                <button type="button" className="btn btn-sm btn-primary"
+                  onClick={() => {
+                    void navigator.clipboard?.writeText(enlaceInvitacion.enlace)
+                      .then(() => flash(t("admin.usuarios.copiado"), "ok"))
+                      .catch(() => { /* queda el campo para copiarlo a mano */ });
+                  }}>
+                  {t("admin.usuarios.copiar")}
+                </button>
+                <button type="button" className="btn btn-sm" onClick={() => setEnlaceInvitacion(null)}>
+                  {t("comun.cerrar")}
+                </button>
+              </div>
+            </div>
+          )}
+
           {showNewUser && (
             <div className="card animate-slide" style={{ marginBottom: 16 }}>
               <div className="card-title">{t("admin.usuarios.crear.titulo")}</div>
@@ -702,18 +752,29 @@ export default function AdminPage() {
                   onChange={(e) => setNewUser({ ...newUser, nombre: enMayusculas(e.target.value) })} required />
                 <input className="input" type="email" maxLength={LIM.correo} placeholder={t("admin.usuarios.correo")} value={newUser.email}
                   onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} required />
-                <CampoContrasena placeholder={t("admin.usuarios.contrasena")} value={newUser.password}
-                  autoComplete="new-password"
-                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} required />
-                {/* Jerarquía: cualquier admin agrega jueces y maestros a su
-                    equipo; solo el superadmin puede crear administradores. */}
-                <select className="input" value={newUser.rol}
-                  onChange={(e) => setNewUser({ ...newUser, rol: e.target.value })}>
-                  <option value="juez">{t("rol.juez")}</option>
-                  <option value="maestro">{t("rol.maestro")}</option>
-                  {esSuper && <option value="admin">{t("rol.admin")}</option>}
-                </select>
-                {newUser.rol === "maestro" && (
+                {/* Con DINAMYT la contraseña la pone el juez con su enlace de
+                    invitación, y solo se dan de alta jueces: los maestros
+                    traen su propia cuenta desde su club (nº 5 del plan). */}
+                {altaEnDinamyt ? (
+                  <p style={{ color: "var(--text-dim)", fontSize: "0.84rem", margin: 0 }}>
+                    {t("admin.usuarios.altaDinamytNota")}
+                  </p>
+                ) : (
+                  <>
+                    <CampoContrasena placeholder={t("admin.usuarios.contrasena")} value={newUser.password}
+                      autoComplete="new-password"
+                      onChange={(e) => setNewUser({ ...newUser, password: e.target.value })} required />
+                    {/* Jerarquía: cualquier admin agrega jueces y maestros a su
+                        equipo; solo el superadmin puede crear administradores. */}
+                    <select className="input" value={newUser.rol}
+                      onChange={(e) => setNewUser({ ...newUser, rol: e.target.value })}>
+                      <option value="juez">{t("rol.juez")}</option>
+                      <option value="maestro">{t("rol.maestro")}</option>
+                      {esSuper && <option value="admin">{t("rol.admin")}</option>}
+                    </select>
+                  </>
+                )}
+                {!altaEnDinamyt && newUser.rol === "maestro" && (
                   <>
                     <ClubesInput
                       clubes={newUser.clubes}
@@ -885,10 +946,16 @@ export default function AdminPage() {
                       onChange={(e) => setEditUserData({ ...editUserData, nombre: enMayusculas(e.target.value) })} />
                     <input className="input" type="email" maxLength={LIM.correo} placeholder={t("admin.usuarios.correo")} value={editUserData.email}
                       onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })} />
-                    <CampoContrasena autoComplete="new-password"
-                      placeholder={t("admin.usuarios.nuevaContrasena")}
-                      value={editUserData.password}
-                      onChange={(e) => setEditUserData({ ...editUserData, password: e.target.value })} />
+                    {altaEnDinamyt && u.cuenta_de_dinamyt ? (
+                      <p style={{ color: "var(--text-dim)", fontSize: "0.84rem", margin: 0 }}>
+                        {t("admin.usuarios.contrasenaEnDinamyt")}
+                      </p>
+                    ) : (
+                      <CampoContrasena autoComplete="new-password"
+                        placeholder={t("admin.usuarios.nuevaContrasena")}
+                        value={editUserData.password}
+                        onChange={(e) => setEditUserData({ ...editUserData, password: e.target.value })} />
+                    )}
                     {/* Rol: alternar juez/maestro lo hace cualquier admin; el
                         rol de administrador es exclusivo del superadmin. */}
                     {(esSuper || u.rol !== "admin") && (

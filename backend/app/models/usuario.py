@@ -146,8 +146,17 @@ class Usuario(db.Model):
     # ecosistema puede dar papeles, pero no puede devolver uno que alguien quitó
     # aquí a mano: si no, quitarle el de juez a alguien duraría hasta su
     # siguiente inicio de sesión. Ver `fijar_papeles_a_mano`.
+    #
+    # `roles_del_portal` son los papeles que llegaron POR EL PASE y que la
+    # consola no ha hecho suyos (decidido el 25 sep 2026, nº 5 de la PARTE 4).
+    # Lo que el portal dio, el portal lo puede quitar: si un pase posterior ya
+    # no lo trae, se retira al entrar (`espejo._retirar_lo_que_el_portal_ya_no_da`).
+    # Lo puesto a mano aquí no está en esta lista, y `admin` nunca. NULL = no
+    # consta de dónde vino = no se quita nada, que es lo prudente para toda
+    # fila anterior a esto.
     _roles = db.Column("roles", db.JSON, nullable=True)
     _roles_quitados = db.Column("roles_quitados", db.JSON, nullable=True)
+    _roles_del_portal = db.Column("roles_del_portal", db.JSON, nullable=True)
     # ── La organización (F4 de PLAN-CAMPEONATOS) ────────────────────────────
     #
     # El `org_id` del pase: el club o la federación de su pertenencia
@@ -361,6 +370,18 @@ class Usuario(db.Model):
     def roles_quitados(self, lista):
         self._roles_quitados = ordenar_papeles(lista) or None
 
+    @property
+    def roles_del_portal(self) -> list:
+        """Los papeles que dio el pase y que, por eso, el pase puede quitar."""
+        return [p for p in ordenar_papeles(self._roles_del_portal) if p != "admin"]
+
+    @roles_del_portal.setter
+    def roles_del_portal(self, lista):
+        # `admin` nunca: el mando de los campeonatos no lo quita nadie desde fuera.
+        self._roles_del_portal = [
+            p for p in ordenar_papeles(lista) if p != "admin"
+        ] or None
+
     def fijar_papeles_a_mano(self, nuevos, antes=None):
         """Lo que decide la CONSOLA. Devuelve `(quitados, dados)`.
 
@@ -368,6 +389,10 @@ class Usuario(db.Model):
         (D2 del plan): lo que se quita aquí se recuerda en `roles_quitados`,
         para que el pase no lo devuelva al día siguiente; y lo que se vuelve a
         dar aquí se borra de esa lista, porque ya no está quitado.
+
+        Y lo que la consola toca —dar o quitar— deja de ser «del portal»
+        (`roles_del_portal`): desde ese momento es una decisión de aquí, y el
+        pase ya no lo retira.
 
         `antes` son los papeles que tenía ANTES de la edición. Hace falta
         pasarlos cuando quien llama ya ha escrito `rol` o `puede_juzgar` por su
@@ -382,6 +407,9 @@ class Usuario(db.Model):
         self.roles_quitados = [
             p for p in self.roles_quitados if p not in dados
         ] + quitados
+        self.roles_del_portal = [
+            p for p in self.roles_del_portal if p not in dados and p not in quitados
+        ]
         return quitados, dados
 
     @property
@@ -437,6 +465,9 @@ class Usuario(db.Model):
             # De qué organización del ecosistema es (F4). NULL = no consta.
             "org_id": self.org_id,
             "org_nombre": self.org_nombre,
+            # ¿Entra con su cuenta de DINAMYT? Decide si la consola le ofrece
+            # poner contraseña (nº 5 de la PARTE 4). El `sub` no sale de aquí.
+            "cuenta_de_dinamyt": bool(self.eco_sub),
             "activo": self.activo,
             "creado_por_id": self.creado_por_id,
             "creado_por": (

@@ -180,9 +180,21 @@ def _decir_como_quedo_el_ecosistema(app):
     with app.app_context():
         pase = hay_ecosistema()
     espejo = bool(os.getenv("ECOSYSTEM_SYNC_SECRET", "").strip())
+    # El PC del evento con la subida de F8 lleva pase y NO espejo, a propósito:
+    # el secreto del espejo no viaja en un portátil (`INICIAR-LOCAL.md` §7.2).
+    pc_del_evento = bool(os.getenv("CAMPEONATOS_ONLINE_URL", "").strip())
 
     if pase and espejo:
-        log.info("[ecosistema] pase RS256 y espejo de apariencia: los dos ENCENDIDOS.")
+        log.info(
+            "[ecosistema] pase RS256 y espejo: los dos ENCENDIDOS. Los jueces que "
+            "se den de alta en /admin nacen en DINAMYT."
+        )
+    elif pase and pc_del_evento:
+        log.info(
+            "[ecosistema] PC DEL EVENTO: pase para subir los resultados cuando "
+            "vuelva la red, sin espejo a propósito. Los jueces se dan de alta aquí, "
+            "con contraseña de esta instalación, como siempre."
+        )
     elif not pase and not espejo:
         # El modo local del día del evento. No es una avería: es el plan.
         log.info(
@@ -197,8 +209,10 @@ def _decir_como_quedo_el_ecosistema(app):
             "Se entra desde DINAMYT, pero el tema y el idioma elegidos en el "
             "portal NO llegan aquí, ni los de aquí allá; y al invitar clubes a "
             "un campeonato NO se puede buscar en el directorio de DINAMYT (solo "
-            "por nombre, que no abre la puerta a maestros de fuera). Tiene que "
-            "ser el MISMO valor que en ecosystem-api. Ver OPERAR.md §1.4."
+            "por nombre, que no abre la puerta a maestros de fuera); y los jueces "
+            "que se den de alta en /admin nacen con contraseña de aquí, SIN cuenta "
+            "de DINAMYT. Tiene que ser el MISMO valor que en ecosystem-api. Ver "
+            "OPERAR.md §1.4."
         )
     else:
         log.warning(
