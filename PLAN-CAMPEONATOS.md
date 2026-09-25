@@ -15,7 +15,7 @@
 >
 > | **F4** + **F6-d** | ✅ **hecha** | La organización del ecosistema llega a Campeonatos (`org_id` en usuarios y campeonatos), la regla del admin único al crear el espejo y el informe de D3 para el superadmin. El punto 3 (que `org_id` decida quién es dueño) **a propósito no**: ver la nota dentro de F4 |
 > | **F5** + **F6-e** | ✅ **hecha** | El admin invita clubes desde la ficha del campeonato (buscador contra el directorio de DINAMYT, `GET /sync/clubes`), el maestro invitado inscribe en el workspace del campeonato, y la invitación viaja en el paquete. El documento pasó a ser único **por workspace** |
-> | **F8** | ✅ **hecha, sin puerta** | Los resultados del PC del evento suben solos a internet con la sesión del propio admin (nada guardado en el PC). Endurecida el 25 de septiembre. **Pero el portal todavía no devuelve el pase al PC del evento**, así que de cara al usuario no arranca: ver la nota ⚠️ dentro de F8 |
+> | **F8** | ✅ **hecha** | Los resultados del PC del evento suben solos a internet con la sesión del propio admin (nada guardado en el PC). Endurecida el 25 de septiembre, y con su puerta: el portal devuelve el pase al PC del evento visto desde sí mismo (`localhost:3000`), opción A |
 >
 > **Todas las fases de F1 a F8 están escritas y probadas** (también contra
 > PostgreSQL con RLS). **Nada del carril C está desplegado todavía**: la VPS
@@ -1414,7 +1414,27 @@ paquete, lo que sube son filas huérfanas).
 > abandonado) frena la subida de TODO: la línea de `/admin` lo dice («hay un
 > combate en marcha»), y el USB sigue ahí.
 >
-> ### ⚠️ Lo que F8 NO tiene todavía: la puerta de entrada (25 sep 2026)
+> ### La puerta de entrada — ✅ opción A, hecha el 25 sep 2026
+>
+> **Decidido por el usuario: A.** El portal acepta también
+> `http://localhost:3000` y `http://127.0.0.1:3000` como vuelta de
+> Campeonatos, y nada más (`VUELTAS_DEL_PC_DEL_EVENTO` en
+> `apps/ecosystem-portal/src/lib/apps.ts`). Ni la IP de la LAN, ni otro
+> puerto, ni `https://localhost`. Primera prueba del portal:
+> `src/lib/apps.test.mts` (`node:test`, sin dependencias; `pnpm test` en el
+> paquete, y el CI la corre por turbo), con las trampas de siempre
+> (`localhost:3000@malo.example`, `localhost.malo.example`…).
+>
+> Y en Campeonatos, el botón «Entrar con el portal DINAMYT» **avisa en vez de
+> fallar callado** cuando la página se abrió por `http://` desde una dirección
+> que no es el propio PC (un celular por la IP de la LAN): el portal no
+> volvería, y la persona se quedaría en su panel de DINAMYT sin saber por qué.
+>
+> **Al desplegar:** el portal se recompila (va en §2.3 de `OPERAR.md`). Nada
+> más: el PC del evento no cambia su compilación.
+>
+> Lo que sigue es cómo estaba el hueco antes de decidir, para que se entienda
+> el porqué:
 >
 > Todo lo de arriba funciona **una vez que el pase llega** al backend del PC
 > del evento. Lo que no funciona es que llegue: «Entrar con DINAMYT» manda al
@@ -1531,7 +1551,7 @@ la historia de cómo se llegó hasta F3, y se conserva.)*
 | **1** | **Arreglo de RLS en `inscripciones`** — el maestro no podía inscribir en PostgreSQL | ✅ hecho el 24 sep, sin desplegar |
 | **2** | **F4 + F6-d** — la organización llega a Campeonatos | ✅ hecho el 24 sep, sin desplegar |
 | **3** | **F5 + F6-e** — inscribirse por invitación, y la invitación viaja en el paquete | ✅ hecho el 24 sep, sin desplegar |
-| **4** | **F8** — la subida automática de resultados | ✅ hecho el 24 sep, endurecido el 25, sin desplegar. **Le falta la puerta**: el portal no devuelve el pase al PC del evento (ver la nota ⚠️ dentro de F8) — decisión A/B del usuario |
+| **4** | **F8** — la subida automática de resultados | ✅ hecho el 24 sep, endurecido el 25, y con puerta el 25 (opción A: el portal vuelve a `localhost:3000`). Sin desplegar |
 | **5** | **Lo que esperaba «a después del campeonato»**: `/sync/rol` a Campeonatos (`OPERAR.md` §6.1), bloqueo por plan vencido (PARTE 5), retirar `POST /auth/register` de la instalación de internet | pendiente, por decidir cada uno |
 | **6** | **Ensayo §6.0** con todo lo anterior dentro | antes del próximo campeonato |
 | **7** | **F9** — retirar los andamios | después del próximo campeonato |

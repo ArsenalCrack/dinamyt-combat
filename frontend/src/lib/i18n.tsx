@@ -236,6 +236,7 @@ const es = {
   // ni se guarda ninguna contrasena que recuperar.
   "login.olvidada": "¿Olvidaste tu contraseña?",
   "login.sso": "Entrar con el portal DINAMYT",
+  "login.ssoSoloEnEstePc": "Desde otro dispositivo no se puede entrar con DINAMYT: la sesión solo vuelve al propio PC del evento. Ábrelo en ese PC como http://localhost:3000, o entra aquí con el usuario y la contraseña de esta instalación.",
   "login.sinCuenta": "¿No tienes cuenta?",
   "login.registrate": "Regístrate en DINAMYT",
   "login.sesionCerrada": "Cerraste tu sesión.",
@@ -1682,6 +1683,7 @@ const en: Record<ClaveTexto, string> = {
   "login.errorConexion": "Could not connect to the server",
   "login.olvidada": "Forgot your password?",
   "login.sso": "Sign in with the DINAMYT portal",
+  "login.ssoSoloEnEstePc": "You can't sign in with DINAMYT from another device: the session only returns to the event PC itself. Open it on that PC as http://localhost:3000, or sign in here with this installation's username and password.",
   "login.sinCuenta": "No account yet?",
   "login.registrate": "Sign up at DINAMYT",
   "login.sesionCerrada": "You have been signed out.",

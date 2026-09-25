@@ -254,8 +254,26 @@ export default function LoginPage() {
    * mismo camino por el que ya se llegaba pulsando «Entrar a Campeonatos» en el
    * panel del portal; lo que faltaba era poder empezarlo DESDE aqui, para quien
    * abre la direccion de Campeonatos directamente.
+   *
+   * ── En el PC del evento, solo desde el propio PC (F8) ──
+   *
+   * El portal devuelve el pase a las direcciones de internet de las apps y,
+   * ademas, a `http://localhost:3000` / `http://127.0.0.1:3000` —el PC del
+   * evento visto desde si mismo—, nunca a su IP de la LAN (`destinoSeguro` en
+   * el portal: esa IP la puede suplantar cualquiera en la red del evento).
+   * Desde un celular o desde otro portatil, el portal no volveria aqui: la
+   * persona se quedaria en su panel de DINAMYT sin saber por que. Se dice
+   * ANTES de mandarla.
    */
+  const [avisoSso, setAvisoSso] = useState("");
   function entrarPorElPortal() {
+    const { protocol, hostname } = window.location;
+    const desdeLaRed =
+      protocol === "http:" && hostname !== "localhost" && hostname !== "127.0.0.1";
+    if (desdeLaRed) {
+      setAvisoSso(t("login.ssoSoloEnEstePc"));
+      return;
+    }
     const vuelta = encodeURIComponent(`${window.location.origin}/login`);
     window.location.href = `${PORTAL_URL}/login?redirect=${vuelta}`;
   }
@@ -481,6 +499,15 @@ export default function LoginPage() {
                 >
                   {t("login.sso")}
                 </button>
+                {avisoSso && (
+                  <p
+                    className="msg-error"
+                    role="alert"
+                    style={{ marginTop: "0.6rem", fontSize: "0.85rem" }}
+                  >
+                    {avisoSso}
+                  </p>
+                )}
 
                 {/* Las cuentas nacen en el ecosistema: aqui no hay registro. */}
                 <p

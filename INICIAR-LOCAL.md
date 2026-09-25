@@ -267,13 +267,11 @@ todo aparece "sin conexión" aunque el servidor "esté encendido".
 
 *(añadido el 24 de septiembre de 2026)*
 
-> ⚠️ **Todavía no se puede usar (25 sep 2026).** El paso 1 de abajo —entrar
-> con DINAMYT en ESTE PC— no termina: el portal solo devuelve la sesión a las
-> direcciones de internet de las apps (`destinoSeguro` en
-> `apps/ecosystem-portal/src/lib/apps.ts`), y este PC no es ninguna de ellas.
-> Entras al portal y te quedas en tu panel, sin volver aquí. Falta decidir si
-> el portal acepta volver a `http://localhost` (ver `PLAN-CAMPEONATOS.md`,
-> F8). **Hasta entonces, el USB** (paso 3).
+> **Solo desde el propio PC del evento.** DINAMYT devuelve tu sesión a
+> `http://localhost:3000` de ESTE ordenador, nunca a su IP de la red: desde un
+> celular o desde otro portátil, el botón «Entrar con el portal DINAMYT» te
+> dice que no se puede y por qué. Necesita el portal desplegado desde el 25
+> de septiembre de 2026 o después.
 
 Cuando el PC vuelve a tener internet, los resultados **suben solos** a la
 instalación de internet — sin USB. Hace falta configurarlo **una vez**, en
