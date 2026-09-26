@@ -22,8 +22,15 @@
 > sigue con Campeonatos en `8dbc599` y el portal en `583abc4` (comprobado el
 > 25 sep). **El nº 5 también está hecho** (D8, D9, D10: el alta de jueces
 > nace en DINAMYT, el portal quita lo que dio, y el plan vencido lo corta el
-> pase). Lo que queda es desplegar (PARTE 4, nº 0), el ensayo §6.0 y, tras un
-> campeonato real, F9.
+> pase). **Y lo último que quedaba, también** (26 sep): los resultados del
+> evento llegan con su ficha, el maestro inscribe a la gente de su club en
+> DINAMYT, el club invitado recibe un aviso, «solo clubes invitados», y el
+> traspaso de workspace (F4, punto 3). De paso, una **revisión de seguridad**
+> cerró un agujero grave en el tatami (PARTE 6).
+>
+> **Lo que queda es desplegar (PARTE 4, nº 0), probar a mano
+> (`PRUEBAS-PLAN-CAMPEONATOS.md`), el ensayo §6.0 y, tras un campeonato real,
+> F9.** Del código de este plan no queda nada más.
 >
 > **⏱ Ya no hay fecha límite (D7, 24 de septiembre de 2026).** El campeonato
 > del 9, 10 y 11 de octubre **no se hace**, y el siguiente es el año que viene,
@@ -818,6 +825,9 @@ cara al producto**, y por eso va sola.
 >   desde el ecosistema y el alta trae el `sub`»— no tiene por dónde entrar
 >   todavía**: el maestro elige entre sus fichas (F5-bis), no entre los
 >   miembros de su club. Su sitio es F5, que es la que trae esa lista.
+>   **→ Hecho el 26 sep 2026** (no con F5, después): `GET /sync/miembros` en
+>   el ecosistema y «De tu club en DINAMYT» en el formulario del maestro. La
+>   ficha nace enlazada; ver el diario.
 > - **`/api/mi/*` levanta la red de RLS** (`rls.sin_workspace`). Un maestro que
 >   además compite tiene la ficha en el workspace de OTRO administrador: con la
 >   red puesta su panel saldría vacío en PostgreSQL — y lleno en SQLite, que es
@@ -930,6 +940,15 @@ cara al producto**, y por eso va sola.
 >   duplicados de hoy, justo lo que D3 pide no hacer; (3) con un solo admin
 >   por organización las dos reglas dicen lo mismo. Queda para cuando el
 >   informe esté limpio, y entonces se decide si hace falta.
+>   **→ Hecho el 26 sep 2026, de otra forma: el TRASPASO.** Las tres razones
+>   siguen en pie, así que `org_id` sigue sin decidir la propiedad; lo que se
+>   hizo es lo que resuelve el caso real («cambió el admin de la
+>   organización»): el superadmin mueve TODO el workspace de un admin a otro de
+>   la misma organización —campeonatos, fichas, llaves, resultados publicados,
+>   inscripciones hechas a mano y su gente—, primero en seco, y se niega si hay
+>   documentos repetidos entre los dos. Sin tocar RLS
+>   (`organizacion.traspasar_workspace`, `POST /api/auth/organizaciones/traspasar`,
+>   y la tarjeta del informe de D3).
 > - **Punto 4.** Al CREAR el espejo de un admin cuya organización ya tiene
 >   otro activo: entra sin `admin` (con sus otros papeles, o `maestro` si no
 >   le queda ninguno) y queda en el registro. El super-admin no cuenta.
@@ -1048,6 +1067,13 @@ organizaciones con más de un admin. Si sale largo, F0.2 se decide otra vez.
 > **Lo que queda fuera, a propósito:** avisar al maestro de que lo invitaron
 > (hoy lo ve al entrar en su lista), y un interruptor por campeonato de «solo
 > clubes invitados» que cierre también la puerta vieja. Ver PARTE 6.
+> **→ Los dos, hechos el 26 sep 2026.** El aviso va a la campana del club en
+> el portal (y al celular de sus gestores, con el push): tipo nuevo
+> `campeonato_invitacion`, ruta `POST /sync/aviso-campeonato`, solo para
+> clubes del directorio. «Solo clubes invitados» es `campeonatos.solo_invitados`:
+> con él encendido, el maestro de la casa también necesita que su club esté
+> invitado (por nombre basta, dentro del workspace). Viaja en el paquete
+> (`VERSION_PAQUETE` 7).
 
 1. Tabla `campeonato_clubes`: `campeonato_id`, `org_id` (o nombre de club en
    local), `estado` (`invitado` | `aceptado` | `retirado`), `invitado_por_id`,
@@ -1489,6 +1515,13 @@ paquete, lo que sube son filas huérfanas).
 > recompilar el portal (§1.3 de `OPERAR.md`: es `NEXT_PUBLIC_*`, no basta con
 > reiniciar).
 
+> **Y lo que sube lleva la ficha de cada puesto** *(26 sep 2026)*. Hasta aquí
+> el archivo de resultados —USB o cartero— viajaba solo con nombres, y en el
+> panel del alumno lo competido en el evento salía «sin confirmar». Ahora
+> `sobre_de_resultados` pone el `competidor_uid` de cada puesto (podios y
+> rankings de figuras), el panel lo confirma, y la vista pública lo QUITA al
+> servir (`ResultadoPublicado.to_resultados` / `sin_uids`): el uid es interno.
+
 **La regla del diseño no cambia y no se toca:** sigue siendo un solo sentido, y
 **solo suben podios y rankings**
 (`PLAN-SINCRONIZACION-LOCAL-ONLINE.md`, «El viaje de vuelta»). Lo que se
@@ -1583,7 +1616,9 @@ la historia de cómo se llegó hasta F3, y se conserva.)*
 | **3** | **F5 + F6-e** — inscribirse por invitación, y la invitación viaja en el paquete | ✅ hecho el 24 sep, sin desplegar |
 | **4** | **F8** — la subida automática de resultados | ✅ hecho el 24 sep, endurecido el 25, y con puerta el 25 (opción A: el portal vuelve a `localhost:3000`). Sin desplegar |
 | **5** | **Lo que esperaba «a después del campeonato»**: `/sync/rol` a Campeonatos (`OPERAR.md` §6.1), bloqueo por plan vencido (PARTE 5), retirar `POST /auth/register` de la instalación de internet | ✅ decidido y hecho el 25 sep (D8, D9, D10), sin desplegar |
-| **6** | **Ensayo §6.0** con todo lo anterior dentro | antes del próximo campeonato |
+| **5-bis** | **Lo último que quedaba** (26 sep): los resultados del evento con su ficha, inscribir desde DINAMYT, el aviso al club invitado, «solo clubes invitados», el traspaso de workspace (F4 punto 3) | ✅ hecho el 26 sep, sin desplegar |
+| **5-ter** | **Revisión de seguridad** (26 sep): el tatami sin autenticación, el secreto del PC del evento, fórmulas en los Excel, el tope de tamaño, ids que no son uuid | ✅ lo arreglable, hecho el 26 sep, sin desplegar. Lo abierto, en el diario |
+| **6** | **Ensayo §6.0** con todo lo anterior dentro, siguiendo `PRUEBAS-PLAN-CAMPEONATOS.md` | antes del próximo campeonato |
 | **7** | **F9** — retirar los andamios | después del próximo campeonato |
 
 ### EL ORDEN DE TRABAJO — se empieza por arriba *(versión del 9 de septiembre, histórica)*
@@ -1710,7 +1745,8 @@ Escrito para que dentro de tres meses nadie lo busque aquí:
 - **No lleva el ecosystem al gimnasio.** Decidido que no (§1.4 del mismo).
 - **No sincroniza en tiempo real.** Sigue siendo un sentido y por tandas.
 - **No toca el motor de combate ni el de figuras.** Ni una línea de
-  `backend/app/engine/`.
+  `backend/app/engine/`. *(Lo que sí cambió el 26 sep es la PUERTA del tatami,
+  `sockets/combate_ns.py`: quién puede conectarse a puntuar. El motor, igual.)*
 
 ---
 
@@ -1718,6 +1754,135 @@ Escrito para que dentro de tres meses nadie lo busque aquí:
 
 *Una entrada por sesión, la más reciente arriba. Es lo primero que lee la
 siguiente: qué se hizo, qué quedó a medias, qué falta desplegar y qué sigue.*
+
+## Sesión del 25–26 de septiembre de 2026 (segunda parte): todo lo que quedaba
+
+**Pedido del usuario:** hacer TODOS los puntos que quedaban del plan, subir, dar
+los comandos de la VPS, un `.md` con lo que hay que probar, revisar los otros
+planes y hacer una revisión de seguridad detallada.
+
+### Los puntos del plan
+
+1. **Los resultados del evento con su ficha** — ver la nota nueva en F8.
+2. **Inscribir a la gente del club desde DINAMYT** (el cabo suelto de F3).
+   Ecosystem: `GET /sync/miembros?maestro=<sub>[&persona=<sub>]`, que solo
+   contesta con los CLUBES donde ese `sub` es maestro o coach en Campeonatos, y
+   da nombre, fecha, género y documento (ni correo ni teléfono; sin
+   acudientes). Campeonatos: `GET /api/inscripciones/maestro/miembros` (sin el
+   documento: la lista es para elegir) y `eco_sub` en la inscripción del
+   maestro, que **se vuelve a comprobar en DINAMYT al inscribir** —el
+   navegador no prueba nada—. La ficha nace enlazada y con los datos de
+   DINAMYT, que mandan sobre lo tecleado; una ficha vieja sin enlace con el
+   mismo documento se reutiliza y se enlaza; una con el documento de OTRA
+   cuenta, 409.
+3. **El aviso al club invitado y «solo clubes invitados»** — ver F5.
+4. **F4 punto 3, como traspaso** — ver F4.
+5. **F9 NO se hizo, y es a propósito.** Su condición no es una fecha, es «un
+   campeonato real encima de F1–F8». Quitar hoy `role_campeonatos`, la
+   columna `puede_juzgar` o hacer `org_id` obligatorio retiraría las redes
+   antes de haberlas necesitado — y el modo local deja campeonatos sin
+   organización a propósito.
+
+### La revisión de seguridad
+
+**Arreglado (con pruebas):**
+
+| Gravedad | Qué | Arreglo |
+|---|---|---|
+| **Crítica** | **El tatami no pedía identidad.** Cualquiera abría el socket `/combate` con `rol=arbitro` y sin token: entraba como Juez Central, **echaba al de verdad** (el «takeover») y mandaba eventos. Y el juez de un `punto_juez` salía del MENSAJE: hasta la pantalla pública sumaba puntos a nombre del Juez 1. En internet, cualquiera; en el evento, cualquiera en la WiFi | Para `arbitro`/`j1`–`j4` hace falta un token de alguien activo que sea superadmin, admin dueño del campeonato o juez **asignado a ese tatami con ese papel** (`_motivo_para_no_puntuar`). El juez del evento es el de la conexión (`JUEZ_DEL_EVENTO`), la pantalla es solo lectura, y las alertas a pantalla completa no salen de ella. El frontend espera al ticket antes de conectar. **Salida de emergencia**: `TATAMI_SIN_IDENTIDAD=1` (`INICIAR-LOCAL.md` §8). `test_quien_puntua.py` (19) |
+| **Alta** | **El secreto de las sesiones del PC del evento era el de ejemplo.** Ese PC corre en `development` y la guarda de secretos débiles solo miraba `production`; el valor de ejemplo está en el repositorio, así que cualquiera en la WiFi fabricaba un token de administrador | `iniciar_local.py` genera uno propio y lo guarda en `backend/.env` antes de arrancar (los QR de antes dejan de valer una vez: generarlos la víspera). Aviso en el arranque fuera de producción |
+| Media | **Fórmulas en los Excel.** `openpyxl` convertía en fórmula todo texto que empezara por `=`: un nombre de competidor podía ser un enlace vivo en el Excel del admin | Esas celdas se guardan como texto (`reportes._como_texto`) |
+| Media | **Sin tope de tamaño de petición**: Flask leía cualquier cuerpo, también en rutas sin sesión | `MAX_CONTENT_LENGTH` = 30 MB (cabe el paquete de 25) |
+| Baja | Las rutas `/sync/*` comparaban ids con columnas `uuid` sin validarlos: un valor raro era un 500 | 400 con una frase en `acceso`, `apariencia`, `miembros` y `aviso-campeonato` |
+
+(Los del 25 —resultados falsos sobre un campeonato ajeno, el cartero cruzado,
+el pase por `http`, el alta sin `ecoSub` que creaba fichas sueltas y el 500 del
+correo de otro workspace— siguen arreglados; ver la entrada de abajo.)
+
+**Abierto, con su recomendación** (nada de esto se puede arreglar bien sin una
+decisión o sin tocar la VPS):
+
+- **No hay Content-Security-Policy en ninguna web**, y el portal guarda el
+  pase de DINAMYT (30 min) al alcance de JavaScript: un XSS sería un robo de
+  sesión. No se ha encontrado ningún XSS (React escapa, y los únicos
+  `dangerouslySetInnerHTML` son constantes), pero la CSP es la red. Se hace
+  aparte y probando: los scripts anti-parpadeo y las fuentes la rompen si se
+  pone a ciegas.
+- **Un solo `ECOSYSTEM_SYNC_SECRET` para las tres apps**: quien lo tenga
+  —una app comprometida— da de alta jueces, lee la gente de los clubes y
+  manda avisos. A la larga, un secreto por app.
+- **El QR del juez es una sesión de 72 h**: una foto del QR vale para ese
+  papel en ese tatami ese fin de semana. Aceptado (el evento no tiene red);
+  se puede acortar a la duración real del campeonato.
+- **Los jueces tienen «acceso total» en RLS** (`rls.contexto_de_usuario`). La
+  API sí filtra por workspace, así que hoy no se filtra nada; es la red de
+  fondo la que falta.
+- **Las 10 cuentas viejas de Campeonatos con contraseña propia** siguen
+  entrando por el login local aunque su club deje de pagar (D10 lo dijo).
+- **Del usuario, en la VPS o fuera:** rotar las contraseñas de los tres
+  proyectos de Supabase (`PLAN-ECOSYSTEM-VPS.md` §0.1, `[ ]` desde agosto:
+  viajaron por chat), y sacar `/srv/campeonatos/backend/.env.bak-2026-08-30`
+  del repositorio.
+
+### Lo que falta de los OTROS planes
+
+Este plan se cierra en código, pero no es el único. Revisados el 26 sep:
+
+- **`PLAN-ECOSYSTEM-VPS.md`, decisión 8 — «el candado de sede»: NO está
+  hecho, y ningún plan lo recoge.** Cada campeonato iba a llevar su `sede`
+  (`nube` o `local:<id>`) y quien no es la sede lo vería en solo lectura. Es
+  lo que impide **dos escritores**: hoy nada evita que alguien toque llaves o
+  inscripciones en internet mientras el campeonato corre en el PC del evento,
+  y el paquete de vuelta solo trae resultados. **Es lo más importante que
+  queda de toda la arquitectura del evento.**
+- **Decisión 9 — publicar casi en vivo durante el evento: NO está hecha.** F8
+  sube cuando vuelve la red y un admin entra; el público no ve nada mientras
+  tanto. Encaja encima del cartero de F8 (mismo destino, mismo sobre), pero
+  necesita una credencial que no dependa de la sesión del admin — y eso choca
+  con «nada guardado en el PC». Hay que decidirlo.
+- **El tablero de `PLAN-ECOSYSTEM-VPS.md` estaba viejo**: B3 decía que faltaban
+  C2, C5, C7, C8 y C9. Se actualizó el 26 sep (C7, C8, C9 hechos por este
+  plan; C5 hecho de otra forma —la puerta del tatami—; C2 cubierto por las
+  guardas `require_*`).
+- **B4 — la Fase 2**: la portada y **los precios de verdad** (`/planes`
+  enseña los de relleno, `OPERAR.md` §6.1), multi-arte, plan gratuito y
+  **Academy**, que está apagada en el portal (`OPERAR.md` §4.14) y a medias
+  con el idioma y el tema (§6.2).
+- **C4, dos extras que siguen pendientes**: un aviso al arrancar con cuántas
+  cuentas conservan contraseña usable, y en internet el formulario de
+  contraseña debajo de un enlace discreto («entrar sin DINAMYT»).
+- **`OPERAR.md` §6.2**: encender las fotos en disco en la VPS
+  (`MEDIA_PUBLIC_URL`, construido el 4 sep); **WhatsApp** para los avisos del
+  alumno; y el **DMARC** a `quarantine` (tocaba desde el 12 sep).
+- **`CONTINGENCIA-CAMPEONATO.md`**: la lista de antes del evento (reserva de
+  DHCP, DNS del router, contraseña del admin local, firewall, respaldo).
+
+### Baterías al cerrar
+
+Campeonatos **530 en verde** en SQLite y **19/19** contra PostgreSQL con RLS
+forzado; ecosystem **384/384** y `tsc` limpio; portal 4/4 y `tsc` limpio;
+frontend de Campeonatos `tsc` y `eslint` limpios en todo lo tocado. Verificado
+en el navegador contra el servidor real: el socket rechaza `arbitro` sin token
+(con su frase) y la pantalla recibe el estado.
+
+### Al desplegar esto
+
+Orden: **respaldo → Campeonatos → ecosystem (shared, migrar 0023) → portal**,
+seguidos. Campeonatos crea sola `campeonatos.solo_invitados` (y lo de antes).
+El ecosystem no trae migraciones nuevas (sigue la 0023 de F1). Mientras
+Campeonatos va nuevo y el ecosystem viejo —minutos—, el alta de jueces da un
+400 y la lista «De tu club en DINAMYT» dice que no hay conexión: nada se rompe.
+
+**Los jueces en internet ya no puntúan sin sesión.** Si alguien opera un
+tatami en la VPS, tiene que estar asignado o ser el dueño.
+
+### Qué sigue
+
+1. **Desplegar** y **probar** con `PRUEBAS-PLAN-CAMPEONATOS.md`.
+2. **Decidir el candado de sede** (decisión 8) y la **publicación en vivo**
+   (decisión 9): son lo que falta para el próximo campeonato.
+3. La **CSP**, y un secreto de sincronización por app.
+4. F9, después de un campeonato real.
 
 ## Sesión del 25 de septiembre de 2026
 
