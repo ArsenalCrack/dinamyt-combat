@@ -68,9 +68,11 @@ exportar e importar: la importación es idempotente y no duplica nada.
 
 ### 2. Después del evento: publicar los resultados
 
-Sin cambios respecto a lo que ya había: en el LOCAL, campeonato → Reportes →
-**«Exportar resultados»**, y en el ONLINE, `/admin/importar-resultados`.
-Viajan los podios y rankings, que es lo que ve el público.
+**Suben solos** cuando el PC del evento vuelve a tener red y el admin entra con
+su cuenta de DINAMYT en ese mismo PC (`INICIAR-LOCAL.md` §7.2). El camino a mano
+sigue valiendo: en el LOCAL, campeonato → Reportes → **«Exportar resultados»**, y
+en el ONLINE, `/admin/importar-resultados`. Viajan los podios y rankings, que es
+lo que ve el público.
 
 ### 3. Otros paquetes (opcionales)
 

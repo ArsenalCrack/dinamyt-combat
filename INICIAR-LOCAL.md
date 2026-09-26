@@ -2,8 +2,7 @@
 
 Esta copia corre **todo desde un solo PC**. Los jueces, la mesa y las pantallas
 se conectan por **red local (LAN)** a este computador. **No usa internet ni la
-nube** (nada de Render, Vercel ni Supabase). Se le quitó todo el modo "offline"
-porque aquí el servidor está siempre presente en la red.
+nube** durante el evento.
 
 - **Frontend** (lo que ve la gente): `http://IP-DEL-PC:3000`
 - **Backend** (API + tiempo real): `http://IP-DEL-PC:5000`
@@ -13,6 +12,56 @@ porque aquí el servidor está siempre presente en la red.
   defecto a propósito**: sin ella el seed no crea el admin y no puedes entrar.
   Pásale 12 caracteres o más. **Ponlas antes del primer arranque**, que es
   cuando se crea.
+
+---
+
+## 0) El campeonato corre AQUÍ desde el minuto uno
+
+La VPS es donde los maestros inscriben antes y donde el público ve los
+resultados después. **Durante el evento puede estar apagada y a nadie le
+importa.** El local no es el plan B: es el plan A.
+
+> ⛔ **No se puede empezar en la VPS y pasarse a local a mitad.** El paquete no
+> lleva los combates (`combates` y `eventos_combate` no viajan), el estado vivo
+> del tatami es un JSON en el servidor (`_persistir_estados()`), fuera de la base
+> y del paquete, y sin internet ni siquiera se puede exportar: la exportación es
+> una llamada a la VPS.
+
+| Se cae… | Durante el evento | Qué haces |
+|---|---|---|
+| El internet del polideportivo | Nada: la red del evento es un router sin internet | Nada |
+| La VPS entera | Nada, si ya importaste el paquete (§2.1) | Nada. Los resultados suben cuando vuelva (§7.2) |
+| La luz | Se apagan el PC y el router | UPS. Al volver, la base está donde estaba: se respalda sola cada 10 min (§7.1) |
+| El PC del evento | Ahí sí para el evento | Segundo portátil con la copia de `backend/instance/` y **la misma IP** en el router |
+| El router | Los celulares pierden la conexión | Router de repuesto, o el hotspot del celular como parche para 8 equipos |
+| **Te olvidaste de bajar el paquete y la VPS está caída** | **No hay evento** | Nada. Por eso §2.1 se hace varias veces |
+
+La última fila es el único fallo sin marcha atrás, y el único que depende de
+que alguien se acuerde.
+
+### Antes: el simulacro (una semana antes) y la lista de material
+
+1. Baja el paquete (§2.1) aunque las inscripciones no estén completas, e
+   impórtalo en este PC.
+2. **Desconecta el PC de internet** y arranca (`INICIAR.bat`).
+3. Con dos celulares en el router: entra como juez con el QR de un tatami,
+   **corre una llave entera** y mira que salgan los resultados.
+4. Apaga el PC del botón y vuelve a encenderlo: la base tiene que seguir ahí.
+
+Si alguno falla, hay una semana para arreglarlo — que es para lo que sirve.
+
+| Material | Por qué |
+|---|---|
+| Router WiFi propio y cable Ethernet PC ↔ router | §1 |
+| IP fija del PC en el router (reserva DHCP) | Si la IP cambia a media mañana, 30 celulares pierden el servidor |
+| UPS para el PC y el router | Convierte un corte de luz en un parpadeo |
+| Portátil de respaldo, apagado, con esta copia instalada | Solo uno encendido a la vez: dos servidores en la misma red son dos verdades |
+| Dos memorias USB con el paquete, y otra copia en el celular | La tercera copia es la que salva |
+| La IP del PC escrita grande en un papel | Por si falla todo lo demás |
+
+**Cada descanso**, copia `backend/instance/` a la memoria USB. **Al terminar**,
+esa carpeta va a dos sitios distintos: es la única copia de cómo se puntuó cada
+combate y de quién se inscribió en la puerta (esas altas no suben solas a la VPS).
 
 ---
 
@@ -176,8 +225,8 @@ sin internet no hay ecosistema al que preguntar quién eres.
 > asígnasela en Usuarios.»* Así que si alguien va a necesitar teclear su
 > contraseña, **asígnasela la víspera**, con luz y sin prisa.
 
-El porqué completo está en `B3-RIESGOS.md` §1.4: la promesa de «una cuenta para
-todo» se suspende esos tres días, y es a propósito.
+Sin internet no existe el ecosistema, y punto: la promesa de «una cuenta para
+todo» se suspende esos días, y es a propósito.
 
 ---
 

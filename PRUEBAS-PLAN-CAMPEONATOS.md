@@ -1,14 +1,15 @@
-# PRUEBAS — lo que hay que probar a mano del plan de Campeonatos
+# PRUEBAS — lo que hay que probar a mano en Campeonatos
 
-> Escrito el 26 de septiembre de 2026, cuando todo `PLAN-CAMPEONATOS.md` quedó
-> escrito y probado en código (salvo F9, que espera un campeonato real). Las
-> pruebas automáticas ya pasan —Campeonatos contra SQLite y contra PostgreSQL
-> con RLS, ecosistema y portal—; esto es lo que **solo una persona puede
-> comprobar**: pantallas, correos, celulares y el PC del evento.
+> Escrito el 26 de septiembre de 2026, cuando el plan de Campeonatos (F1–F8)
+> quedó escrito y probado en código; F9 espera un campeonato real
+> (`HOJA-DE-RUTA.md` del monorepo). Las pruebas automáticas ya pasan
+> —Campeonatos contra SQLite y contra PostgreSQL con RLS, ecosistema y
+> portal—; esto es lo que **solo una persona puede comprobar**: pantallas,
+> correos, celulares y el PC del evento.
 >
-> **Cuándo:** después de desplegar (los comandos están en la PARTE 6 del plan).
-> Es también el guion del **ensayo de `OPERAR.md` §6.0** antes del próximo
-> campeonato.
+> **Cuándo:** ya se puede — lo desplegado corre en la VPS desde el 26 sep 2026
+> (Campeonatos `9e1d4e1`, monorepo `1277b99`). Es también el guion del
+> **ensayo** (`OPERAR.md` §2.9) antes del próximo campeonato.
 >
 > Marca cada casilla. Si algo no sale como dice «Debe pasar», apunta qué salió
 > y en qué pantalla: con eso basta para arreglarlo.
@@ -32,8 +33,14 @@ Usa correos a los que tengas acceso: varias pruebas llegan por correo.
 
 ### El despliegue quedó bien
 
-- [ ] Las rutas nuevas dan **401 y no 404** (ver los `curl` de la PARTE 6 del plan).
-- [ ] A los 5 minutos de reiniciar, `NRestarts` de `campeonatos-api` no ha subido.
+- [x] Las rutas nuevas dan **401 y no 404** *(comprobado el 26 sep 2026)*:
+      `curl -s -o /dev/null -w "%{http_code}
+" http://127.0.0.1:5000/api/subida/estado`
+      (y `/api/mi/panel`), y en el ecosistema `http://127.0.0.1:3001/sync/clubes`
+      y `/sync/miembros?maestro=x`. Un 404 en las de `:3001` es que falta
+      `ECOSYSTEM_SYNC_SECRET`.
+- [x] A los 5 minutos de reiniciar, `NRestarts` de `campeonatos-api` no ha subido
+      (`systemctl show campeonatos-api -p NRestarts` → 0, el 26 sep).
 - [ ] En el arranque de Campeonatos se lee «pase RS256 y espejo: los dos ENCENDIDOS»
       (`sudo journalctl -u campeonatos-api --since "10 min ago" | grep ecosistema`).
 

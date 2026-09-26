@@ -17,7 +17,7 @@ tablero local que el Juez Central proyecta aunque se caiga la red.
 > —sin segunda contraseña— y el pase RS256 se verifica contra el JWKS del
 > portal. El manual de operación de todo el ecosistema, y el de esta app dentro
 > de él, es `OPERAR.md` del monorepo `dinamyt` (§4.13 para el salto desde
-> DINAMYT). Lo que está por hacer, en [PLAN-CAMPEONATOS.md](PLAN-CAMPEONATOS.md).
+> DINAMYT). Lo que está por hacer, en `HOJA-DE-RUTA.md` del mismo monorepo.
 
 ---
 
@@ -26,7 +26,7 @@ tablero local que el Juez Central proyecta aunque se caiga la red.
 - **Cuatro papeles**: `admin` (organiza el evento), `maestro` (inscribe a sus
   alumnos), `juez` (puntúa combates y figuras) y `competidor`, más el
   super-admin, que ve todos los workspaces. **Una persona puede tener varios a
-  la vez** (`usuarios.roles`, F2 del [plan](PLAN-CAMPEONATOS.md)): `rol` es el
+  la vez** (`usuarios.roles`): `rol` es el
   principal y decide a qué pantalla entra; `puede_juzgar` sigue existiendo, y
   lo escribe la lista.
 - **El panel del competidor** (`/mi-panel`, F3): quien solo compite entra con
@@ -154,158 +154,34 @@ NEXT_PUBLIC_SOCKET_URL=http://localhost:5000
 
 ## Despliegue
 
-> ### ⚠️ Lo de abajo YA NO ES como se despliega esto
->
-> *(nota del 9 de septiembre de 2026)*
->
-> **Producción vive en un VPS**, no en planes gratuitos: `/srv/campeonatos`,
-> servicios `systemd` (`campeonatos-api` y `campeonatos-web`), PostgreSQL en la
-> misma máquina y Caddy delante, junto a las otras tres webs del ecosistema en
-> `campeonatos.dinamyt.org`. Supabase, Render, Vercel y UptimeRobot **no
-> intervienen**.
->
-> | Para… | Ir a |
-> |---|---|
-> | Montar el servidor desde cero | `MONTAR-VPS.md` (monorepo `dinamyt`) |
-> | Desplegar un cambio | `OPERAR.md` §2.4-bis (monorepo `dinamyt`) |
-> | Las variables que parecen opcionales y no lo son | `OPERAR.md` §1.4 |
->
-> El comando de despliegue, para no tener que buscarlo:
->
-> ```bash
-> cd /srv/campeonatos && git pull && backend/venv/bin/pip install -r backend/requirements.txt && cd frontend && npm ci && npm run build && sudo systemctl restart campeonatos-api campeonatos-web
-> ```
->
-> Se deja lo que sigue porque **describe bien la aplicación** —qué variables
-> quiere, cómo se conectan las partes, por qué un solo worker— y porque es la
-> receta si algún día hay que levantar una copia aparte. Pero **no es la
-> instalación que está en internet.**
+**Producción vive en un VPS**: `/srv/campeonatos`, servicios `systemd`
+(`campeonatos-api` y `campeonatos-web`), PostgreSQL en la misma máquina y Caddy
+delante, junto a las otras webs del ecosistema en `campeonatos.dinamyt.org`.
 
----
+| Para… | Ir a (monorepo `dinamyt`) |
+|---|---|
+| Montar el servidor desde cero | `MONTAR-VPS.md` |
+| Desplegar un cambio | `OPERAR.md` §2.4-bis |
+| Las variables que parecen opcionales y no lo son | `OPERAR.md` §1.4 |
+| El PC del evento, sin internet | [INICIAR-LOCAL.md](INICIAR-LOCAL.md) |
 
-## Despliegue gratuito en internet *(histórico — ver el aviso de arriba)*
-
-El proyecto se despliega completo usando solo planes gratuitos
-(tiempo estimado: 30–45 min).
-
-| Pieza                         | Herramienta                            | Costo  |
-| ----------------------------- | -------------------------------------- | ------ |
-| Frontend (Next.js)            | [Vercel](https://vercel.com)           | Gratis |
-| Backend (Flask + Socket.IO)   | [Render](https://render.com)           | Gratis |
-| Base de datos (PostgreSQL)    | [Supabase](https://supabase.com)       | Gratis |
-| Mantener el backend despierto | [UptimeRobot](https://uptimerobot.com) | Gratis |
-
-### 0. Generar los secretos (en tu PC)
-
-Genera un `JWT_SECRET_KEY` **exclusivo para producción**:
-
-```powershell
-python -c "import secrets; print(secrets.token_hex(32))"
+```bash
+cd /srv/campeonatos && git pull && backend/venv/bin/pip install -r backend/requirements.txt && cd frontend && npm ci && npm run build && sudo systemctl restart campeonatos-api campeonatos-web
 ```
 
-Elige también una `ADMIN_PASSWORD` fuerte (12+ caracteres, con números y símbolos).
+Campeonatos **no migra**: crea lo que le falta al arrancar (`schema_compat`).
 
-> El backend **se niega a arrancar** en producción si `JWT_SECRET_KEY` o
-> `ADMIN_PASSWORD` son débiles o vacíos (ver `app/__init__.py`).
-
-### 1. Base de datos — Supabase
-
-Crea un proyecto en <https://supabase.com>, copia la **connection string** y úsala
-como `DATABASE_URL`. No la subas a git. (Se usa Postgres gestionado en vez de
-SQLite porque el disco de Render gratis se borra en cada reinicio; ahí los datos
-persisten.)
-
-### 2. Backend — Render
-
-**New → Web Service**, conecta el repo `DINAMYT-COMBAT` y configura:
-
-| Campo             | Valor                                                 |
-| ----------------- | ----------------------------------------------------- |
-| Root Directory    | `backend`                                             |
-| Build Command     | `pip install -r requirements.txt`                     |
-| **Start Command** | `gunicorn -k eventlet -w 1 -b 0.0.0.0:$PORT wsgi:app` |
-| Instance Type     | Free                                                  |
-
-Variables de entorno:
-
-| Variable         | Valor                                                                                       |
-| ---------------- | ------------------------------------------------------------------------------------------- |
-| `PYTHON_VERSION` | `3.11.9` ⚠️ NO usar 3.12+: el monkey-patching de eventlet se rompe y toda consulta da 500    |
-| `FLASK_ENV`      | `production`                                                                                 |
-| `DATABASE_URL`   | connection string de Supabase                                                                    |
-| `JWT_SECRET_KEY` | el secreto generado en el paso 0                                                             |
-| `ADMIN_EMAIL`    | `admin@dinamyt.org`                                                                          |
-| `ADMIN_PASSWORD` | tu contraseña fuerte                                                                         |
-| `ADMIN_NOMBRE`   | `Administrador DINAMYT`                                                                      |
-| `FRONTEND_URL`   | tu URL de Vercel (temporalmente `http://localhost:3000`)                                     |
-| `COOKIE_SECURE`  | `true` (la sesión viaja por HTTPS)                                                           |
-| `COOKIE_SAMESITE`| `Lax` — **no** `None`: la web llama a la API por su propio dominio (ver paso 3)              |
-| `TRUST_PROXY_HOPS` | `2` — el navegador pide a Vercel y Vercel reenvía a Render, así que hay dos saltos         |
-| `TZ`             | `America/Bogota` — zona del evento. Es el valor por defecto, así que solo hace falta ponerla para un campeonato en otro huso (`America/Caracas`, `Europe/Madrid`…) |
-
-> **Sobre las horas.** Los timestamps se guardan y viajan en UTC, y cada
-> dispositivo los muestra en SU hora: eso no depende de `TZ`. La variable
-> decide la hora que va **impresa** en las actas y los reportes PDF/Excel, que
-> no la convierte ningún navegador y tiene que ser la del sitio donde se
-> compite. Ver `app/timeutil.py`.
-
-Verifica que responde abriendo
-`https://<tu-backend>.onrender.com/api/campeonatos/publico`.
-
-### 3. Frontend — Vercel
-
-**Add New → Project**, importa el repo con **Root Directory** `frontend` y agrega:
-
-| Variable                 | Valor                               |
-| ------------------------ | ----------------------------------- |
-| `BACKEND_URL`            | `https://<tu-backend>.onrender.com` |
-| `NEXT_PUBLIC_SOCKET_URL` | `https://<tu-backend>.onrender.com` |
-
-Con `BACKEND_URL` definida, el navegador llama a `/api` en el dominio de Vercel
-y Next reenvía a Render por detrás. Eso es lo que mantiene la cookie de sesión
-como de primera parte: si el navegador fuera directo a Render, la cookie sería
-de terceros, Safari la bloquearía y **la sesión se perdería en cada recarga**.
-Se activa solo, no hay que indicarlo aparte.
-
-`NEXT_PUBLIC_API_URL` ya no hace falta y se ignora cuando el proxy está
-configurado. Para forzar el modo antiguo: `NEXT_PUBLIC_API_MODE=directo`.
-
-`NEXT_PUBLIC_SOCKET_URL` sí va directo a Render: el tiempo real usa un token en
-el `auth` del socket, no la cookie, y así conserva el WebSocket real (los
-rewrites de Vercel no lo soportan y lo degradarían a long-polling).
-
-### 4. Conectar las dos partes (CORS)
-
-En Render, cambia `FRONTEND_URL` por tu URL de Vercel (exacta, con `https://` y
-sin `/` final). Acepta varios orígenes separados por coma.
-
-### 5. Mantener el backend despierto
-
-El plan gratis de Render apaga el servicio tras 15 min sin tráfico. Crea un
-monitor HTTP en <https://uptimerobot.com> apuntando a
-`https://<tu-backend>.onrender.com/api/campeonatos/publico` cada 5 minutos.
-
-### 6. Row Level Security (opcional)
+### Row Level Security
 
 El aislamiento entre workspaces lo hace la aplicación (`api/scoping.py` filtra
-por `created_by`). Encima de eso, con PostgreSQL el backend intenta activar
-políticas de RLS al arrancar: si algún día una consulta nueva se olvida del
-filtro, la base devuelve cero filas en vez de las de otro admin.
+por `created_by`). Encima de eso, con PostgreSQL el backend activa políticas de
+RLS al arrancar: si algún día una consulta nueva se olvida del filtro, la base
+devuelve cero filas en vez de las de otro admin.
 
-**Es una capa extra y puede fallar sin consecuencias.** Si en el log de Render
-ves algo así:
-
-```
-[SEGURIDAD] RLS incompleto: 0 sentencias aplicadas, 26 fallidas.
-           · ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY -> must be owner of table usuarios
-```
-
-significa que el rol con el que se conecta el backend no es dueño de las
-tablas — pasa cuando la base la creó otro usuario. El backend **arranca igual**
-y el aislamiento por workspace sigue funcionando; solo falta la red de abajo.
-
-Para activarla, conéctate a la base con el rol dueño de las tablas (en Supabase,
-el rol `postgres`) y ejecuta una vez:
+Si el log dice `[SEGURIDAD] RLS incompleto: … must be owner of table …`, el rol
+con el que se conecta el backend no es dueño de las tablas. El backend **arranca
+igual** y el aislamiento por workspace sigue funcionando; solo falta la red de
+abajo. Para activarla, con el rol dueño de las tablas, una vez:
 
 ```bash
 flask rls
@@ -315,27 +191,6 @@ O transfiere la propiedad al rol de la aplicación:
 `ALTER TABLE usuarios OWNER TO <rol>;` (y lo mismo para `campeonatos`,
 `competidores`, `inscripciones`, `llaves` y `resultados_publicados`).
 
-Ojo: RLS tampoco protege si el rol es `SUPERUSER` o tiene `BYPASSRLS`, porque
-se salta todas las políticas. El backend lo comprueba y lo dice al arrancar.
-
-### Actualizar lo ya desplegado
-
-```powershell
-git add .
-git commit -m "descripcion del cambio"
-git push
-```
-
-Render y Vercel detectan el push y se redespliegan solos (~3–5 min).
-
----
-
-## Solución de problemas
-
-| Síntoma                                         | Causa probable                           | Solución                                                              |
-| ----------------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------- |
-| "Error de conexión con el servidor" en el login | Backend dormido o caído                  | Espera 1 min (despierta) o revisa logs en Render                      |
-| Errores CORS en la consola del navegador        | `FRONTEND_URL` mal puesta                | Debe ser EXACTAMENTE tu URL de Vercel, con `https://` y sin `/` final |
-| El deploy del backend falla con "[SEGURIDAD]"   | Secretos débiles                         | Pon `JWT_SECRET_KEY` y `ADMIN_PASSWORD` fuertes en Render             |
-| Pantalla pública no actualiza en vivo           | `NEXT_PUBLIC_SOCKET_URL` mal puesta      | Debe apuntar a la URL de Render, luego redeploy en Vercel             |
-| Cambié variables en Vercel y no aplica          | Las `NEXT_PUBLIC_*` se inyectan en build | Redeploy en Vercel después de cambiarlas                              |
+RLS no protege si el rol es `SUPERUSER` o tiene `BYPASSRLS`: el backend lo
+comprueba y lo dice al arrancar. Las pruebas contra PostgreSQL de verdad están
+en `backend/tests/test_rls_postgres.py` (se saltan sin `CAMPEONATOS_PG_URL`).

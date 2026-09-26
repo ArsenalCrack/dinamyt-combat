@@ -183,9 +183,9 @@ def _decir_como_quedo_el_ecosistema(app):
     ── Por qué avisa y no falla ────────────────────────────────────────────
 
     Porque «apagado» es un estado VÁLIDO: es exactamente como tiene que arrancar
-    la instalación del gimnasio (`B3-RIESGOS.md` §1.4). Lo que no puede seguir
+    la instalación del gimnasio (`INICIAR-LOCAL.md` §3.1). Lo que no puede seguir
     siendo válido es que no se note. Es el mismo criterio que el
-    `EL ESPEJO ESTÁ APAGADO` de Membresías (`OPERAR.md` §2.9).
+    `EL ESPEJO ESTÁ APAGADO` de Membresías (`OPERAR.md` §2.6-bis).
     """
     import logging
 
