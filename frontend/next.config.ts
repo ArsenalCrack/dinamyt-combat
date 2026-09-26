@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { execSync } from "node:child_process";
+import { cabecerasDeSeguridad } from "./cabeceras-seguridad";
 
 // Solo se define en el despliegue en la nube (Vercel), donde apunta al backend
 // de Render. En la LAN nadie la pone: ahí el frontend habla directo con el
@@ -36,8 +37,38 @@ const VERSION = {
   NEXT_PUBLIC_VERSION_COMMIT: delGit("git rev-parse --short HEAD"),
 };
 
+// A dónde habla el navegador (lib/api.ts y lib/socket.ts): con el proxy, al
+// mismo origen; si no —el PC del evento—, directo al backend en su puerto, sea
+// cual sea la IP de la LAN. De ahí el comodín de host, acotado a ese puerto.
+const PUERTO_BACKEND = process.env.NEXT_PUBLIC_BACKEND_PORT || "5000";
+const conProxy =
+  process.env.NEXT_PUBLIC_API_MODE === "proxy" ||
+  (process.env.NEXT_PUBLIC_API_MODE !== "directo" && !!backendUrlConfigurado);
+const socket = process.env.NEXT_PUBLIC_SOCKET_URL;
+
 const nextConfig: NextConfig = {
   skipTrailingSlashRedirect: true,
+  poweredByHeader: false,
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: cabecerasDeSeguridad({
+          conectar: [
+            process.env.NEXT_PUBLIC_API_URL,
+            socket,
+            socket?.replace(/^http/, "ws"),
+            ...(conProxy
+              ? []
+              : [`http://*:${PUERTO_BACKEND}`, `ws://*:${PUERTO_BACKEND}`]),
+          ],
+          // Las fotos de los competidores y los escudos pueden venir de
+          // cualquier sitio por HTTPS (y en la LAN, del backend).
+          imagenes: ["https:", ...(conProxy ? [] : [`http://*:${PUERTO_BACKEND}`])],
+        }),
+      },
+    ];
+  },
   env: {
     /**
      * Le dice al cliente si puede consumir la API por este mismo origen.

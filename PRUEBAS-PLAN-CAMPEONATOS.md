@@ -34,8 +34,7 @@ Usa correos a los que tengas acceso: varias pruebas llegan por correo.
 ### El despliegue quedó bien
 
 - [x] Las rutas nuevas dan **401 y no 404** *(comprobado el 26 sep 2026)*:
-      `curl -s -o /dev/null -w "%{http_code}
-" http://127.0.0.1:5000/api/subida/estado`
+      `curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:5000/api/subida/estado`
       (y `/api/mi/panel`), y en el ecosistema `http://127.0.0.1:3001/sync/clubes`
       y `/sync/miembros?maestro=x`. Un 404 en las de `:3001` es que falta
       `ECOSYSTEM_SYNC_SECRET`.
