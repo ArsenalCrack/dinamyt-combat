@@ -21,6 +21,14 @@ ficha de cualquier maestro.
 Todo lo que se lee aquí se lee **con la red de RLS levantada** y filtrando a
 mano: el maestro invitado no ve, con su propio contexto, ni el campeonato al
 que lo invitaron. Lo que acota es el filtro explícito por su `org_id`.
+
+── «Solo clubes invitados» (25 sep 2026) ──
+
+Con `campeonatos.solo_invitados` encendido, la puerta «de la casa» deja de
+bastar: el maestro de la casa entra solo si su club está invitado, por su
+`org_id` o **por su nombre** (una invitación por nombre sí vale DENTRO del
+workspace: es el admin de la casa hablando de sus propios maestros; lo que no
+hace nunca es abrir la puerta a alguien de fuera).
 """
 
 from .api.scoping import workspace_owner_id
@@ -50,6 +58,23 @@ def invitaciones_de(maestro):
         )
 
 
+def invitacion_de_la_casa(camp, maestro):
+    """La invitación vigente que le abre a un maestro DE LA CASA un campeonato
+    «solo clubes invitados»: por su organización, o por el nombre de uno de sus
+    clubes. `None` si no hay. Se llama con la red levantada."""
+    vigentes = InvitacionClub.query.filter(
+        InvitacionClub.campeonato_id == camp.id,
+        InvitacionClub.estado.in_(ESTADOS_VIGENTES),
+    ).all()
+    suyos = {c.casefold() for c in maestro.nombres_clubes}
+    for inv in vigentes:
+        if maestro.org_id and inv.org_id == maestro.org_id:
+            return inv
+        if not inv.org_id and inv.club_nombre and inv.club_nombre.casefold() in suyos:
+            return inv
+    return None
+
+
 def campeonato_para_el_maestro(maestro, camp_id):
     """(campeonato, puerta, invitacion, error, codigo).
 
@@ -66,7 +91,12 @@ def campeonato_para_el_maestro(maestro, camp_id):
         if camp is None or not camp.activo:
             return None, None, None, "Campeonato no encontrado", 404
         if camp.created_by == workspace_owner_id(maestro):
-            return camp, CASA, None, None, None
+            if not camp.solo_invitados:
+                return camp, CASA, None, None, None
+            invitacion = invitacion_de_la_casa(camp, maestro)
+            if invitacion is None:
+                return None, None, None, NO_INVITADO, 403
+            return camp, CASA, invitacion, None, None
         invitacion = None
         if maestro.org_id:
             invitacion = InvitacionClub.query.filter(

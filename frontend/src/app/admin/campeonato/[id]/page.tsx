@@ -62,6 +62,8 @@ interface Campeonato {
   estado: EstadoCampeonato;
   activo: boolean;
   num_pendientes?: number;
+  /** «Solo clubes invitados» (25 sep 2026). */
+  solo_invitados?: boolean;
   tatamis: Tatami[];
 }
 
@@ -555,7 +557,7 @@ export default function CampeonatoDetailPage() {
 
       {/* Qué clubes inscriben aquí (F5). Va antes de los tatamis: se decide
           mientras el campeonato se prepara, que es cuando se abre esta ficha. */}
-      <ClubesInvitados campId={camp.id} />
+      <ClubesInvitados campId={camp.id} soloInvitados={Boolean(camp.solo_invitados)} />
 
       {dialogo}
 

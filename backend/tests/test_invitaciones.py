@@ -392,3 +392,132 @@ def test_borrar_el_campeonato_se_lleva_sus_invitaciones(mundo):
     from app.models.invitacion import InvitacionClub
 
     assert InvitacionClub.query.count() == 0
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  «Solo clubes invitados» (punto 3 de lo que quedaba del plan, 25 sep 2026)
+# ══════════════════════════════════════════════════════════════════════════
+
+def _solo_invitados(m, quien, camp, valor):
+    return m.cliente.put(f"/api/campeonatos/{camp.id}/clubes/solo-invitados",
+                         json={"solo_invitados": valor}, headers=_h(m, quien))
+
+
+class TestSoloInvitados:
+    def test_apagado_la_casa_entra_como_siempre(self, mundo):
+        assert mundo.camp_a.solo_invitados in (None, False)
+        assert _inscribir(mundo, "de_la_casa", mundo.camp_a, "DOJANG SUR").status_code == 201
+
+    def test_encendido_la_casa_sin_invitacion_no_ve_ni_inscribe(self, mundo):
+        r = _solo_invitados(mundo, "admin_a", mundo.camp_a, True)
+        assert r.status_code == 200, r.get_json()
+        assert _campeonatos(mundo, "de_la_casa") == []
+        r = _inscribir(mundo, "de_la_casa", mundo.camp_a, "DOJANG SUR")
+        assert r.status_code == 403
+        assert "no está invitado" in r.get_json()["error"]
+
+    def test_la_invitacion_por_nombre_vale_dentro_de_la_casa(self, mundo):
+        _solo_invitados(mundo, "admin_a", mundo.camp_a, True)
+        _invitar(mundo, "admin_a", mundo.camp_a, nombre="Dojang Sur")
+        assert [c["nombre"] for c in _campeonatos(mundo, "de_la_casa")] == ["COPA A"]
+        assert _inscribir(mundo, "de_la_casa", mundo.camp_a, "DOJANG SUR").status_code == 201
+
+        from app.models.invitacion import InvitacionClub
+
+        # Participar ES aceptar, también por esta puerta.
+        assert InvitacionClub.query.one().estado == "aceptado"
+
+    def test_el_de_fuera_invitado_sigue_entrando(self, mundo):
+        _solo_invitados(mundo, "admin_a", mundo.camp_a, True)
+        _invitar(mundo, "admin_a", mundo.camp_a, org_id=CLUB_1, nombre="Club Uno")
+        assert _inscribir(mundo, "del_portal", mundo.camp_a, "CLUB UNO").status_code == 201
+
+    def test_solo_el_dueno_lo_cambia_y_solo_con_un_booleano(self, mundo):
+        assert _solo_invitados(mundo, "admin_b", mundo.camp_a, True).status_code == 404
+        assert _solo_invitados(mundo, "admin_a", mundo.camp_a, "si").status_code == 400
+        db.session.expire_all()
+        assert not mundo.camp_a.solo_invitados
+
+    def test_lo_ya_inscrito_se_queda(self, mundo):
+        assert _inscribir(mundo, "de_la_casa", mundo.camp_a, "DOJANG SUR").status_code == 201
+        _solo_invitados(mundo, "admin_a", mundo.camp_a, True)
+        from app.models.competidor import Inscripcion
+
+        assert Inscripcion.query.count() == 1
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  El aviso al club en DINAMYT (punto 3, 25 sep 2026)
+# ══════════════════════════════════════════════════════════════════════════
+
+class TestElAvisoAlClub:
+    def test_invitar_del_directorio_avisa_y_lo_dice(self, mundo, monkeypatch):
+        avisos = []
+
+        def avisar(org_id, campeonato, organiza=None):
+            avisos.append((org_id, campeonato, organiza))
+            return True
+
+        monkeypatch.setattr(espejo, "avisar_invitacion_a_club", avisar)
+        r = _invitar(mundo, "admin_a", mundo.camp_a, org_id=CLUB_1, nombre="Club Uno")
+
+        assert r.status_code == 201
+        assert r.get_json()["avisado"] is True
+        assert "Se le avisó en DINAMYT" in r.get_json()["message"]
+        assert avisos == [(CLUB_1, "COPA A", "FEDERACIÓN A")]
+
+    def test_por_nombre_no_hay_a_quien_avisar(self, mundo, monkeypatch):
+        avisos = []
+        monkeypatch.setattr(espejo, "avisar_invitacion_a_club",
+                            lambda *a, **k: avisos.append(a) or True)
+        r = _invitar(mundo, "admin_a", mundo.camp_a, nombre="Dojang Sur")
+        assert r.status_code == 201
+        assert r.get_json()["avisado"] is False
+        assert avisos == []
+
+    def test_si_dinamyt_no_contesta_la_invitacion_queda_igual(self, mundo, monkeypatch):
+        monkeypatch.setattr(espejo, "avisar_invitacion_a_club", lambda *a, **k: False)
+        r = _invitar(mundo, "admin_a", mundo.camp_a, org_id=CLUB_1, nombre="Club Uno")
+        assert r.status_code == 201
+        assert r.get_json()["avisado"] is False
+        assert "avisó" not in r.get_json()["message"]
+
+
+def test_el_cliente_del_aviso_manda_club_campeonato_y_organizador(monkeypatch):
+    import io
+    import json as _json
+
+    app = create_app("development")
+    app.config["ECOSYSTEM_JWKS_URL"] = "https://id.ejemplo.invalid/auth/jwks"
+    monkeypatch.setenv("ECOSYSTEM_SYNC_SECRET", "secreto")
+    enviado = {}
+
+    class _Resp(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def urlopen_falso(peticion, timeout=None):
+        enviado["url"] = peticion.full_url
+        enviado["cuerpo"] = _json.loads(peticion.data)
+        enviado["secreto"] = dict(peticion.header_items())["X-dinamyt-sync"]
+        return _Resp(b'{"avisado": true}')
+
+    monkeypatch.setattr(espejo, "urlopen", urlopen_falso)
+    with app.app_context():
+        assert espejo.avisar_invitacion_a_club(CLUB_1, "COPA A", "FEDERACIÓN A") is True
+
+    assert enviado == {
+        "url": "https://id.ejemplo.invalid/sync/aviso-campeonato",
+        "cuerpo": {"orgId": CLUB_1, "campeonato": "COPA A", "organiza": "FEDERACIÓN A"},
+        "secreto": "secreto",
+    }
+
+    def cae(peticion, timeout=None):
+        raise OSError("sin red")
+
+    monkeypatch.setattr(espejo, "urlopen", cae)
+    with app.app_context():
+        assert espejo.avisar_invitacion_a_club(CLUB_1, "COPA A") is False

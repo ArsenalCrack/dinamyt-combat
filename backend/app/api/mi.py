@@ -233,8 +233,10 @@ def _resultados_en(camp, quien):
 
     Primero lo calculado en vivo. Si ahí no hay nada y existen resultados
     importados del modo local con el mismo `export_uuid`, se miran esos: es el
-    caso del 9 de octubre, en que se compite en el PC del evento y lo que llega
-    a internet es el archivo de resultados — solo con nombres, hasta F8.
+    caso del campeonato que se compite en el PC del evento: lo que llega a
+    internet es el archivo de resultados. Desde el 25 sep 2026 trae el
+    `competidor_uid` de cada puesto (`sobre_de_resultados`), así que lo tuyo
+    sale «confirmado»; los archivos anteriores, solo con nombres.
     """
     resultados, peleas, vistos = [], [], set()
 

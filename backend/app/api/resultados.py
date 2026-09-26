@@ -156,11 +156,18 @@ def _nombre_categoria(combate):
     return "Combate"
 
 
-def _construir_resultados(camp_id):
+def _construir_resultados(camp_id, con_uid=False):
     """Arma la lista de resultados + filtros de un campeonato (lógica en vivo).
 
     Devuelve {resultados, categorias, tatamis}. Reutilizado por el endpoint
     público en vivo y por la exportación.
+
+    `con_uid` pone en cada puesto el `competidor_uid` de su ficha, cuando lo
+    hay. Solo lo pide el ARCHIVO que viaja a internet (`sobre_de_resultados`):
+    es lo que deja al panel del competidor decir «confirmado» sobre lo que se
+    compitió en el PC del evento, en vez de adivinarlo por el nombre. La vista
+    pública no lo lleva nunca: en vivo no se pide, y lo publicado lo quita al
+    servirse (`ResultadoPublicado.to_resultados`).
     """
     numeros = _tatami_numeros(camp_id)
     resultados = []
@@ -170,7 +177,7 @@ def _construir_resultados(camp_id):
     for ll in llaves:
         if ll.tipo_norm != "combate":
             continue
-        podio = podio_llave(ll.estructura)
+        podio = podio_llave(ll.estructura, con_uid=con_uid)
         if not podio:
             continue
         comps = (ll.estructura or {}).get("competidores", [])
@@ -209,6 +216,10 @@ def _construir_resultados(camp_id):
                         "total": r.get("total", 0),
                         "especial": bool(r.get("especial")),
                         "empate": bool(r.get("empate")),
+                        **(
+                            {"competidor_uid": r["competidor_uid"]}
+                            if con_uid and r.get("competidor_uid") else {}
+                        ),
                     }
                     for r in ranking
                 ],
@@ -310,7 +321,10 @@ def sobre_de_resultados(camp):
         camp.export_uuid = uuid.uuid4().hex
         db.session.commit()
 
-    data = _construir_resultados(camp.id)
+    # Con el uid de cada ficha: el archivo no es público (lo baja el admin, o
+    # lo sube el cartero con su sesión) y sin él lo del evento llegaba a
+    # internet solo con nombres — «sin confirmar» en el panel de quien compitió.
+    data = _construir_resultados(camp.id, con_uid=True)
     return {
         "formato": FORMATO_EXPORT,
         "version": 1,

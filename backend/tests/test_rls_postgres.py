@@ -558,3 +558,105 @@ def test_el_alta_en_dinamyt_con_la_red_puesta(pg, club, monkeypatch):
                      json={"email": "otro-correo@t.local", "nombre": "Juez", "rol": "juez"})
     assert r.status_code == 409, r.get_json()
     assert "juez-ajeno@t.local" in r.get_json()["error"]
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  Lo que quedaba del plan (25 sep 2026), con la red puesta
+# ══════════════════════════════════════════════════════════════════════════
+
+SUB_MAESTRO_PG = "22222222-2222-4222-8222-222222222222"
+SUB_ALUMNA_PG = "44444444-4444-4444-8444-444444444444"
+
+
+def test_el_maestro_inscribe_a_alguien_de_su_club_en_dinamyt(pg, club, monkeypatch):
+    """Punto 2: la ficha nace ENLAZADA en el workspace del campeonato, y la
+    lista de la gente del club ve su ficha y su inscripción con RLS."""
+    app, db = pg
+    cliente, tokens, camp_id = club
+    from app.api import competidores as competidores_api
+    from app.models.competidor import Competidor
+    from app.models.usuario import Usuario
+
+    _sembrar()
+    maestro = Usuario.query.filter_by(email="maestro@t.local").one()
+    maestro.eco_sub = SUB_MAESTRO_PG
+    db.session.commit()
+    miembro = {"sub": SUB_ALUMNA_PG, "fullName": "Luz Marina", "birthDate": "2012-05-04",
+               "gender": "FEMENINO", "documentId": "2002", "club": {"id": "c", "name": "DOJANG SUR"}}
+    monkeypatch.setattr(competidores_api, "miembros_del_club",
+                        lambda sub, persona=None: [miembro] if persona in (None, SUB_ALUMNA_PG) else [])
+
+    r = cliente.post(
+        f"/api/inscripciones/maestro/campeonato/{camp_id}",
+        json={"eco_sub": SUB_ALUMNA_PG, "competidor": {"club": "DOJANG SUR"}, "peso": 40},
+        headers=_h(tokens["maestro"]),
+    )
+    assert r.status_code == 201, r.get_json()
+
+    _sembrar()
+    ficha = Competidor.query.filter_by(eco_sub=SUB_ALUMNA_PG).one()
+    assert ficha.created_by == Usuario.query.filter_by(email="admin@t.local").one().id
+
+    lista = cliente.get(f"/api/inscripciones/maestro/miembros?campeonato_id={camp_id}",
+                        headers=_h(tokens["maestro"])).get_json()
+    assert lista["miembros"][0]["ficha_uid"] == ficha.uid
+    assert lista["miembros"][0]["inscrito"] is True
+
+
+def test_solo_invitados_con_la_red_puesta(pg, club):
+    """Punto 3: la invitación por nombre abre la casa; sin ella, 403."""
+    app, db = pg
+    cliente, tokens, camp_id = club
+
+    r = cliente.put(f"/api/campeonatos/{camp_id}/clubes/solo-invitados",
+                    json={"solo_invitados": True}, headers=_h(tokens["admin"]))
+    assert r.status_code == 200, r.get_json()
+    assert _inscribir(cliente, tokens, camp_id).status_code == 403
+
+    r = cliente.post(f"/api/campeonatos/{camp_id}/clubes",
+                     json={"nombre": "Dojang Sur"}, headers=_h(tokens["admin"]))
+    assert r.status_code == 201, r.get_json()
+    lista = cliente.get("/api/inscripciones/maestro/campeonatos", headers=_h(tokens["maestro"])).get_json()
+    assert [c["id"] for c in lista] == [camp_id]
+    assert _inscribir(cliente, tokens, camp_id).status_code == 201
+
+
+def test_el_traspaso_con_la_red_puesta(pg, club):
+    """Punto 4: el superadmin mueve el workspace, y el nuevo ve TODO —también
+    las llaves y las fichas, que es lo que el `org_id` a secas no daba."""
+    app, db = pg
+    cliente, tokens, camp_id = club
+    from app.models.llave import Llave
+    from app.models.usuario import Usuario
+
+    assert _inscribir(cliente, tokens, camp_id).status_code == 201
+    _sembrar()
+    viejo = Usuario.query.filter_by(email="admin@t.local").one()
+    viejo.org_id = "0f000000-0000-4000-8000-00000000fede"
+    nuevo = Usuario(email="nuevo@t.local", nombre="NUEVO", rol="admin", activo=True,
+                    org_id=viejo.org_id)
+    nuevo.set_password("secret123")
+    jefe = Usuario(email="super@t.local", nombre="SUPER", rol="admin", activo=True,
+                   es_superadmin=True)
+    jefe.set_password("secret123")
+    db.session.add_all([nuevo, jefe])
+    db.session.flush()
+    db.session.add(Llave(campeonato_id=camp_id, tipo="combate", nombre="L",
+                         created_by=viejo.id, estructura={"competidores": []}))
+    db.session.commit()
+
+    r = cliente.post("/api/auth/organizaciones/traspasar",
+                     json={"de": viejo.id, "a": nuevo.id, "aplicar": True},
+                     headers=_h(_token(jefe)))
+    assert r.status_code == 200, r.get_json()
+
+    del_nuevo = cliente.get("/api/campeonatos", headers=_h(_token(nuevo))).get_json()
+    assert [c["id"] for c in del_nuevo] == [camp_id]
+    llaves = cliente.get(f"/api/llaves/campeonato/{camp_id}", headers=_h(_token(nuevo)))
+    assert llaves.status_code == 200, llaves.get_json()
+    assert len(llaves.get_json()) == 1
+    inscritos = cliente.get(f"/api/inscripciones/campeonato/{camp_id}", headers=_h(_token(nuevo)))
+    assert len(inscritos.get_json()) == 1
+    # Y el maestro que era del viejo ahora es de la casa del nuevo.
+    assert cliente.get("/api/inscripciones/maestro/campeonatos",
+                       headers=_h(tokens["maestro"])).get_json()[0]["acceso"] == "casa"

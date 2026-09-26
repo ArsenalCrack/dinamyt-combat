@@ -770,10 +770,53 @@ def invitar_club(camp_id):
         )
         db.session.add(invitacion)
     db.session.commit()
+
+    # El aviso a la campana del club en DINAMYT (punto 3, 25 sep 2026). Solo
+    # a un club del directorio (`org_id`), y DESPUÉS de guardar: si DINAMYT no
+    # contesta, la invitación ya está hecha y se dice que no se avisó.
+    avisado = False
+    if org_id:
+        from ..espejo import avisar_invitacion_a_club
+
+        avisado = avisar_invitacion_a_club(
+            org_id, camp.nombre, admin.org_nombre or admin.nombre
+        )
     return jsonify({
-        "message": f"{invitacion.club_nombre} invitado.",
+        "message": (
+            f"{invitacion.club_nombre} invitado. Se le avisó en DINAMYT."
+            if avisado else f"{invitacion.club_nombre} invitado."
+        ),
         "invitacion": invitacion.to_dict(),
+        "avisado": avisado,
     }), 201
+
+
+@campeonatos_bp.route("/<int:camp_id>/clubes/solo-invitados", methods=["PUT"])
+@jwt_required()
+def fijar_solo_invitados(camp_id):
+    """
+    PUT /api/campeonatos/:id/clubes/solo-invitados
+    Body: { "solo_invitados": bool }
+
+    Enciende o apaga «solo clubes invitados» (ver `app/invitaciones.py`). Lo
+    que ya se inscribió se queda: esto cierra la puerta a lo NUEVO.
+    """
+    _, camp, error = _campeonato_del_admin(camp_id)
+    if error:
+        return error
+    data = request.get_json(silent=True) or {}
+    if not isinstance(data.get("solo_invitados"), bool):
+        return jsonify({"error": "`solo_invitados` tiene que ser verdadero o falso."}), 400
+    camp.solo_invitados = data["solo_invitados"]
+    db.session.commit()
+    return jsonify({
+        "message": (
+            "Ahora solo inscriben los clubes invitados."
+            if camp.solo_invitados else
+            "Inscriben también tus maestros de siempre, estén invitados o no."
+        ),
+        "solo_invitados": bool(camp.solo_invitados),
+    }), 200
 
 
 @campeonatos_bp.route("/<int:camp_id>/clubes/<int:inv_id>", methods=["DELETE"])

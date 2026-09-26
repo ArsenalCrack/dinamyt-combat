@@ -167,3 +167,136 @@ def informe_de_administradores():
         "con_uno": sum(1 for g in por_org.values() if len(g["admins"]) == 1),
         "sin_organizacion": sin_org,
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════
+#  El traspaso: la organización manda (F4, punto 3 — 25 sep 2026)
+# ══════════════════════════════════════════════════════════════════════════
+#
+# El punto 3 de F4 decía «`es_dueno_campeonato` pasa a comparar `org_id`». No
+# se hizo así, y la razón sigue en pie: RLS filtra por `created_by`, así que un
+# segundo admin de la misma organización vería el campeonato pero NO sus
+# llaves, fichas ni resultados — una consola a medias, peor que ninguna.
+#
+# Lo que resuelve de verdad el caso («cambió el admin de la organización, y el
+# nuevo no ve nada de lo de antes») es MOVER el workspace: que todo lo del
+# admin viejo pase a ser del nuevo, en una transacción, mirándolo antes. Con
+# eso la organización manda sin tocar ni una política de RLS, y el informe de
+# D3 deja de ser solo una lista: cada organización con dos admins se resuelve.
+#
+# Solo el superadministrador, solo entre admins de la MISMA organización, y
+# primero en seco. Se niega si hay choques de documento: en el workspace de
+# destino la ficha es única por documento (F5), y fusionar dos personas a
+# ciegas es peor que pedirle a alguien que lo mire.
+
+# Lo que se mueve: el dueño de cada fila del workspace.
+_TABLAS_DEL_WORKSPACE = (
+    ("campeonatos", "created_by"),
+    ("competidores", "created_by"),
+    ("llaves", "created_by"),
+    ("resultados_publicados", "created_by"),
+    # Las inscripciones que el ADMIN hizo a mano (las de un maestro son suyas
+    # y viven donde vive su campeonato: ver `rls.TABLA_INSCRIPCIONES`).
+    ("inscripciones", "created_by"),
+    # Sus jueces y maestros: los que creó y administra.
+    ("usuarios", "creado_por_id"),
+)
+
+
+class TraspasoInvalido(Exception):
+    def __init__(self, mensaje, codigo=400):
+        super().__init__(mensaje)
+        self.mensaje = mensaje
+        self.codigo = codigo
+
+
+def traspasar_workspace(de_id, a_id, aplicar=False):
+    """
+    Mueve todo lo del admin `de_id` al admin `a_id`. Devuelve el informe:
+
+        {de, a, filas: {tabla: n}, choques: [{documento, de, a}], aplicado}
+
+    En seco (`aplicar=False`) no escribe nada. Lanza `TraspasoInvalido` si los
+    dos no son admins de la misma organización, o si al aplicar hay choques.
+    Quien llama ya comprobó que es el superadministrador.
+    """
+    from sqlalchemy import func, text
+
+    from .models.campeonato import Campeonato
+    from .models.competidor import Competidor
+    from .models.usuario import Usuario
+
+    if de_id == a_id:
+        raise TraspasoInvalido("Elige dos administradores distintos.")
+    de = db.session.get(Usuario, de_id)
+    a = db.session.get(Usuario, a_id)
+    if de is None or a is None or de.rol != "admin" or a.rol != "admin":
+        raise TraspasoInvalido("Los dos tienen que ser administradores.", 404)
+    if de.es_super or a.es_super:
+        raise TraspasoInvalido("El superadministrador no tiene workspace que traspasar.")
+    if not a.activo:
+        raise TraspasoInvalido("Quien recibe tiene que estar activo.")
+    if not de.org_id or de.org_id != a.org_id:
+        raise TraspasoInvalido(
+            "Solo entre administradores de la MISMA organización: es la "
+            "organización la que manda, no la persona."
+        )
+
+    filas = {}
+    for tabla, columna in _TABLAS_DEL_WORKSPACE:
+        filas[tabla] = db.session.execute(
+            text(f"SELECT COUNT(*) FROM {tabla} WHERE {columna} = :de"), {"de": de.id}
+        ).scalar() or 0
+
+    # Choques: el mismo documento en los dos workspaces.
+    docs_a = {
+        d for (d,) in db.session.query(Competidor.documento)
+        .filter(Competidor.created_by == a.id, Competidor.documento.isnot(None))
+    }
+    choques = []
+    if docs_a:
+        for comp in (
+            Competidor.query.filter(
+                Competidor.created_by == de.id, Competidor.documento.in_(docs_a)
+            ).order_by(func.lower(Competidor.nombre_completo)).all()
+        ):
+            otra = Competidor.query.filter_by(created_by=a.id, documento=comp.documento).first()
+            choques.append({
+                "documento": comp.documento,
+                "de": {"id": comp.id, "nombre": comp.nombre_completo},
+                "a": {"id": otra.id, "nombre": otra.nombre_completo} if otra else None,
+            })
+
+    informe = {
+        "de": {"id": de.id, "nombre": de.nombre, "email": de.email},
+        "a": {"id": a.id, "nombre": a.nombre, "email": a.email},
+        "org_id": a.org_id,
+        "filas": filas,
+        "choques": choques,
+        "aplicado": False,
+    }
+    if not aplicar:
+        return informe
+    if choques:
+        raise TraspasoInvalido(
+            f"Hay {len(choques)} ficha(s) con el mismo documento en los dos "
+            "workspaces. Corrige o fusiona esas fichas antes de traspasar.",
+            409,
+        )
+
+    for tabla, columna in _TABLAS_DEL_WORKSPACE:
+        db.session.execute(
+            text(f"UPDATE {tabla} SET {columna} = :a WHERE {columna} = :de"),
+            {"a": a.id, "de": de.id},
+        )
+    # Los campeonatos que no sabían de qué organización eran, ahora sí.
+    Campeonato.query.filter(
+        Campeonato.created_by == a.id, Campeonato.org_id.is_(None)
+    ).update({"org_id": a.org_id}, synchronize_session=False)
+    db.session.commit()
+    log.warning(
+        "[organizacion] TRASPASO: todo lo de %s (%s) pasa a %s (%s), org %s: %s.",
+        de.email, de.id, a.email, a.id, a.org_id, filas,
+    )
+    informe["aplicado"] = True
+    return informe

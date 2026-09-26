@@ -21,6 +21,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   buscarClubesAPI,
+  fijarSoloInvitadosAPI,
   invitarClubAPI,
   listInvitacionesAPI,
   retirarInvitacionAPI,
@@ -41,8 +42,31 @@ function errorDe(err: unknown): string | undefined {
   return (err as { response?: { data?: { error?: string } } }).response?.data?.error;
 }
 
-export default function ClubesInvitados({ campId }: { campId: number }) {
+export default function ClubesInvitados({
+  campId,
+  soloInvitados: soloInicial = false,
+}: {
+  campId: number;
+  soloInvitados?: boolean;
+}) {
   const { t } = useI18n();
+  // «Solo clubes invitados»: con esto encendido, tus maestros de siempre
+  // también necesitan que su club esté en la lista (por nombre basta).
+  const [soloInvitados, setSoloInvitados] = useState(soloInicial);
+  const [cambiandoSolo, setCambiandoSolo] = useState(false);
+
+  async function cambiarSoloInvitados(valor: boolean) {
+    setCambiandoSolo(true);
+    try {
+      const r = await fijarSoloInvitadosAPI(campId, valor);
+      setSoloInvitados(r.solo_invitados);
+      aviso(r.message, "ok");
+    } catch (err) {
+      aviso(errorDe(err) || t("inv.errorSolo"), "error");
+    } finally {
+      setCambiandoSolo(false);
+    }
+  }
   const [invitaciones, setInvitaciones] = useState<InvitacionClub[]>([]);
   const [texto, setTexto] = useState("");
   const [resultados, setResultados] = useState<ClubDelDirectorio[]>([]);
@@ -115,8 +139,21 @@ export default function ClubesInvitados({ campId }: { campId: number }) {
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="card-title">{t("inv.titulo")}</div>
       <p className="text-muted" style={{ fontSize: "0.86rem", margin: "0 0 12px" }}>
-        {t("inv.ayuda")}
+        {t(soloInvitados ? "inv.ayudaSolo" : "inv.ayuda")}
       </p>
+      <label style={{
+        display: "flex", alignItems: "center", gap: 8, cursor: "pointer",
+        fontSize: "0.88rem", fontWeight: 700, margin: "0 0 14px", userSelect: "none",
+      }}>
+        <input
+          type="checkbox"
+          checked={soloInvitados}
+          disabled={cambiandoSolo}
+          onChange={(e) => void cambiarSoloInvitados(e.target.checked)}
+          style={{ accentColor: "var(--gold)", width: 16, height: 16 }}
+        />
+        {t("inv.soloInvitados")}
+      </label>
 
       {/* ── Los invitados ── */}
       {invitaciones.length === 0 ? (

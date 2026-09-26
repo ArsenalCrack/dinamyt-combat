@@ -784,6 +784,34 @@ def informe_de_administradores():
     return jsonify(informe()), 200
 
 
+@auth_bp.route("/organizaciones/traspasar", methods=["POST"])
+@jwt_required()
+def traspasar_workspace():
+    """
+    POST /api/auth/organizaciones/traspasar (solo superadmin)
+    Body: { "de": id, "a": id, "aplicar"?: bool }
+
+    Mueve todo lo de un admin a otro de su MISMA organización (F4, punto 3:
+    ver `organizacion.traspasar_workspace`). Sin `aplicar`, en seco: dice qué
+    se movería y qué choca, y no escribe nada.
+    """
+    current_user = require_admin()
+    if not current_user or not current_user.es_super:
+        return jsonify({"error": "Solo el superadministrador"}), 403
+    data = request.get_json(silent=True) or {}
+    try:
+        de_id, a_id = int(data.get("de")), int(data.get("a"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "`de` y `a` son ids de administradores."}), 400
+    from ..organizacion import TraspasoInvalido, traspasar_workspace as traspasar
+
+    try:
+        informe = traspasar(de_id, a_id, aplicar=data.get("aplicar") is True)
+    except TraspasoInvalido as exc:
+        return jsonify({"error": exc.mensaje}), exc.codigo
+    return jsonify(informe), 200
+
+
 @auth_bp.route("/clubes", methods=["GET"])
 @jwt_required()
 def listar_clubes():

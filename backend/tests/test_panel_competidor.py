@@ -426,9 +426,47 @@ class TestLosResultados:
             "figuras", "FIGURA CON ARMAS", 2, True,
         )
 
+    def test_lo_importado_con_enlace_sale_confirmado(self, mundo):
+        # Desde el 25 sep 2026 el archivo del PC del evento lleva el uid de
+        # cada puesto: lo tuyo es tuyo, no «alguien que se llama como tú».
+        from app.models.resultado_publicado import ResultadoPublicado
+
+        db.session.add(ResultadoPublicado(
+            export_uuid=mundo.export_uuid, nombre="COPA SUR",
+            payload={"resultados": [{
+                "tipo": "combate", "nombre": "COMBATE -45KG",
+                "podio": [
+                    {"puesto": 1, "nombre": "RIVAL", "club": "DOJANG NORTE",
+                     "competidor_uid": "otra-ficha"},
+                    {"puesto": 3, "nombre": "LUZ MARINA", "club": "DOJANG SUR",
+                     "competidor_uid": mundo.ficha_luz["uid"]},
+                ],
+            }]},
+        ))
+        db.session.commit()
+
+        (r,) = _panel(mundo, mundo.luz)["resultados"]
+
+        assert (r["puesto"], r["medalla"], r["confirmado"]) == (3, "bronce", True)
+
+    def test_un_homonimo_con_otro_enlace_no_es_tuyo(self, mundo):
+        from app.models.resultado_publicado import ResultadoPublicado
+
+        db.session.add(ResultadoPublicado(
+            export_uuid=mundo.export_uuid, nombre="COPA SUR",
+            payload={"resultados": [{
+                "tipo": "combate", "nombre": "COMBATE -45KG",
+                "podio": [{"puesto": 1, "nombre": "LUZ MARINA", "club": "DOJANG SUR",
+                           "competidor_uid": "la-de-otra-persona"}],
+            }]},
+        ))
+        db.session.commit()
+
+        assert _panel(mundo, mundo.luz)["resultados"] == []
+
     def test_lo_importado_del_modo_local_sale_por_nombre(self, mundo):
-        # El 9 de octubre se compite en el PC del evento y a internet llega el
-        # archivo de resultados, sin enlace (hasta F8).
+        # Un archivo anterior al 25 sep 2026 (o una llave hecha a mano) llega
+        # sin enlace: se busca por nombre y se dice que es aproximado.
         from app.models.resultado_publicado import ResultadoPublicado
 
         db.session.add(ResultadoPublicado(

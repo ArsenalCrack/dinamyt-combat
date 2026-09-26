@@ -19,6 +19,24 @@ from ..extensions import db
 from ..timeutil import iso_utc
 
 
+def sin_uids(resultados):
+    """Los resultados tal cual, menos el `competidor_uid` de podios y rankings."""
+    limpios = []
+    for r in resultados or []:
+        if not isinstance(r, dict):
+            continue
+        r = dict(r)
+        for lista in ("podio", "ranking"):
+            if isinstance(r.get(lista), list):
+                r[lista] = [
+                    {k: v for k, v in fila.items() if k != "competidor_uid"}
+                    if isinstance(fila, dict) else fila
+                    for fila in r[lista]
+                ]
+        limpios.append(r)
+    return limpios
+
+
 class ResultadoPublicado(db.Model):
     __tablename__ = "resultados_publicados"
 
@@ -51,11 +69,17 @@ class ResultadoPublicado(db.Model):
         }
 
     def to_resultados(self):
-        """Misma forma que el endpoint en vivo, para /resultados/campeonato/:id."""
+        """Misma forma que el endpoint en vivo, para /resultados/campeonato/:id.
+
+        **Sin `competidor_uid`**: el archivo lo trae (desde el 25 sep 2026, para
+        que el panel del competidor confirme lo suyo), pero esta vista es
+        PÚBLICA y el uid es interno (`app/uid.py`). Se quita al servir, no al
+        guardar, porque el panel lo lee del `payload`.
+        """
         payload = self.payload or {}
         return {
             "campeonato": {"id": f"pub:{self.export_uuid}", "nombre": self.nombre},
-            "resultados": payload.get("resultados", []),
+            "resultados": sin_uids(payload.get("resultados", [])),
             "categorias": payload.get("categorias", []),
             "tatamis": payload.get("tatamis", []),
             "publicado": True,

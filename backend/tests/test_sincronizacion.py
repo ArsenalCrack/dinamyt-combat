@@ -857,3 +857,24 @@ def test_un_paquete_no_baja_una_invitacion_ya_aceptada_pero_si_la_retira(destino
     db.session.expire_all()
     estados = {i.org_id: i.estado for i in InvitacionClub.query.all()}
     assert estados == {"org-1": "aceptado", "org-2": "retirado"}
+
+
+# ── «Solo clubes invitados» viaja (versión 7, 25 sep 2026) ───────────────────
+
+def test_el_interruptor_de_solo_invitados_viaja_y_uno_viejo_no_lo_apaga(destino, paquete):
+    assert paquete["version"] >= 7
+    assert paquete["campeonato"]["solo_invitados"] is False
+
+    app, token = destino
+    paquete["campeonato"]["solo_invitados"] = True
+    assert _importar(app, token, paquete).status_code == 200
+
+    from app.models.campeonato import Campeonato
+
+    assert Campeonato.query.one().solo_invitados is True
+
+    # Un paquete anterior a la 7 no trae la clave: no toca lo que hay.
+    del paquete["campeonato"]["solo_invitados"]
+    assert _importar(app, token, paquete).status_code == 200
+    db.session.expire_all()
+    assert Campeonato.query.one().solo_invitados is True

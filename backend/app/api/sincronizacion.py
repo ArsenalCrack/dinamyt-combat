@@ -89,7 +89,9 @@ FORMATOS_VALIDOS = (FORMATO_CAMPEONATO, FORMATO_USUARIOS, FORMATO_COMPETIDORES)
 # estaba todo antes de F4: NULL = «no consta».
 # 6 desde F5 (F6-e): el campeonato viaja con sus clubes invitados. Uno anterior
 # llega sin invitaciones, que es como estaba todo antes de F5.
-VERSION_PAQUETE = 6
+# 7 desde «solo clubes invitados» (25 sep 2026): el campeonato viaja con su
+# interruptor. Uno anterior no lo trae y no se toca lo que hubiera.
+VERSION_PAQUETE = 7
 
 # Tope del archivo subido (25 MB). Un campeonato de 1000 competidores con sus
 # llaves ronda los 3 MB; más que esto no es un paquete de DINAMYT.
@@ -191,6 +193,8 @@ def _campeonato_a_dict(camp):
         # Quién lo organiza (F6-d). Al volver de la instalación del evento
         # hace falta para que siga siendo de esa organización.
         "org_id": camp.org_id,
+        # Si en el PC del evento siguen inscribiendo solo los invitados.
+        "solo_invitados": bool(camp.solo_invitados),
     }
 
 
@@ -872,6 +876,9 @@ def _importar_campeonato(datos, admin, informe):
     camp.activo = bool(datos.get("activo", True))
     if isinstance(datos.get("config_categorias"), dict):
         camp.config_categorias = datos["config_categorias"]
+    # Solo si el paquete lo trae (versión 7): uno anterior no lo apaga.
+    if isinstance(datos.get("solo_invitados"), bool):
+        camp.solo_invitados = datos["solo_invitados"]
     _poner_organizacion(
         camp, _texto(datos.get("org_id"), 64) or None, None, informe,
         quien=f"El campeonato '{camp.nombre}'",

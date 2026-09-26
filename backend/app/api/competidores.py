@@ -32,10 +32,12 @@ from ..invitaciones import (
     CASA,
     INVITADO,
     campeonato_para_el_maestro,
+    invitacion_de_la_casa,
     invitaciones_de,
     marcar_aceptada,
 )
 from ..rls import en_workspace, sin_workspace
+from ..espejo import miembros_del_club
 from .scoping import (
     es_dueno_campeonato,
     es_dueno_competidor,
@@ -1071,6 +1073,55 @@ def _ficha_del_alumno(maestro, uid_pedido, datos, workspace=None):
     return nueva, False, None, None
 
 
+def _datos_de_dinamyt(miembro):
+    """Lo que DINAMYT sabe de esa persona, con las claves de la ficha.
+
+    Solo lo que viene y es válido: un documento o una fecha que aquí no pasan
+    la validación se quedan fuera (los pone el maestro) en vez de tumbar la
+    inscripción entera por un dato que no es suyo.
+    """
+    datos = {"nombre_completo": miembro.get("fullName")}
+    if miembro.get("birthDate"):
+        fecha, error = _validar_fecha_nacimiento(miembro["birthDate"])
+        if not error:
+            datos["fecha_nacimiento"] = fecha.isoformat()
+    genero = _norm_genero(miembro.get("gender"))
+    if genero:
+        datos["genero"] = genero
+    doc, error = _validar_documento(miembro.get("documentId"))
+    if doc and not error:
+        datos["documento"] = doc
+    return datos
+
+
+def _ficha_de_la_cuenta(sub, datos, workspace):
+    """(competidor, reutilizada, error, codigo) de una persona con cuenta de DINAMYT.
+
+    · Ya tiene ficha enlazada en este workspace → esa.
+    · Hay una ficha SIN enlace con su documento → esa, y queda enlazada. Es la
+      persona que ya competía antes de tener cuenta.
+    · Una ficha con su documento enlazada a OTRA cuenta → 409: son dos
+      personas que dicen tener el mismo documento, y eso lo mira el admin.
+    · Nada → ficha nueva, ya enlazada.
+    """
+    comp = Competidor.query.filter_by(created_by=workspace, eco_sub=sub).first()
+    if comp is not None:
+        return comp, True, None, None
+    doc = datos.get("documento")
+    if doc:
+        previa = Competidor.query.filter_by(documento=doc, created_by=workspace).first()
+        if previa is not None:
+            if previa.eco_sub and previa.eco_sub != sub:
+                return None, False, (
+                    "Ese documento ya es de la ficha de otra cuenta de DINAMYT. "
+                    "Pídele al administrador del campeonato que lo revise."
+                ), 409
+            previa.eco_sub = sub
+            return previa, True, None, None
+    nueva = Competidor(nombre_completo="", activo=True, created_by=workspace, eco_sub=sub)
+    return nueva, False, None, None
+
+
 @inscripciones_bp.route("/maestro/campeonatos", methods=["GET"])
 @jwt_required()
 def maestro_campeonatos():
@@ -1106,6 +1157,12 @@ def maestro_campeonatos():
         for c in camps:
             de_la_casa = c.created_by == workspace_owner_id(maestro)
             invitacion = invitaciones.get(c.id)
+            # «Solo clubes invitados»: el de la casa que no invitó a su club no
+            # se le ofrece — la puerta le diría 403 (ver `app/invitaciones.py`).
+            if de_la_casa and c.solo_invitados and invitacion is None:
+                invitacion = invitacion_de_la_casa(c, maestro)
+                if invitacion is None:
+                    continue
             cuerpo.append({
                 "id": c.id,
                 "nombre": c.nombre,
@@ -1196,6 +1253,83 @@ def maestro_alumnos():
         ]), 200
 
 
+@inscripciones_bp.route("/maestro/miembros", methods=["GET"])
+@jwt_required()
+def maestro_miembros():
+    """
+    GET /api/inscripciones/maestro/miembros?campeonato_id=
+
+    La gente de su club en DINAMYT, para inscribirla sin teclearla (punto 2
+    de lo que quedaba del plan, 25 sep 2026). Hasta aquí el maestro elegía
+    entre SUS fichas de Campeonatos, y a quien competía por primera vez lo
+    daba de alta a mano: la ficha nacía sin enlace a su cuenta y la persona
+    tenía que reclamarla después con documento y fecha.
+
+    Devuelve `{disponible, motivo?, miembros}`. **Sin el documento**: lo
+    necesita la ficha y viaja de servidor a servidor al inscribir, pero la
+    lista es para elegir, y elegir no lo necesita. Con `campeonato_id`, cada
+    uno dice si ya tiene ficha en el workspace de ese campeonato y si ya está
+    inscrito.
+    """
+    maestro = require_maestro()
+    if not maestro:
+        return jsonify({"error": "Solo maestros"}), 403
+    if not maestro.eco_sub:
+        # Entró con la contraseña de esta instalación: DINAMYT no sabe quién es.
+        return jsonify({"disponible": False, "motivo": "sin_cuenta", "miembros": []}), 200
+
+    workspace = workspace_owner_id(maestro)
+    camp_id = request.args.get("campeonato_id")
+    if camp_id:
+        try:
+            camp_id = int(camp_id)
+        except (TypeError, ValueError):
+            return jsonify({"error": "campeonato_id inválido"}), 400
+        camp, _, _, error, codigo = campeonato_para_el_maestro(maestro, camp_id)
+        if error:
+            return jsonify({"error": error}), codigo
+        workspace = camp.created_by
+
+    lista = miembros_del_club(maestro.eco_sub)
+    if lista is None:
+        return jsonify({"disponible": False, "motivo": "sin_dinamyt", "miembros": []}), 200
+
+    subs = [str(m["sub"]) for m in lista]
+    with en_workspace(workspace):
+        fichas = {
+            str(c.eco_sub): c
+            for c in Competidor.query.filter(
+                Competidor.created_by == workspace, Competidor.eco_sub.in_(subs or [""])
+            ).all()
+        }
+        estados = {}
+        if camp_id and fichas:
+            estados = dict(
+                db.session.query(Inscripcion.competidor_id, Inscripcion.estado)
+                .filter(
+                    Inscripcion.campeonato_id == camp_id,
+                    Inscripcion.competidor_id.in_([c.id for c in fichas.values()]),
+                ).all()
+            )
+
+    miembros = []
+    for m in lista:
+        ficha = fichas.get(str(m["sub"]))
+        datos = _datos_de_dinamyt(m)
+        miembros.append({
+            "eco_sub": str(m["sub"]),
+            "nombre_completo": _mayusculas(datos.get("nombre_completo") or ""),
+            "fecha_nacimiento": datos.get("fecha_nacimiento"),
+            "genero": datos.get("genero"),
+            "club": (m.get("club") or {}).get("name"),
+            "sin_acceso": bool(m.get("sinAcceso")),
+            "ficha_uid": ficha.uid if ficha is not None else None,
+            "inscrito": ficha is not None and ficha.id in estados,
+            "estado_inscripcion": estados.get(ficha.id) if ficha is not None else None,
+        })
+    return jsonify({"disponible": True, "miembros": miembros}), 200
+
+
 @inscripciones_bp.route("/maestro/campeonato/<int:camp_id>", methods=["POST"])
 @jwt_required()
 def maestro_inscribir(camp_id):
@@ -1262,9 +1396,31 @@ def _inscribir_como_maestro(maestro, campeonato, invitacion):
         if error:
             return jsonify({"error": error}), 400
 
-    comp, reutilizada, error, codigo = _ficha_del_alumno(
-        maestro, data.get("competidor_uid"), datos, workspace=campeonato.created_by
-    )
+    eco_sub = str(data.get("eco_sub") or "").strip()
+    if eco_sub:
+        # Alguien de su club en DINAMYT (punto 2, 25 sep 2026). Se vuelve a
+        # preguntar AQUÍ, con la sesión del maestro: que el navegador mande un
+        # `eco_sub` no prueba nada, y enlazar una ficha a una cuenta es darle
+        # a esa persona sus resultados.
+        if not maestro.eco_sub:
+            return jsonify({"error": "Entra con tu cuenta de DINAMYT para inscribir a la gente de tu club."}), 409
+        encontrados = miembros_del_club(maestro.eco_sub, persona=eco_sub)
+        if encontrados is None:
+            return jsonify({"error": "No se pudo comprobar con DINAMYT. Inténtalo de nuevo en un momento."}), 503
+        miembro = next((m for m in encontrados if str(m.get("sub")) == eco_sub), None)
+        if miembro is None:
+            # 404 y no 403: no se confirma que esa cuenta exista en otro club.
+            return jsonify({"error": "Esa persona no es de tu club en DINAMYT."}), 404
+        # Lo que dice DINAMYT de quién es esa persona manda sobre lo tecleado:
+        # nombre, fecha, género y documento son suyos, no del formulario.
+        datos.update(_datos_de_dinamyt(miembro))
+        comp, reutilizada, error, codigo = _ficha_de_la_cuenta(
+            eco_sub, datos, campeonato.created_by
+        )
+    else:
+        comp, reutilizada, error, codigo = _ficha_del_alumno(
+            maestro, data.get("competidor_uid"), datos, workspace=campeonato.created_by
+        )
     if error:
         return jsonify({"error": error}), codigo
 

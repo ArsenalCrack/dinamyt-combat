@@ -323,6 +323,14 @@ export async function invitarClubAPI(
   return res.data as { message: string; invitacion: InvitacionClub };
 }
 
+/** «Solo clubes invitados»: cierra la puerta vieja de «los maestros que creé». */
+export async function fijarSoloInvitadosAPI(campId: number, soloInvitados: boolean) {
+  const res = await api.put(`/campeonatos/${campId}/clubes/solo-invitados`, {
+    solo_invitados: soloInvitados,
+  });
+  return res.data as { message: string; solo_invitados: boolean };
+}
+
 export async function retirarInvitacionAPI(campId: number, invId: number) {
   const res = await api.delete(`/campeonatos/${campId}/clubes/${invId}`);
   return res.data as { message: string; invitacion: InvitacionClub };
@@ -359,6 +367,21 @@ export interface InformeAdministradores {
 export async function informeAdministradoresAPI() {
   const res = await api.get("/auth/organizaciones/administradores");
   return res.data as InformeAdministradores;
+}
+
+/** Lo que dice (o hace) un traspaso de workspace entre dos admins (F4, punto 3). */
+export interface InformeTraspaso {
+  de: AdminDelInforme;
+  a: AdminDelInforme;
+  org_id: string;
+  filas: Record<string, number>;
+  choques: { documento: string; de: { id: number; nombre: string }; a: { id: number; nombre: string } | null }[];
+  aplicado: boolean;
+}
+
+export async function traspasarWorkspaceAPI(de: number, a: number, aplicar = false) {
+  const res = await api.post("/auth/organizaciones/traspasar", { de, a, aplicar });
+  return res.data as InformeTraspaso;
 }
 
 export async function deleteUserAPI(id: number) {
@@ -1183,11 +1206,43 @@ export async function maestroAlumnosAPI(campeonatoId?: number) {
   return res.data as AlumnoMaestro[];
 }
 
+/**
+ * Alguien de su club en DINAMYT (punto 2 de lo que quedaba del plan). Sin el
+ * documento: lo necesita la ficha, pero viaja de servidor a servidor al
+ * inscribir, no por la pantalla.
+ */
+export interface MiembroDinamyt {
+  eco_sub: string;
+  nombre_completo: string;
+  fecha_nacimiento: string | null;
+  genero: "MASCULINO" | "FEMENINO" | null;
+  club: string | null;
+  /** Membresías le cortó el acceso en ese club: se enseña, no se esconde. */
+  sin_acceso: boolean;
+  /** Ya tiene ficha en el workspace del campeonato (se reutiliza). */
+  ficha_uid: string | null;
+  inscrito: boolean;
+  estado_inscripcion: EstadoInscripcion | null;
+}
+
+export async function maestroMiembrosAPI(campeonatoId: number) {
+  const res = await api.get("/inscripciones/maestro/miembros", {
+    params: { campeonato_id: campeonatoId },
+  });
+  return res.data as {
+    disponible: boolean;
+    motivo?: "sin_cuenta" | "sin_dinamyt";
+    miembros: MiembroDinamyt[];
+  };
+}
+
 export async function maestroInscribirAPI(
   campeonatoId: number,
   data: {
     /** Con uid se reutiliza la ficha; sin él se crea (primera vez que compite). */
     competidor_uid?: string | null;
+    /** Alguien de su club en DINAMYT: la ficha nace (o queda) enlazada a su cuenta. */
+    eco_sub?: string | null;
     competidor: CompetidorInput;
     modalidades?: string[];
     peso?: number | null;

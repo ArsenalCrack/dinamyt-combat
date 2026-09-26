@@ -636,6 +636,76 @@ def alta_de_juez_en_dinamyt(email, nombre, org_id, invitado_por=None):
     return datos
 
 
+def miembros_del_club(maestro_sub, persona=None):
+    """
+    La gente de los clubes donde este maestro es maestro o coach en DINAMYT.
+
+    `GET /sync/miembros` por el canal servidor-a-servidor (punto 2 de lo que
+    quedaba del plan, 25 sep 2026). La regla de a quién se le contesta la
+    aplica DINAMYT, no esto: aquí solo se pregunta en nombre del maestro que
+    tiene la sesión. Con `persona`, solo esa cuenta: es como se vuelve a
+    comprobar al inscribir, sin fiarse de lo que mande el navegador.
+
+    Devuelve la lista `[{sub, fullName, birthDate, gender, documentId, club,
+    sinAcceso}]`, o **None si no se pudo preguntar** (sin el puente, o sin
+    red). Quien llama lo dice; nunca inventa la respuesta.
+    """
+    from urllib.parse import urlencode
+
+    secreto = os.getenv("ECOSYSTEM_SYNC_SECRET", "").strip()
+    raiz = url_api_ecosistema()
+    if not secreto or not raiz or not maestro_sub:
+        return None
+    consulta = {"maestro": str(maestro_sub)}
+    if persona:
+        consulta["persona"] = str(persona)
+    try:
+        peticion = Request(
+            f"{raiz}/sync/miembros?{urlencode(consulta)}",
+            headers={"x-dinamyt-sync": secreto},
+            method="GET",
+        )
+        with urlopen(peticion, timeout=ESPERA_ALTA_SEG) as respuesta:
+            datos = json.loads(respuesta.read().decode("utf-8"))
+    except HTTPError as exc:
+        log.warning("[ecosistema] los miembros del club no llegaron (%s).", exc.code)
+        return None
+    except (URLError, ValueError, OSError) as exc:
+        log.warning("[ecosistema] no se pudo preguntar por los miembros: %s", exc)
+        return None
+    if not isinstance(datos, list):
+        return None
+    return [m for m in datos if isinstance(m, dict) and m.get("sub") and m.get("fullName")]
+
+
+def avisar_invitacion_a_club(org_id, campeonato, organiza=None):
+    """
+    Le dice al club, en su campana de DINAMYT, que lo invitaron a un campeonato.
+
+    `POST /sync/aviso-campeonato`. **Falla hacia fuera en silencio**, como el
+    resto del espejo: la invitación ya está guardada cuando se llama esto, y un
+    aviso perdido no puede deshacerla. Devuelve True si el aviso llegó, para
+    que la pantalla diga la verdad («se le avisó» o no).
+    """
+    secreto = os.getenv("ECOSYSTEM_SYNC_SECRET", "").strip()
+    raiz = url_api_ecosistema()
+    if not secreto or not raiz or not org_id:
+        return False
+    cuerpo = {"orgId": str(org_id), "campeonato": campeonato, "organiza": organiza}
+    try:
+        peticion = Request(
+            f"{raiz}/sync/aviso-campeonato",
+            data=json.dumps(cuerpo).encode("utf-8"),
+            headers={"content-type": "application/json", "x-dinamyt-sync": secreto},
+            method="POST",
+        )
+        with urlopen(peticion, timeout=ESPERA_CLUB_SEG):
+            return True
+    except (URLError, ValueError, OSError) as exc:
+        log.warning("[ecosistema] el club %s no recibió el aviso: %s", org_id, exc)
+        return False
+
+
 def buscar_clubes(texto=None, federacion=None):
     """
     El directorio de clubes del ecosistema, para invitarlos a un campeonato (F5).

@@ -276,6 +276,49 @@ def test_los_resultados_publicos_no_ensenan_el_enlace(entorno):
     assert "competidor_uid" not in r.get_data(as_text=True)
 
 
+def test_el_archivo_que_viaja_a_internet_si_lleva_el_enlace(entorno):
+    """El archivo de resultados (USB o cartero) no es público: lleva el uid.
+
+    Sin él, lo competido en el PC del evento llegaba a internet solo con
+    nombres y el panel del competidor lo enseñaba «sin confirmar».
+    """
+    app, camp_id, _, _ = entorno
+    from app.api.resultados import sobre_de_resultados
+    from app.models.campeonato import Campeonato
+    from app.models.llave import Llave
+
+    db.session.add(Llave(campeonato_id=camp_id, tipo="combate", nombre="FINAL",
+                         estado="terminada", estructura=_llave_con_campeon()))
+    db.session.commit()
+
+    sobre = sobre_de_resultados(db.session.get(Campeonato, camp_id))
+    (final,) = [r for r in sobre["resultados"] if r["nombre"] == "FINAL"]
+    assert [(p["puesto"], p.get("competidor_uid")) for p in final["podio"]] == [
+        (1, "uid-ana"), (2, "uid-bea"),
+    ]
+
+
+def test_lo_publicado_tampoco_ensena_el_enlace(entorno):
+    """Se guarda con el uid (el panel lo lee) y se sirve sin él."""
+    app, camp_id, _, cabecera = entorno
+    from app.api.resultados import sobre_de_resultados
+    from app.models.campeonato import Campeonato
+    from app.models.llave import Llave
+
+    db.session.add(Llave(campeonato_id=camp_id, tipo="combate", nombre="FINAL",
+                         estado="terminada", estructura=_llave_con_campeon()))
+    db.session.commit()
+    sobre = sobre_de_resultados(db.session.get(Campeonato, camp_id))
+    cliente = app.test_client()
+    assert cliente.post("/api/resultados/importar", json=sobre, headers=cabecera).status_code == 200
+
+    r = cliente.get(f"/api/resultados/campeonato/pub:{sobre['export_uuid']}")
+
+    assert r.status_code == 200
+    assert "ANA" in r.get_data(as_text=True)
+    assert "competidor_uid" not in r.get_data(as_text=True)
+
+
 # ── 5 · Figuras: el enlace entra por el servidor ─────────────────────────
 
 class TestFiguras:

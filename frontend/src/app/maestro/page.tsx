@@ -6,6 +6,7 @@ import {
   maestroAlumnosAPI,
   maestroCampeonatosAPI,
   maestroInscribirAPI,
+  maestroMiembrosAPI,
   maestroMisInscripcionesAPI,
   maestroReenviarAPI,
   misTatamisAPI,
@@ -13,6 +14,7 @@ import {
   type ClubMaestro,
   type InscripcionData,
   type MaestroCampeonato,
+  type MiembroDinamyt,
   type UserData,
 } from "@/lib/api";
 import CompetidorFormFields, {
@@ -59,6 +61,14 @@ export default function MaestroPage() {
   const [alumnoUid, setAlumnoUid] = useState<string | null>(null);
   const [buscaAlumno, setBuscaAlumno] = useState("");
   const [cargandoAlumnos, setCargandoAlumnos] = useState(false);
+
+  // La gente de su club en DINAMYT (punto 2 del plan, 25 sep 2026): quien
+  // compite por primera vez ya no se teclea, se elige, y su ficha nace
+  // enlazada a su cuenta. `null` = todavía no se sabe si hay DINAMYT.
+  const [miembros, setMiembros] = useState<MiembroDinamyt[]>([]);
+  const [miembrosMotivo, setMiembrosMotivo] = useState<string | null>(null);
+  const [miembroSub, setMiembroSub] = useState<string | null>(null);
+  const [buscaMiembro, setBuscaMiembro] = useState("");
 
   // Re-envío de inscripción rechazada
   const [reenvioId, setReenvioId] = useState<number | null>(null);
@@ -121,21 +131,47 @@ export default function MaestroPage() {
     setAlumnoUid(null);
     setBuscaAlumno("");
     setAlumnos([]);
+    setMiembroSub(null);
+    setBuscaMiembro("");
+    setMiembros([]);
+    setMiembrosMotivo(null);
     setCargandoAlumnos(true);
-    try {
+    const [fichados, deDinamyt] = await Promise.allSettled([
       // Con el campeonato: cada alumno dice si ya está inscrito ahí, para no
       // ofrecerlo dos veces.
-      setAlumnos(await maestroAlumnosAPI(campId));
-    } catch {
-      // Sin lista se sigue pudiendo teclear, que es como funcionaba antes.
-    } finally {
-      setCargandoAlumnos(false);
+      maestroAlumnosAPI(campId),
+      maestroMiembrosAPI(campId),
+    ]);
+    // Sin lista se sigue pudiendo teclear, que es como funcionaba antes.
+    if (fichados.status === "fulfilled") setAlumnos(fichados.value);
+    if (deDinamyt.status === "fulfilled") {
+      setMiembros(deDinamyt.value.miembros);
+      setMiembrosMotivo(deDinamyt.value.disponible ? null : deDinamyt.value.motivo ?? null);
     }
+    setCargandoAlumnos(false);
+  }
+
+  /**
+   * Elegir a alguien de su club en DINAMYT: nombre, fecha y género vienen de
+   * su cuenta (y el servidor los vuelve a pedir allí al inscribir, así que no
+   * se pueden cambiar desde aquí). El maestro pone cinturón y peso.
+   */
+  function elegirMiembro(mb: MiembroDinamyt) {
+    setMiembroSub(mb.eco_sub);
+    setAlumnoUid(null);
+    setForm({
+      ...COMPETIDOR_FORM_VACIO,
+      club,
+      nombre_completo: mb.nombre_completo,
+      fecha_nacimiento: mb.fecha_nacimiento ?? "",
+      genero: mb.genero ?? "",
+    });
   }
 
   /** Elegir a un alumno ya fichado: su ficha rellena el formulario. */
   function elegirAlumno(a: AlumnoMaestro) {
     setAlumnoUid(a.uid);
+    setMiembroSub(null);
     // El club guardado se traduce al nombre TAL Y COMO lo tiene el maestro:
     // el desplegable ofrece esos y solo esos (ver `clubesPropios`).
     const suyo = nombresClubes.find(
@@ -149,7 +185,9 @@ export default function MaestroPage() {
   /** Volver al formulario en blanco: el que compite por primera vez. */
   function nuevoAlumno() {
     setAlumnoUid(null);
+    setMiembroSub(null);
     setBuscaAlumno("");
+    setBuscaMiembro("");
     setForm({ ...COMPETIDOR_FORM_VACIO, club });
   }
 
@@ -169,6 +207,7 @@ export default function MaestroPage() {
         // Con uid se reutiliza la ficha; sin él se crea, que es como se da de
         // alta a quien compite por primera vez.
         competidor_uid: alumnoUid,
+        eco_sub: miembroSub,
         competidor: formToPayload(form),
         modalidades,
       });
@@ -331,6 +370,88 @@ export default function MaestroPage() {
     );
   }
 
+  /**
+   * La gente de su club en DINAMYT. Solo aparece si hay algo que ofrecer: sin
+   * cuenta de DINAMYT (entró con contraseña) o sin conexión, se dice una vez
+   * en pequeño y el formulario sigue como siempre.
+   */
+  function selectorMiembros() {
+    if (cargandoAlumnos || alumnoUid) return null;
+    if (miembrosMotivo) {
+      return (
+        <div className="alumnos-aviso">
+          {t(miembrosMotivo === "sin_cuenta" ? "maestro.miembrosSinCuenta" : "maestro.miembrosSinDinamyt")}
+        </div>
+      );
+    }
+    if (!miembros.length) return null;
+
+    const elegido = miembros.find((mb) => mb.eco_sub === miembroSub) || null;
+    if (elegido) {
+      return (
+        <div className="alumno-elegido">
+          <div style={{ minWidth: 0 }}>
+            <div className="microetiqueta">{t("maestro.cuentaDinamyt")}</div>
+            <div style={{ fontWeight: 700, overflowWrap: "anywhere" }}>
+              {elegido.nombre_completo}
+            </div>
+            <div className="alumnos-datos">{t("maestro.datosDeDinamyt")}</div>
+          </div>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={nuevoAlumno}>
+            {t("maestro.elegirOtro")}
+          </button>
+        </div>
+      );
+    }
+
+    const busca = buscaMiembro.trim().toUpperCase();
+    const filtrados = busca
+      ? miembros.filter((mb) => mb.nombre_completo.toUpperCase().includes(busca))
+      : miembros;
+
+    return (
+      <div className="alumnos-lista">
+        <div className="microetiqueta">{t("maestro.deTuClub")}</div>
+        <input
+          className="input"
+          value={buscaMiembro}
+          onChange={(e) => setBuscaMiembro(e.target.value)}
+          placeholder={t("maestro.buscarAlumno")}
+        />
+        <div className="alumnos-scroll">
+          {filtrados.length === 0 ? (
+            <p className="muted" style={{ margin: 0, padding: "6px 2px", fontSize: "0.85rem" }}>
+              {t("maestro.sinCoincidencias")}
+            </p>
+          ) : (
+            filtrados.map((mb) => (
+              <button
+                key={mb.eco_sub}
+                type="button"
+                className="alumnos-fila"
+                disabled={mb.inscrito}
+                onClick={() => elegirMiembro(mb)}
+              >
+                <span style={{ fontWeight: 700, overflowWrap: "anywhere" }}>
+                  {mb.nombre_completo}
+                </span>
+                <span className="alumnos-datos">
+                  {[mb.fecha_nacimiento, mb.club].filter(Boolean).join(" · ")}
+                </span>
+                {mb.inscrito && (
+                  <span className="badge badge-gray">{t("maestro.yaInscrito")}</span>
+                )}
+                {!mb.inscrito && mb.sin_acceso && (
+                  <span className="badge badge-gray">{t("maestro.sinAccesoMembresias")}</span>
+                )}
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (!user) return null;
 
   /** La ficha del dojang elegido en un formulario (para enseñar SU delegación). */
@@ -481,7 +602,8 @@ export default function MaestroPage() {
                   <form onSubmit={(e) => enviar(e, c.id)} className="card animate-slide"
                     style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 12, borderColor: "var(--gold-border)" }}>
                     {infoOrigen(form.club)}
-                    {selectorAlumnos()}
+                    {!miembroSub && selectorAlumnos()}
+                    {selectorMiembros()}
                     {alumnoUid && (
                       <p className="alumnos-aviso" style={{ margin: 0 }}>
                         {t("maestro.soloElPeso")}

@@ -65,6 +65,8 @@ OPTIONAL_COLUMNS = {
         # La organización que lo organiza (F4). La rellena `rellenar_org_de_
         # campeonatos` con la de su creador, en cuanto se conoce.
         "org_id": "VARCHAR(64)",
+        # «Solo clubes invitados» (25 sep 2026). NULL cuenta como apagado.
+        "solo_invitados": "BOOLEAN",
     },
     "competidores": {
         "uid": "VARCHAR(32)",

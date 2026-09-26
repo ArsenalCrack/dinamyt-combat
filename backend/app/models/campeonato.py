@@ -56,6 +56,12 @@ class Campeonato(db.Model):
     # saber quién invita a quién, y el día que haya un solo administrador por
     # organización las dos cosas dirán lo mismo (ver PLAN-CAMPEONATOS, F4).
     org_id = db.Column(db.String(64), nullable=True, index=True)
+    # «Solo clubes invitados» (punto 3 de lo que quedaba del plan, 25 sep 2026).
+    # Con esto encendido se cierra la puerta vieja —«el campeonato es del admin
+    # que me creó»—: entra solo el club que esté en «Clubes invitados», por su
+    # organización o, dentro del propio workspace, por su nombre. Apagado es
+    # como siempre, y NULL (bases viejas) cuenta como apagado.
+    solo_invitados = db.Column(db.Boolean, default=False, nullable=True)
     created_at = db.Column(
         db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
@@ -87,6 +93,7 @@ class Campeonato(db.Model):
             "activo": self.activo,
             "created_by": self.created_by,
             "org_id": self.org_id,
+            "solo_invitados": bool(self.solo_invitados),
             "created_at": iso_utc(self.created_at),
             "num_tatamis": self.tatamis.count() if self.tatamis else 0,
             "num_inscripciones": num_aceptadas,
