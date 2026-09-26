@@ -326,6 +326,48 @@ def mostrar_qr(url):
 
 # ── El guion ───────────────────────────────────────────────────────────────
 
+# ── 3 . El secreto de las sesiones es de ESTE PC ─────────────────────────────
+#
+# Revisión de seguridad del 25 sep 2026. Las sesiones y los QR de los jueces se
+# firman con `JWT_SECRET_KEY`. Si `backend/.env` trae el valor de ejemplo —o no
+# lo trae y el backend cae al de desarrollo—, ese valor está en el repositorio:
+# cualquiera en la WiFi del evento que lo conozca fabrica un token de
+# administrador y toca marcadores y llaves. Se genera uno propio la primera vez
+# y se guarda en `.env`, así que los QR repartidos siguen valiendo al reiniciar.
+
+SECRETOS_DE_EJEMPLO = {
+    "",
+    "dinamyt-dev-secret-key",
+    "dinamyt-dev-secret-key-2026",
+    "dinamyt-dev-secret-key-change-in-production",
+    "CAMBIAR-POR-UN-VALOR-ALEATORIO-LARGO",
+}
+
+
+def asegurar_secreto():
+    """Pone un `JWT_SECRET_KEY` propio en backend/.env si falta o es de ejemplo.
+
+    Devuelve True si lo acaba de generar (los QR de antes dejan de valer: se
+    dice, para repartirlos otra vez la víspera y no la mañana del evento).
+    """
+    import secrets
+
+    ruta = BACKEND / ".env"
+    lineas = ruta.read_text(encoding="utf-8").splitlines() if ruta.exists() else []
+    actual = None
+    for linea in lineas:
+        if linea.strip().startswith("JWT_SECRET_KEY="):
+            actual = linea.split("=", 1)[1].strip().strip('"').strip("'")
+    if actual is not None and actual not in SECRETOS_DE_EJEMPLO and len(actual) >= 32:
+        return False
+
+    nuevo = f"JWT_SECRET_KEY={secrets.token_hex(32)}"
+    lineas = [l for l in lineas if not l.strip().startswith("JWT_SECRET_KEY=")]
+    lineas.append(nuevo)
+    ruta.write_text("\n".join(lineas) + "\n", encoding="utf-8")
+    return True
+
+
 def comprobaciones(salir_si_falla=True):
     """Las dos comprobaciones previas. True si se puede arrancar."""
     decir(SEPARADOR)
@@ -360,6 +402,12 @@ def comprobaciones(salir_si_falla=True):
         decir(" Si es DINAMYT de un arranque anterior, corre APAGAR.bat.")
         decir(" Si es otro programa, cierralo y vuelve a intentarlo.")
         return False
+
+    if asegurar_secreto():
+        decir("  Secreto de sesiones: GENERADO para este PC (estaba el de ejemplo).")
+        decir("  Los QR de jueces anteriores ya no valen: generalos otra vez.")
+    else:
+        decir("  Secreto de sesiones: propio de este PC")
 
     return True
 

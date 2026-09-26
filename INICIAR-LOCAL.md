@@ -320,3 +320,18 @@ subir; si corriges un podio, sube la corrección.
   `http://NUEVA-IP:3000` en los celulares. (Por eso conviene reservar la IP.)
 - **Reiniciar desde cero la base de datos:** cierra todo y borra la carpeta
   `backend/instance/`; al volver a iniciar se recrea con el admin y las categorías.
+- **Un juez no puede entrar a puntuar** («No estás asignado a este tatami con
+  ese papel», o «Para puntuar hay que entrar con tu usuario o con el QR»).
+  Desde el 25 de septiembre de 2026 solo puntúa quien tiene permiso: el admin
+  dueño del campeonato, o el juez **asignado a ese tatami con ese papel**. Lo
+  normal es que falte la asignación: asígnalo en el tatami y dale su QR otra
+  vez. **Si con gente delante no hay forma**, la salida de emergencia es
+  `TATAMI_SIN_IDENTIDAD=1` en `backend/.env` y reiniciar el backend (APAGAR.bat
+  e INICIAR.bat): vuelve a dejar puntuar sin identidad, como antes. **Quítalo al
+  terminar** — con eso puesto, cualquiera en el WiFi puede puntuar.
+- **Los QR de los jueces dejaron de valer tras actualizar:** la primera vez,
+  INICIAR.bat genera un secreto de sesiones propio para este PC (el de ejemplo
+  está en el repositorio y con él cualquiera fabricaba una sesión de
+  administrador). Los QR anteriores se firmaron con el viejo: genéralos otra
+  vez. Pasa una sola vez; por eso conviene correr `INICIAR.bat --comprobar`
+  **la víspera**.

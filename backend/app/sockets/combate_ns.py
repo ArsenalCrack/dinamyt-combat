@@ -244,6 +244,95 @@ ROL_LABELS = {
 }
 
 
+# ══════════════════════════════════════════════════════════════════════════
+#  Quién puede puntuar (revisión de seguridad del 25 sep 2026)
+# ══════════════════════════════════════════════════════════════════════════
+#
+# Hasta aquí la autenticación del socket era OPCIONAL: cualquiera que abriera
+# `/combate?tatami_id=N&rol=arbitro` —sin token— entraba como Juez Central,
+# echaba al de verdad (el «takeover» de abajo) y mandaba eventos. Y el juez de
+# un `punto_juez` salía del PAYLOAD, así que hasta la pantalla pública podía
+# sumar puntos a nombre del Juez 1. En la instalación de internet eso es
+# cualquiera; en el evento, cualquiera en la WiFi.
+#
+# Ahora, para los papeles que puntúan (`ROL_LABELS`), hace falta un token de
+# esta instalación de alguien activo que sea: superadmin, admin dueño del
+# campeonato de ese tatami, o juez ASIGNADO a ese tatami con ESE papel (el QR
+# del juez es exactamente eso). La pantalla sigue sin pedir nada, y es de solo
+# lectura. Y el juez de cada evento es el de la conexión, no el que diga el
+# mensaje (`JUEZ_DEL_EVENTO`).
+#
+# ── La salida de emergencia ──
+#
+# `TATAMI_SIN_IDENTIDAD=1` en el `.env` devuelve el comportamiento de antes.
+# Existe para el PC del evento, el día que algo de esto falle con gente
+# delante: se enciende, se reinicia el backend, y se apaga al terminar
+# (`INICIAR-LOCAL.md` §8). No es un modo de trabajo.
+
+# El campo del mensaje que dice qué juez puntúa. Tiene que ser el papel de la
+# conexión: el frontend manda siempre el suyo.
+JUEZ_DEL_EVENTO = {
+    "punto_juez": "juez",
+    "deshacer_juez": "juez",
+    "puntuar": "juez_id",
+    "confirmar_puntuacion": "juez_id",
+}
+
+SIN_TOKEN = (
+    "Para puntuar hay que entrar con tu usuario o con el QR de tu tatami."
+)
+TOKEN_INVALIDO = (
+    "Tu sesión ya no vale: vuelve a entrar o escanea otra vez el QR de tu tatami."
+)
+NO_ASIGNADO = "No estás asignado a este tatami con ese papel. Pídeselo al administrador."
+
+
+def _sin_identidad_permitido():
+    return os.getenv("TATAMI_SIN_IDENTIDAD", "").strip().lower() in ("1", "true", "si", "sí")
+
+
+def _motivo_para_no_puntuar(token, tatami_id, rol):
+    """`None` si esta conexión puede tomar el papel `rol` en ese tatami.
+
+    Si no, la frase que se le enseña (en `accion_rechazada`/rechazo de conexión;
+    el frontend la muestra tal cual en «rol no disponible»).
+    """
+    if _sin_identidad_permitido():
+        return None
+    if not token:
+        return SIN_TOKEN
+    try:
+        datos = decode_token(token)
+        usuario_id = int(datos.get("sub"))
+    except Exception:  # noqa: BLE001 — caducado, mal firmado o ajeno: lo mismo
+        return TOKEN_INVALIDO
+
+    from ..api.scoping import es_dueno_campeonato
+    from ..models.tatami import Tatami as TatamiModel
+    from ..models.usuario import Usuario
+    from ..rls import sin_workspace
+
+    # Con la red levantada: la regla de abajo es la que decide, y el socket no
+    # tiene el contexto de RLS de una petición normal.
+    with sin_workspace():
+        usuario = db.session.get(Usuario, usuario_id)
+        if usuario is None or not usuario.activo:
+            return TOKEN_INVALIDO
+        if usuario.es_super:
+            return None
+        tatami = db.session.get(TatamiModel, int(tatami_id))
+        if tatami is None:
+            return "Ese tatami no existe."
+        if usuario.rol == "admin" and es_dueno_campeonato(usuario, tatami.campeonato):
+            return None
+        asignacion = AsignacionJuez.query.filter_by(
+            tatami_id=tatami.id, usuario_id=usuario.id
+        ).first()
+        if asignacion is not None and asignacion.rol_tatami == rol:
+            return None
+    return NO_ASIGNADO
+
+
 def _info_tatami(tatami_id):
     """Número visible, nombre e id del campeonato del tatami."""
     try:
@@ -525,6 +614,13 @@ class CombateNamespace(Namespace):
         if rol not in {"pantalla", *ROL_LABELS.keys()}:
             raise ConnectionRefusedError("Rol de juez inválido")
 
+        # Quien puntúa tiene que ser quien dice ser (ver `_motivo_para_no_puntuar`).
+        # La pantalla pública no: solo mira.
+        if rol != "pantalla":
+            motivo = _motivo_para_no_puntuar(token, tatami_id, rol)
+            if motivo:
+                raise ConnectionRefusedError(motivo)
+
         # Autenticación opcional
         user_id = None
         user_nombre = None
@@ -668,8 +764,26 @@ class CombateNamespace(Namespace):
             return
         rol = request.args.get("rol", "pantalla")
 
-        ev = data.get("evento", {})
-        ev_id = data.get("evId")
+        ev = data.get("evento", {}) if isinstance(data, dict) else {}
+        ev_id = data.get("evId") if isinstance(data, dict) else None
+        if not isinstance(ev, dict):
+            return
+
+        # La pantalla pública solo mira: no manda nada.
+        if rol == "pantalla" and not _sin_identidad_permitido():
+            if ev_id:
+                emit("ack", {"evId": ev_id})
+            return
+
+        # El juez de un punto es el de la conexión, no el que diga el mensaje.
+        campo_juez = JUEZ_DEL_EVENTO.get(ev.get("accion"))
+        if campo_juez and ev.get(campo_juez) != rol and not _sin_identidad_permitido():
+            if ev_id:
+                emit("ack", {"evId": ev_id})
+            emit("accion_rechazada", {
+                "message": f"Solo puedes puntuar como {_rol_label(rol)}."
+            })
+            return
 
         with _lock:
             ts = _get_tatami_state(tatami_id)
@@ -1145,6 +1259,10 @@ class CombateNamespace(Namespace):
         """
         tatami_id = request.args.get("tatami_id")
         if not tatami_id:
+            return
+        # Las alertas a pantalla completa solo las lanza quien arbitra: desde la
+        # pantalla pública cualquiera podría llenar el tatami de «¡GANADOR!».
+        if request.args.get("rol", "pantalla") == "pantalla" and not _sin_identidad_permitido():
             return
         with _lock:
             ts = _get_tatami_state(tatami_id)

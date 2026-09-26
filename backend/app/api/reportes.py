@@ -621,6 +621,21 @@ def listar_combates():
 #  GENERADORES (reutilizados por export simple y export ZIP dividido)
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _como_texto(celda):
+    """La celda se queda como TEXTO aunque empiece por `=`.
+
+    `openpyxl` convierte en fórmula cualquier cadena que empiece por `=`, y
+    aquí se escriben nombres que teclea gente de fuera (maestros, el portal).
+    Un competidor inscrito como `=HYPERLINK("http://…";"ver")` salía en el
+    Excel del admin como un enlace vivo — la «inyección de fórmulas» de toda
+    la vida (revisión de seguridad del 25 sep 2026). Se guarda como cadena y
+    Excel la enseña tal cual, sin apóstrofo delante.
+    """
+    if isinstance(celda.value, str) and celda.data_type == "f":
+        celda.data_type = "s"
+    return celda
+
+
 def _generar_excel(rows, subtitulo="", t=None):
     """Genera el workbook Excel para una lista de (combate, tatami, camp)."""
     import openpyxl
@@ -654,6 +669,7 @@ def _generar_excel(rows, subtitulo="", t=None):
         ws.merge_cells("A2:P2")
         sub = ws["A2"]
         sub.value = subtitulo
+        _como_texto(sub)
         sub.font = Font(name="Arial", bold=True, size=11, color="555555")
         sub.alignment = center
 
@@ -701,7 +717,7 @@ def _generar_excel(rows, subtitulo="", t=None):
         ]
 
         for col_idx, value in enumerate(data, 1):
-            cell = ws.cell(row=row, column=col_idx, value=value)
+            cell = _como_texto(ws.cell(row=row, column=col_idx, value=value))
             cell.border = border
             cell.alignment = center
             # Color by ganador
@@ -758,7 +774,7 @@ def _generar_excel(rows, subtitulo="", t=None):
                 tipo,
             ]
             for col_idx, val in enumerate(det_data, 1):
-                cell = ws2.cell(row=det_row, column=col_idx, value=val)
+                cell = _como_texto(ws2.cell(row=det_row, column=col_idx, value=val))
                 cell.border = border
                 cell.alignment = center
                 if entrada.get("color") == "hong":

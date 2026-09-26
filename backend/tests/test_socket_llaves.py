@@ -21,6 +21,33 @@ from app.extensions import db, socketio  # noqa: E402
 DevelopmentConfig.SQLALCHEMY_DATABASE_URI = "sqlite://"
 
 
+@pytest.fixture(autouse=True)
+def _quien_puntua_se_identifica(monkeypatch):
+    """Desde el 25 sep 2026 quien puntúa tiene que identificarse (ver
+    `combate_ns._motivo_para_no_puntuar`). Estas pruebas van del MOTOR, no de
+    la puerta —esa tiene las suyas en `test_quien_puntua.py`—: si una conexión
+    no trae identidad, entra como superadmin, que puede cualquier papel."""
+    original = socketio.test_client
+
+    def con_identidad(app, *args, **kwargs):
+        if "auth" not in kwargs:
+            from flask_jwt_extended import create_access_token
+            from app.models.usuario import Usuario
+
+            with app.app_context():
+                jefe = Usuario.query.filter_by(email="super-socket@test.com").first()
+                if jefe is None:
+                    jefe = Usuario(email="super-socket@test.com", nombre="SUPER",
+                                   rol="admin", es_superadmin=True, activo=True)
+                    jefe.set_password("x")
+                    db.session.add(jefe)
+                    db.session.commit()
+                kwargs["auth"] = {"token": create_access_token(identity=str(jefe.id))}
+        return original(app, *args, **kwargs)
+
+    monkeypatch.setattr(socketio, "test_client", con_identidad)
+
+
 @pytest.fixture()
 def entorno(tmp_path):
     """App + DB en memoria con campeonato, tatami y llave de 2 competidores."""
@@ -85,6 +112,22 @@ def _rechazos(cliente):
 
 _contador_ev = {"n": 0}
 
+_jueces = {}
+
+
+def _j1(app, tatami_id):
+    """La conexión del Juez 1 del tatami (una por prueba y tatami).
+
+    El punto de un juez lo manda SU conexión: desde el 25 sep 2026 el servidor
+    no acepta un `punto_juez` a nombre de otro (`JUEZ_DEL_EVENTO`).
+    """
+    clave = (id(app), tatami_id)
+    if clave not in _jueces:
+        _jueces[clave] = socketio.test_client(
+            app, namespace="/combate", query_string=f"tatami_id={tatami_id}&rol=j1",
+        )
+    return _jueces[clave]
+
 
 def _emitir(cliente, accion, **datos):
     # evId único: si se repite, la deduplicación del servidor lo descarta
@@ -136,7 +179,7 @@ class TestCombateEliminacionSocket:
         assert estado["_mostrar_arbol"] is True
 
         # Hong anota y el Juez Central guarda → el ganador avanza
-        _emitir(cliente, "punto_juez", juez="j1", color="hong", pts=2, nombre="Cuerpo")
+        _emitir(_j1(app, tatami_id), "punto_juez", juez="j1", color="hong", pts=2, nombre="Cuerpo")
         _emitir(cliente, "nuevo_combate")
         estado = _ultimo_estado(cliente)
         assert estado["_combate_llave"] is None, "el tatami queda libre tras guardar"
@@ -164,8 +207,8 @@ class TestCombateEliminacionSocket:
         cliente.get_received("/combate")
 
         # Puntos iguales para ambos → guardar debe rechazarse
-        _emitir(cliente, "punto_juez", juez="j1", color="hong", pts=2, nombre="x")
-        _emitir(cliente, "punto_juez", juez="j1", color="chung", pts=2, nombre="x")
+        _emitir(_j1(app, tatami_id), "punto_juez", juez="j1", color="hong", pts=2, nombre="x")
+        _emitir(_j1(app, tatami_id), "punto_juez", juez="j1", color="chung", pts=2, nombre="x")
         _emitir(cliente, "nuevo_combate")
         rechazos = _rechazos(cliente)
         assert any("ganador" in m.lower() for m in rechazos), rechazos
@@ -218,7 +261,7 @@ class TestCombateEliminacionSocket:
 
         # Combate suelto de OTROS competidores, guardado después
         _emitir(cliente, "nombres", nombreHong="Pedro", nombreChung="Juan")
-        _emitir(cliente, "punto_juez", juez="j1", color="hong", pts=2, nombre="x")
+        _emitir(_j1(app, tatami_id), "punto_juez", juez="j1", color="hong", pts=2, nombre="x")
         _emitir(cliente, "nuevo_combate")
 
         with app.app_context():
@@ -248,7 +291,7 @@ class TestCombateEliminacionSocket:
         estado = _ultimo_estado(cliente)
         assert estado["_combate_llave"] is None
 
-        _emitir(cliente, "punto_juez", juez="j1", color="hong", pts=2, nombre="x")
+        _emitir(_j1(app, tatami_id), "punto_juez", juez="j1", color="hong", pts=2, nombre="x")
         _emitir(cliente, "nuevo_combate")
         with app.app_context():
             from app.models.llave import Llave
@@ -270,7 +313,7 @@ class TestCombateEliminacionSocket:
         _emitir(cliente, "cambiar_categoria", categoria="figuras")
         _emitir(cliente, "cambiar_categoria", categoria="combate")
         _emitir(cliente, "nombres", nombreHong="Pedro", nombreChung="Juan")
-        _emitir(cliente, "punto_juez", juez="j1", color="hong", pts=2, nombre="x")
+        _emitir(_j1(app, tatami_id), "punto_juez", juez="j1", color="hong", pts=2, nombre="x")
         _emitir(cliente, "nuevo_combate")
 
         with app.app_context():
@@ -316,7 +359,7 @@ class TestCombateEliminacionSocket:
         _emitir(cliente, "activar_tatami")
         # Combate suelto con nombres y un punto registrado
         _emitir(cliente, "nombres", nombreHong="Pedro", nombreChung="Juan")
-        _emitir(cliente, "punto_juez", juez="j1", color="hong", pts=1, nombre="x")
+        _emitir(_j1(app, tatami_id), "punto_juez", juez="j1", color="hong", pts=1, nombre="x")
         cliente.get_received("/combate")
 
         _emitir(cliente, "activar_combate_llave", llave_id=llave_id)

@@ -20,6 +20,13 @@ class Config:
         "pool_recycle": 300,
     }
 
+    # Lo más grande que se acepta en una petición (413 por encima). Sin tope,
+    # Flask lee el cuerpo entero a memoria, y `POST /api/resultados/importar`
+    # —o el login, que no pide sesión— aceptaban cualquier tamaño. 30 MB: cabe
+    # el paquete del evento (25 MB, `sincronizacion.MAX_BYTES_PAQUETE`) con
+    # margen (revisión de seguridad del 25 sep 2026).
+    MAX_CONTENT_LENGTH = 30 * 1024 * 1024
+
     # JWT
     JWT_SECRET_KEY = os.getenv(
         "JWT_SECRET_KEY", "dinamyt-dev-secret-key"

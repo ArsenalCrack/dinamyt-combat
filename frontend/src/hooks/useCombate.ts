@@ -194,7 +194,8 @@ export function formatTime(seg: number) {
 export function useCombate(
   tatamiId: number | string | null,
   rol: string,
-  token: string | null
+  /** `undefined` = el ticket todavía no se sabe (ver `useSocketTicket`). */
+  token: string | null | undefined
 ) {
   const [state, setState] = useState<CombateState>(estadoInicial());
   const [connected, setConnected] = useState(false);
@@ -226,8 +227,11 @@ export function useCombate(
   // Conectar al tatami
   useEffect(() => {
     if (!tatamiId) return;
+    // Quien puntúa espera a saber con qué credencial entra: el servidor ya no
+    // deja tomar un papel de juez sin ella (25 sep 2026). La pantalla, no.
+    if (token === undefined && rol !== "pantalla") return;
 
-    const sock = getSocket(tatamiId, rol, token);
+    const sock = getSocket(tatamiId, rol, token ?? null);
     socketRef.current = sock;
 
     const clearOfflineTimer = () => {

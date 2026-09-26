@@ -44,6 +44,21 @@ def create_app(config_name=None):
                 "[SEGURIDAD] ADMIN_PASSWORD usa un valor por defecto o vacío. "
                 "Define una contraseña fuerte como variable de entorno antes de desplegar."
             )
+    elif app.config.get("JWT_SECRET_KEY") in SECRETOS_DEBILES and not os.getenv(
+        "PYTEST_CURRENT_TEST"
+    ):
+        # El PC del evento corre en `development` (hilos en vez de eventlet), así
+        # que la guarda de arriba no le llega. Con el secreto de ejemplo,
+        # cualquiera en la WiFi del evento que lo conozca —está en el repo—
+        # fabrica un token de administrador. `iniciar_local.py` lo arregla solo
+        # antes de arrancar; esto es para cualquier otra forma de lanzarlo.
+        import logging as _logging
+
+        _logging.getLogger(__name__).warning(
+            "[SEGURIDAD] JWT_SECRET_KEY es el valor de ejemplo: cualquiera que lo "
+            "conozca puede fabricar sesiones de administrador en esta instalación. "
+            "Pon uno propio en backend/.env (o arranca con INICIAR.bat, que lo genera)."
+        )
 
     # ── IP real del cliente detrás de un proxy ───────────────────────────────
     # Render termina TLS en su balanceador: sin esto request.remote_addr es la
