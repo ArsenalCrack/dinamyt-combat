@@ -67,6 +67,9 @@ OPTIONAL_COLUMNS = {
         "org_id": "VARCHAR(64)",
         # «Solo clubes invitados» (25 sep 2026). NULL cuenta como apagado.
         "solo_invitados": "BOOLEAN",
+        # El candado de sede (26 sep 2026, app/sede.py). NULL = se opera aquí.
+        "sede_local_desde": "TIMESTAMP",
+        "sede_local_por": "VARCHAR(120)",
     },
     "competidores": {
         "uid": "VARCHAR(32)",

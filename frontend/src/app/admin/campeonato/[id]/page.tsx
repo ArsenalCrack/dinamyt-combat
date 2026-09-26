@@ -13,6 +13,8 @@ import {
   deleteCampeonatoAPI,
   accesoQrAPI,
   exportarCampeonatoAPI,
+  cambiarSedeAPI,
+  esInstalacionDeInternet,
   origenParaQr,
   MAX_TATAMIS,
   MIN_TATAMIS,
@@ -64,6 +66,10 @@ interface Campeonato {
   num_pendientes?: number;
   /** «Solo clubes invitados» (25 sep 2026). */
   solo_invitados?: boolean;
+  /** El candado de sede (26 sep 2026): «local» = cedido al PC del evento. */
+  sede?: "local" | "nube";
+  sede_local_desde?: string | null;
+  sede_local_por?: string | null;
   tatamis: Tatami[];
 }
 
@@ -78,7 +84,7 @@ const ROLES_TATAMI: { value: string; labelKey: ClaveTexto }[] = [
 
 export default function CampeonatoDetailPage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, idioma } = useI18n();
   const params = useParams();
   const campId = Number(params.id);
 
@@ -100,6 +106,8 @@ export default function CampeonatoDetailPage() {
   const [ajustandoTatamis, setAjustandoTatamis] = useState(false);
   // Exportar el campeonato para llevarlo a la otra instalación
   const [panelExportar, setPanelExportar] = useState(false);
+  // Bajarse el paquete «para el evento» cede la sede (solo en internet).
+  const [paraElEvento, setParaElEvento] = useState(false);
   const [exportando, setExportando] = useState(false);
   const [incluir, setIncluir] = useState<Required<OpcionesExportCampeonato>>({
     usuarios: true, competidores: true, llaves: true,
@@ -239,11 +247,36 @@ export default function CampeonatoDetailPage() {
     if (!camp) return;
     setExportando(true);
     try {
-      await exportarCampeonatoAPI(camp.id, incluir);
+      await exportarCampeonatoAPI(camp.id, incluir, paraElEvento);
       setPanelExportar(false);
-      flash(t("sync.exportado"), "ok");
+      flash(t(paraElEvento ? "sede.cedido" : "sync.exportado"), "ok");
+      if (paraElEvento) {
+        setParaElEvento(false);
+        await loadData();
+      }
     } catch { flash(t("sync.errorExportar"), "error"); }
     finally { setExportando(false); }
+  }
+
+  /** El candado de sede: devolver a la nube lo que se cedió al PC del evento. */
+  function handleDevolverANube() {
+    if (!camp) return;
+    pedirConfirmacion({
+      titulo: t("sede.devolver.titulo"),
+      mensaje: t("sede.devolver.mensaje"),
+      tipo: "advertencia",
+      confirmLabel: t("sede.devolver"),
+      onConfirm: async () => {
+        try {
+          await cambiarSedeAPI(camp.id, "nube");
+          await loadData();
+          flash(t("sede.devuelto"), "ok");
+        } catch (err) {
+          const m = (err as { response?: { data?: { error?: string } } }).response?.data?.error;
+          flash(m || t("sede.error"), "error");
+        }
+      },
+    });
   }
 
   /** Aplica el nº de tatamis escrito. Al bajar pide confirmación primero. */
@@ -474,6 +507,33 @@ export default function CampeonatoDetailPage() {
         </form>
       )}
 
+      {/* El candado de sede: cedido al PC del evento, aquí solo se mira */}
+      {camp.sede === "local" && (
+        <div className="card" role="status" style={{
+          marginBottom: 16, display: "flex", flexDirection: "column", gap: 8,
+          borderColor: "var(--gold-border)", background: "var(--gold-bg)",
+        }}>
+          <div className="card-title" style={{ marginBottom: 0, color: "var(--gold)" }}>
+            {t("sede.titulo")}
+          </div>
+          <p style={{ margin: 0, fontSize: "0.9rem" }}>
+            {t("sede.desc", {
+              desde: camp.sede_local_desde
+                ? new Date(camp.sede_local_desde).toLocaleString(idioma === "en" ? "en" : "es-CO", {
+                    dateStyle: "medium", timeStyle: "short",
+                  })
+                : "—",
+              por: camp.sede_local_por || "—",
+            })}
+          </p>
+          <div>
+            <button className="btn btn-sm" onClick={handleDevolverANube}>
+              {t("sede.devolver")}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Exportar el campeonato para la otra instalación (local ↔ internet) */}
       {panelExportar && (
         <div className="card animate-slide" style={{
@@ -506,6 +566,21 @@ export default function CampeonatoDetailPage() {
               ))}
             </div>
           </fieldset>
+          {esInstalacionDeInternet() && camp.sede !== "local" && (
+            <label style={{ display: "flex", gap: 8, alignItems: "flex-start", fontSize: "0.88rem" }}>
+              <input
+                type="checkbox"
+                checked={paraElEvento}
+                onChange={(e) => setParaElEvento(e.target.checked)}
+                style={{ marginTop: 3 }}
+              />
+              <span>
+                <strong>{t("sync.paraElEvento")}</strong>
+                <br />
+                <span className="text-muted">{t("sync.paraElEvento.desc")}</span>
+              </span>
+            </label>
+          )}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button className="btn btn-primary btn-sm" disabled={exportando} onClick={handleExportar}>
               {exportando ? t("sync.exportando") : t("sync.exportar")}

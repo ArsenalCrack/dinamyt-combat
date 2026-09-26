@@ -640,6 +640,21 @@ export interface OpcionesExportCampeonato {
   llaves?: boolean;
 }
 
+/**
+ * ¿Es esta la instalación de INTERNET? La del PC del evento no tiene el proxy
+ * (habla directo con el backend). Solo la de internet cede un campeonato al
+ * PC del evento: ceder en el propio PC lo dejaría a él en solo lectura.
+ */
+export function esInstalacionDeInternet(): boolean {
+  return usarProxy();
+}
+
+/** El candado de sede (backend/app/sede.py): «local» cede, «nube» recupera. */
+export async function cambiarSedeAPI(campId: number, sede: "local" | "nube") {
+  const res = await api.post(`/campeonatos/${campId}/sede`, { sede });
+  return res.data as { message: string };
+}
+
 function descargar(blob: Blob, nombre: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -656,12 +671,15 @@ const OPCIONES_DESCARGA = { responseType: "blob" as const, timeout: 60000 };
 /** Descarga el paquete completo del campeonato (para llevarlo a la otra instancia). */
 export async function exportarCampeonatoAPI(
   campId: number,
-  opciones: OpcionesExportCampeonato = {}
+  opciones: OpcionesExportCampeonato = {},
+  paraElEvento = false
 ) {
   const params: Record<string, string> = {};
   for (const clave of ["usuarios", "competidores", "llaves"] as const) {
     if (opciones[clave] === false) params[clave] = "0";
   }
+  // Cede la sede en el mismo gesto (backend/app/sede.py).
+  if (paraElEvento) params.para_el_evento = "1";
   const res = await api.get(`/sincronizacion/campeonato/${campId}/exportar`, {
     params, ...OPCIONES_DESCARGA,
   });

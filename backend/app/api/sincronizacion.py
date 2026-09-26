@@ -60,6 +60,7 @@ from ..models.usuario import PAPELES, Usuario, ordenar_papeles
 from ..timeutil import iso_utc
 from ..uid import asegurar_uid, nuevo_uid
 from ..ultima_bajada import anotar as anotar_bajada, estado as estado_bajada
+from ..sede import ceder_sede, en_otra_sede
 from .scoping import (
     es_dueno_campeonato, filtrar_competidores, require_admin, workspace_owner_id,
 )
@@ -295,9 +296,13 @@ def _flag(nombre, defecto=True):
 def exportar_campeonato(camp_id):
     """
     GET /api/sincronizacion/campeonato/:id/exportar
-        ?usuarios=1&competidores=1&llaves=1
+        ?usuarios=1&competidores=1&llaves=1&para_el_evento=0
     Descarga el paquete completo del campeonato para llevarlo a la otra
     instancia. Cada sección se puede excluir con su bandera en 0.
+
+    Con `para_el_evento=1`, además CEDE la sede (app/sede.py): desde ese momento
+    el campeonato aquí es de solo lectura. Sin ella es una copia de prueba —la
+    del simulacro— y no cierra nada.
     """
     admin = require_admin()
     if not admin:
@@ -311,6 +316,9 @@ def exportar_campeonato(camp_id):
     con_usuarios = _flag("usuarios")
     con_competidores = _flag("competidores")
     con_llaves = _flag("llaves")
+    if _flag("para_el_evento", defecto=False):
+        ceder_sede(camp, admin)
+        db.session.commit()
 
     tatamis = (
         Tatami.query.filter_by(campeonato_id=camp.id).order_by(Tatami.numero).all()
@@ -845,6 +853,14 @@ def _importar_campeonato(datos, admin, informe):
         raise ErrorImportacion("El campeonato del paquete no trae nombre.")
 
     camp = Campeonato.query.filter_by(export_uuid=uid).first() if uid else None
+    # Un campeonato cedido al PC del evento no se pisa con un paquete: aquí solo
+    # se mira hasta que se devuelva a la nube (app/sede.py).
+    if en_otra_sede(camp):
+        raise ErrorImportacion(
+            f"El campeonato '{camp.nombre}' se está operando en el PC del evento: "
+            "devuélvelo a la nube antes de importar un paquete encima.",
+            status=423,
+        )
     if camp is not None and not es_dueno_campeonato(admin, camp):
         raise ErrorImportacion(
             f"El campeonato '{camp.nombre}' ya existe en esta instancia pero "

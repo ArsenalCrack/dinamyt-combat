@@ -952,6 +952,19 @@ const es = {
   "sync.incluir.usuarios": "Maestros y jueces (con sus tatamis asignados)",
   "sync.incluir.competidores": "Competidores e inscripciones",
   "sync.incluir.llaves": "Llaves generadas",
+  "sync.paraElEvento": "Para el evento: cierra este campeonato aquí",
+  "sync.paraElEvento.desc":
+    "Desde que se descargue, en internet solo se podrá mirar: nadie toca inscripciones, llaves ni tatamis mientras el campeonato corre en el PC del evento. Déjalo sin marcar para una copia de prueba (el simulacro).",
+  "sede.titulo": "Se está operando en el PC del evento",
+  "sede.desc":
+    "Cedido el {desde} por {por}. Aquí solo se puede mirar: inscripciones, llaves y tatamis están cerrados para que no haya dos versiones del campeonato. Devuélvelo cuando los resultados hayan subido.",
+  "sede.devolver": "Devolver a la nube",
+  "sede.devolver.titulo": "¿Devolver el campeonato a la nube?",
+  "sede.devolver.mensaje":
+    "Vuelve a poder editarse aquí. Hazlo solo cuando el evento haya terminado y sus resultados hayan subido: si el PC del evento sigue puntuando, habría dos versiones del campeonato.",
+  "sede.devuelto": "El campeonato vuelve a operarse aquí.",
+  "sede.cedido": "Paquete descargado. El campeonato queda cerrado aquí mientras corre en el PC del evento.",
+  "sede.error": "No se pudo cambiar la sede del campeonato.",
   "sync.importarCampeonato": "⬇️ Importar campeonato",
   "sync.importarPanel.desc":
     "Sube el archivo .json exportado desde la otra instalación. Primero verás qué va a pasar; nada se guarda hasta que lo confirmes.",
@@ -2394,6 +2407,19 @@ const en: Record<ClaveTexto, string> = {
   "sync.incluir.usuarios": "Masters and judges (with their assigned tatamis)",
   "sync.incluir.competidores": "Competitors and enrollments",
   "sync.incluir.llaves": "Generated brackets",
+  "sync.paraElEvento": "For the event: lock this championship here",
+  "sync.paraElEvento.desc":
+    "Once downloaded, the internet copy becomes read-only: nobody can touch enrollments, brackets or tatamis while the championship runs on the event PC. Leave it unchecked for a test copy (the rehearsal).",
+  "sede.titulo": "Running on the event PC",
+  "sede.desc":
+    "Handed over on {desde} by {por}. Here you can only look: enrollments, brackets and tatamis are locked so there are never two versions of the championship. Take it back once the results have been uploaded.",
+  "sede.devolver": "Bring it back online",
+  "sede.devolver.titulo": "Bring the championship back online?",
+  "sede.devolver.mensaje":
+    "It becomes editable here again. Only do it once the event is over and its results have been uploaded: if the event PC is still scoring, there would be two versions of the championship.",
+  "sede.devuelto": "The championship is run from here again.",
+  "sede.cedido": "Package downloaded. The championship is locked here while it runs on the event PC.",
+  "sede.error": "Could not change where the championship is run.",
   "sync.importarCampeonato": "⬇️ Import championship",
   "sync.importarPanel.desc":
     "Upload the .json file exported from the other installation. You will first see what is going to happen; nothing is saved until you confirm.",

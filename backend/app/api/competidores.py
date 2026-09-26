@@ -38,6 +38,7 @@ from ..invitaciones import (
 )
 from ..rls import en_workspace, sin_workspace
 from ..espejo import miembros_del_club
+from ..sede import sede_aqui
 from .scoping import (
     es_dueno_campeonato,
     es_dueno_competidor,
@@ -850,6 +851,7 @@ def listar_inscripciones(camp_id):
 
 @inscripciones_bp.route("/campeonato/<int:camp_id>", methods=["POST"])
 @jwt_required()
+@sede_aqui
 def inscribir(camp_id):
     """
     POST /api/inscripciones/campeonato/:id
@@ -917,6 +919,7 @@ def inscribir(camp_id):
 
 @inscripciones_bp.route("/<int:ins_id>", methods=["PUT"])
 @jwt_required()
+@sede_aqui
 def editar_inscripcion(ins_id):
     """PUT /api/inscripciones/:id — Modalidades / peso / cinturón de la inscripción."""
     admin = _require_admin()
@@ -948,6 +951,7 @@ def editar_inscripcion(ins_id):
 
 @inscripciones_bp.route("/<int:ins_id>", methods=["DELETE"])
 @jwt_required()
+@sede_aqui
 def eliminar_inscripcion(ins_id):
     """DELETE /api/inscripciones/:id — Quitar a un competidor del campeonato."""
     admin = _require_admin()
@@ -965,6 +969,7 @@ def eliminar_inscripcion(ins_id):
 
 @inscripciones_bp.route("/<int:ins_id>/estado", methods=["PATCH"])
 @jwt_required()
+@sede_aqui
 def moderar_inscripcion(ins_id):
     """
     PATCH /api/inscripciones/:id/estado
@@ -1332,6 +1337,7 @@ def maestro_miembros():
 
 @inscripciones_bp.route("/maestro/campeonato/<int:camp_id>", methods=["POST"])
 @jwt_required()
+@sede_aqui
 def maestro_inscribir(camp_id):
     """
     POST /api/inscripciones/maestro/campeonato/:id
@@ -1517,6 +1523,7 @@ def maestro_mis_inscripciones():
 
 @inscripciones_bp.route("/maestro/<int:ins_id>", methods=["PUT"])
 @jwt_required()
+@sede_aqui
 def maestro_reenviar(ins_id):
     """
     PUT /api/inscripciones/maestro/:id

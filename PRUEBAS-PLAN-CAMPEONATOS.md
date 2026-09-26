@@ -194,3 +194,25 @@ Solo para saber que existe; no se deja puesta.
 - [ ] En el PC del evento, `TATAMI_SIN_IDENTIDAD=1` en `backend/.env` y
       reinicia el backend. **Debe pasar:** se puede entrar a puntuar sin sesión
       (como antes del 25 sep). Quítalo y reinicia.
+
+---
+
+## 12 · El candado de sede (26 sep)
+
+En la instalación de **internet**, con FEDE, sobre un campeonato de prueba:
+
+- [ ] Exportar el campeonato **sin** marcar «Para el evento»: se descarga y el
+      campeonato sigue editable.
+- [ ] Exportar **con** «Para el evento»: se descarga, y el campeonato enseña la
+      franja dorada «Se está operando en el PC del evento» con la fecha y quién.
+- [ ] Con la franja puesta: editar el campeonato, cambiar tatamis, invitar un
+      club, generar llaves, asignar un juez o inscribir (FEDE y MAESTRO) **dan
+      un error con la frase del PC del evento**. Mirar todo sigue igual.
+- [ ] Un juez asignado no puede puntuar en ese tatami desde internet («aquí no
+      se puntúa»).
+- [ ] En el PC del evento, importar ese paquete: allí se opera normal (no hay
+      franja).
+- [ ] Subir los resultados desde el PC del evento (F8, §9 de arriba): **suben
+      con el candado puesto**.
+- [ ] En internet, **«Devolver a la nube»**: pide confirmación y el campeonato
+      vuelve a editarse.

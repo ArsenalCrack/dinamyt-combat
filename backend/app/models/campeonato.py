@@ -62,6 +62,12 @@ class Campeonato(db.Model):
     # organización o, dentro del propio workspace, por su nombre. Apagado es
     # como siempre, y NULL (bases viejas) cuenta como apagado.
     solo_invitados = db.Column(db.Boolean, default=False, nullable=True)
+    # El candado de sede (app/sede.py, decisión 8). Con fecha, ESTA instalación
+    # cedió el campeonato al PC del evento y aquí solo se mira. NULL = se opera
+    # aquí, que es lo de siempre. El paquete NO lo lleva: la copia del evento
+    # nace sin él y allí se escribe.
+    sede_local_desde = db.Column(db.DateTime, nullable=True)
+    sede_local_por = db.Column(db.String(120), nullable=True)
     created_at = db.Column(
         db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
@@ -94,6 +100,9 @@ class Campeonato(db.Model):
             "created_by": self.created_by,
             "org_id": self.org_id,
             "solo_invitados": bool(self.solo_invitados),
+            "sede": "local" if self.sede_local_desde else "nube",
+            "sede_local_desde": iso_utc(self.sede_local_desde) if self.sede_local_desde else None,
+            "sede_local_por": self.sede_local_por,
             "created_at": iso_utc(self.created_at),
             "num_tatamis": self.tatamis.count() if self.tatamis else 0,
             "num_inscripciones": num_aceptadas,

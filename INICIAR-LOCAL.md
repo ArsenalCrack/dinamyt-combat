@@ -134,6 +134,15 @@ hay una bajada, y hay que hacerla **la víspera, con red**:
 > resultados—. **Así que la última bajada es la mañana del evento, si todavía
 > hay red, y ANTES de activar la primera llave.**
 
+> 🔒 **La última bajada, con «Para el evento» marcado** (en el panel de
+> exportar, o `-ParaElEvento` en `scripts/paquete-campeonato.ps1`). Eso
+> **cierra el campeonato en internet**: desde ese momento allí solo se puede
+> mirar, y nadie toca inscripciones, llaves ni tatamis mientras corre aquí —
+> si no, habría dos versiones del campeonato y no se notaría hasta subir. Las
+> bajadas de prueba (el simulacro, la de dos días antes) van **sin** marcar.
+> Al terminar, cuando los resultados hayan subido (§7.2), en internet:
+> campeonato → **«Devolver a la nube»**.
+
 ### Cómo saber de cuándo es la copia que tiene este PC
 
 En **Admin → Campeonatos** hay una línea que lo dice:

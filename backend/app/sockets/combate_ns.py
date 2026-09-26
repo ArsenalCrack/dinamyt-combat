@@ -40,6 +40,7 @@ from ..models.combate import Combate, EventoCombate
 from ..models.tatami import SesionTatami
 from ..models.asignacion import AccesoTatami, AsignacionJuez
 from ..timeutil import iso_utc
+from ..sede import en_otra_sede
 
 
 # ══════════════════════════════════════════
@@ -278,6 +279,9 @@ JUEZ_DEL_EVENTO = {
     "confirmar_puntuacion": "juez_id",
 }
 
+SEDE_CEDIDA = (
+    "Este campeonato se está operando en el PC del evento: aquí no se puntúa."
+)
 SIN_TOKEN = (
     "Para puntuar hay que entrar con tu usuario o con el QR de tu tatami."
 )
@@ -318,11 +322,16 @@ def _motivo_para_no_puntuar(token, tatami_id, rol):
         usuario = db.session.get(Usuario, usuario_id)
         if usuario is None or not usuario.activo:
             return TOKEN_INVALIDO
-        if usuario.es_super:
-            return None
         tatami = db.session.get(TatamiModel, int(tatami_id))
         if tatami is None:
             return "Ese tatami no existe."
+        # El candado de sede (app/sede.py): si esta instalación cedió el
+        # campeonato al PC del evento, aquí no se puntúa — ni el superadmin.
+        # Es el único sitio donde el combate escribe sin pasar por una ruta.
+        if en_otra_sede(tatami.campeonato):
+            return SEDE_CEDIDA
+        if usuario.es_super:
+            return None
         if usuario.rol == "admin" and es_dueno_campeonato(usuario, tatami.campeonato):
             return None
         asignacion = AsignacionJuez.query.filter_by(

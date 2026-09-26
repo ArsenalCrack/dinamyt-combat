@@ -10,6 +10,7 @@ from ..security import limitar
 from ..models.campeonato import ESTADOS_CAMPEONATO, Campeonato
 from ..models.invitacion import InvitacionClub
 from ..models.tatami import Tatami
+from ..sede import ceder_sede, recuperar_sede, sede_aqui
 from .auth import mayusculas
 from .scoping import (
     SOLO_PERSONAL,
@@ -197,6 +198,7 @@ def crear():
 
 @campeonatos_bp.route("/<int:camp_id>", methods=["PUT"])
 @jwt_required()
+@sede_aqui
 def actualizar(camp_id):
     """PUT /api/campeonatos/:id — Actualizar campeonato."""
     admin = _require_admin()
@@ -242,6 +244,7 @@ def actualizar(camp_id):
 
 @campeonatos_bp.route("/<int:camp_id>/tatamis", methods=["PUT"])
 @jwt_required()
+@sede_aqui
 def ajustar_tatamis(camp_id):
     """
     PUT /api/campeonatos/:id/tatamis
@@ -354,6 +357,7 @@ def ajustar_tatamis(camp_id):
 
 @campeonatos_bp.route("/<int:camp_id>", methods=["DELETE"])
 @jwt_required()
+@sede_aqui
 def eliminar(camp_id):
     """DELETE /api/campeonatos/:id — Eliminar campeonato y tatamis."""
     admin = _require_admin()
@@ -403,6 +407,7 @@ def obtener_config_categorias(camp_id):
 
 @campeonatos_bp.route("/<int:camp_id>/config-categorias", methods=["PUT"])
 @jwt_required()
+@sede_aqui
 def guardar_config_categorias(camp_id):
     """
     PUT /api/campeonatos/:id/config-categorias
@@ -548,6 +553,7 @@ def preview_secciones(camp_id):
 
 @campeonatos_bp.route("/<int:camp_id>/generar-llaves", methods=["POST"])
 @jwt_required()
+@sede_aqui
 @limitar(10, 60, nombre="generar-llaves")
 def generar_llaves_auto(camp_id):
     """
@@ -702,6 +708,36 @@ def _campeonato_del_admin(camp_id):
     return admin, camp, None
 
 
+@campeonatos_bp.route("/<int:camp_id>/sede", methods=["POST"])
+@jwt_required()
+def cambiar_sede(camp_id):
+    """
+    POST /api/campeonatos/:id/sede
+    Body: { "sede": "local" | "nube" }
+
+    El candado de sede (app/sede.py, decisión 8). `local` cede el campeonato al
+    PC del evento: desde ese momento, AQUÍ solo se mira. `nube` lo recupera,
+    cuando los resultados ya subieron y no queda nada que correr allí. Los dos
+    son gestos del admin dueño; nunca pasa solo.
+    """
+    admin, camp, error = _campeonato_del_admin(camp_id)
+    if error:
+        return error
+    if admin.rol != "admin" and not admin.es_super:
+        return jsonify({"error": "Solo el administrador del campeonato cambia su sede."}), 403
+    sede = (request.get_json(silent=True) or {}).get("sede")
+    if sede not in ("local", "nube"):
+        return jsonify({"error": "`sede` es «local» o «nube»."}), 400
+    if sede == "local":
+        ceder_sede(camp, admin)
+        mensaje = "El campeonato se opera ahora en el PC del evento. Aquí queda en solo lectura."
+    else:
+        recuperar_sede(camp)
+        mensaje = "El campeonato vuelve a operarse aquí."
+    db.session.commit()
+    return jsonify({"message": mensaje, "campeonato": camp.to_dict()}), 200
+
+
 @campeonatos_bp.route("/<int:camp_id>/clubes", methods=["GET"])
 @jwt_required()
 def listar_invitaciones(camp_id):
@@ -719,6 +755,7 @@ def listar_invitaciones(camp_id):
 
 @campeonatos_bp.route("/<int:camp_id>/clubes", methods=["POST"])
 @jwt_required()
+@sede_aqui
 def invitar_club(camp_id):
     """
     POST /api/campeonatos/:id/clubes
@@ -793,6 +830,7 @@ def invitar_club(camp_id):
 
 @campeonatos_bp.route("/<int:camp_id>/clubes/solo-invitados", methods=["PUT"])
 @jwt_required()
+@sede_aqui
 def fijar_solo_invitados(camp_id):
     """
     PUT /api/campeonatos/:id/clubes/solo-invitados
@@ -821,6 +859,7 @@ def fijar_solo_invitados(camp_id):
 
 @campeonatos_bp.route("/<int:camp_id>/clubes/<int:inv_id>", methods=["DELETE"])
 @jwt_required()
+@sede_aqui
 def retirar_invitacion(camp_id, inv_id):
     """
     DELETE /api/campeonatos/:id/clubes/:inv_id — retirar la invitación.

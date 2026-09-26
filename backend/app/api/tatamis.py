@@ -12,6 +12,7 @@ from ..extensions import db
 from ..models.usuario import Usuario
 from ..models.tatami import Tatami
 from ..models.asignacion import AsignacionJuez
+from ..sede import sede_aqui
 from .auth import mayusculas
 from .scoping import SOLO_PERSONAL, require_personal, es_dueno_campeonato, es_dueno_usuario, usuario_actual
 
@@ -82,6 +83,7 @@ def obtener(tatami_id):
 
 @tatamis_bp.route("/<int:tatami_id>/asignar", methods=["POST"])
 @jwt_required()
+@sede_aqui
 def asignar_juez(tatami_id):
     """
     POST /api/tatamis/:id/asignar
@@ -166,6 +168,7 @@ def asignar_juez(tatami_id):
 
 @tatamis_bp.route("/<int:tatami_id>/desasignar/<int:usuario_id>", methods=["DELETE"])
 @jwt_required()
+@sede_aqui
 def desasignar_juez(tatami_id, usuario_id):
     """DELETE /api/tatamis/:id/desasignar/:usuario_id — Quitar asignación."""
     admin = _require_admin()
@@ -189,6 +192,7 @@ def desasignar_juez(tatami_id, usuario_id):
 
 @tatamis_bp.route("/<int:tatami_id>/acceso-qr/<int:usuario_id>", methods=["POST"])
 @jwt_required()
+@sede_aqui
 def generar_acceso_qr(tatami_id, usuario_id):
     """
     POST /api/tatamis/:id/acceso-qr/:usuario_id — Solo admin.

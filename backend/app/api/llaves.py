@@ -20,6 +20,7 @@ from ..models.campeonato import Campeonato
 from ..models.tatami import Tatami
 from ..models.llave import Llave
 from ..filei18n import trad, idioma_request
+from ..sede import sede_aqui
 from .scoping import SOLO_PERSONAL, require_personal, es_dueno_campeonato, usuario_actual
 
 llaves_bp = Blueprint("llaves", __name__)
@@ -433,6 +434,7 @@ def _limpiar_descendientes(estructura, ronda_idx, partido_idx):
 
 @llaves_bp.route("", methods=["POST"])
 @jwt_required()
+@sede_aqui
 def crear():
     """
     POST /api/llaves
@@ -502,6 +504,7 @@ def crear():
 
 @llaves_bp.route("/<int:llave_id>", methods=["PUT"])
 @jwt_required()
+@sede_aqui
 def editar(llave_id):
     """
     PUT /api/llaves/:id
@@ -641,6 +644,7 @@ def obtener(llave_id):
 
 @llaves_bp.route("/<int:llave_id>/partido", methods=["PUT"])
 @jwt_required()
+@sede_aqui
 def marcar_ganador(llave_id):
     """
     PUT /api/llaves/:id/partido
@@ -895,6 +899,7 @@ def exportar_pdf_llave(llave_id):
 
 @llaves_bp.route("/<int:llave_id>", methods=["DELETE"])
 @jwt_required()
+@sede_aqui
 def eliminar(llave_id):
     """DELETE /api/llaves/:id — Eliminar una llave."""
     admin = _require_admin()
@@ -979,6 +984,7 @@ def _regenerar(tipo, competidores):
 
 @llaves_bp.route("/combinar", methods=["POST"])
 @jwt_required()
+@sede_aqui
 def combinar():
     """
     POST /api/llaves/combinar
@@ -1072,6 +1078,7 @@ def combinar():
 
 @llaves_bp.route("/mover-competidor", methods=["POST"])
 @jwt_required()
+@sede_aqui
 def mover_competidor():
     """
     POST /api/llaves/mover-competidor
