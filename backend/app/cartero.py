@@ -143,14 +143,20 @@ def huella(sobre):
 
 
 def pendientes():
-    """[(campeonato, sobre, fila)] de los que tienen resultados que no llegaron."""
+    """[(campeonato, sobre, fila)] de los que tienen resultados que no llegaron.
+
+    Los que se están publicando en vivo (`app/en_vivo.py`) no cuentan: de esos
+    se encarga el hilo de la publicación, y esta cola vuelve a mirarlos en
+    cuanto su llave caduca o internet la rechaza.
+    """
+    from . import en_vivo
     from .api.resultados import _contar_resultados, sobre_de_resultados
     from .models.campeonato import Campeonato
     from .models.subida import SubidaResultados
 
     salida = []
     for camp in Campeonato.query.order_by(Campeonato.id).all():
-        if _contar_resultados(camp.id) == 0:
+        if en_vivo.activa_aqui(camp) or _contar_resultados(camp.id) == 0:
             continue
         sobre = sobre_de_resultados(camp)
         fila = SubidaResultados.query.filter_by(export_uuid=sobre["export_uuid"]).first()
@@ -168,8 +174,11 @@ def hay_combate_en_marcha():
 
 # ── Enviar ──────────────────────────────────────────────────────────────────
 
-def _enviar_http(metodo, url, cabeceras, cuerpo=None):
+def _enviar_http(metodo, url, cabeceras, cuerpo=None, espera=ESPERA_SEG):
     """(código, [(cabecera, valor)], cuerpo_dict). Aparte para sustituirlo en pruebas.
+
+    `espera` acota cada petición; la publicación en vivo (`app/en_vivo.py`)
+    pide menos, porque detrás de un envío fallido siempre hay otra vuelta.
 
     Las cabeceras van como LISTA de pares y no como diccionario: la sesión de
     internet llega en dos `Set-Cookie` (la sesión y la de CSRF), y un
@@ -178,7 +187,7 @@ def _enviar_http(metodo, url, cabeceras, cuerpo=None):
     datos = json.dumps(cuerpo).encode("utf-8") if cuerpo is not None else None
     peticion = Request(url, data=datos, headers=cabeceras, method=metodo)
     try:
-        with urlopen(peticion, timeout=ESPERA_SEG) as respuesta:
+        with urlopen(peticion, timeout=espera) as respuesta:
             texto = respuesta.read().decode("utf-8") or "{}"
             return respuesta.status, list(respuesta.headers.items()), json.loads(texto)
     except HTTPError as exc:
@@ -284,6 +293,7 @@ def _vaciar(forzar):
 
 def estado(motivo=None):
     """Lo que enseña `/admin`. `motivo` = por qué no se subió en esta pasada."""
+    from . import en_vivo
     from .models.subida import SubidaResultados
 
     lista = pendientes() if destino() or SubidaResultados.query.first() else []
@@ -309,6 +319,8 @@ def estado(motivo=None):
         "ultimo_error": errores[-1].ultimo_error if errores else None,
         "sesion_viva": bool(pase),
         "motivo": motivo,
+        # La publicación en vivo durante el evento (decisión 9).
+        "en_vivo": en_vivo.estado_local(),
     }
 
 

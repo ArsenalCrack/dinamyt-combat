@@ -216,3 +216,30 @@ En la instalación de **internet**, con FEDE, sobre un campeonato de prueba:
       con el candado puesto**.
 - [ ] En internet, **«Devolver a la nube»**: pide confirmación y el campeonato
       vuelve a editarse.
+
+---
+
+## 13 · La publicación en vivo (1 oct)
+
+Con el campeonato de §12 ya cedido, y en el PC del evento
+`CAMPEONATOS_ONLINE_URL=https://campeonatos.dinamyt.org` en `backend/.env`:
+
+- [ ] Importar en el PC el paquete «para el evento». **Debe pasar:** la vista
+      previa avisa «trae la llave para publicar los resultados en vivo, hasta
+      el …». Sin `CAMPEONATOS_ONLINE_URL`, el aviso dice que falta.
+- [ ] Terminar una llave en el PC. **Debe pasar:** en menos de 3 minutos,
+      `campeonatos.dinamyt.org/resultados` la enseña con «Resultados a las
+      HH:MM · Se actualizan solos…», y en `/admin` del PC «Publicación en vivo
+      · último envío hace N min».
+- [ ] Con `/resultados` abierto en un celular, terminar otra llave. **Debe
+      pasar:** aparece sola en un minuto o dos, sin recargar.
+- [ ] Quitar el cable/WiFi del PC un rato y terminar otra llave. **Debe
+      pasar:** el tatami ni se entera; al volver la red, sube en la siguiente
+      vuelta.
+- [ ] En internet, la franja del campeonato dice «Publicación en vivo … hasta
+      el …. Última instantánea recibida: …».
+- [ ] **«Retirar la llave»** en internet. **Debe pasar:** el PC dice «internet
+      rechazó la llave» y deja de insistir; `/resultados` cambia a «Publicados
+      el …»; y en `/admin` del PC el campeonato vuelve a «pendiente de subir»
+      (F8, §9).
+- [ ] «Devolver a la nube» también la retira (mismo síntoma en el PC).

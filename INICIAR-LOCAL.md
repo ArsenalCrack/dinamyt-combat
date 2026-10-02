@@ -143,6 +143,20 @@ hay una bajada, y hay que hacerla **la víspera, con red**:
 > Al terminar, cuando los resultados hayan subido (§7.2), en internet:
 > campeonato → **«Devolver a la nube»**.
 
+> 📡 **Y esa bajada trae la llave para publicar en vivo.** Mientras el
+> campeonato está cerrado en internet, el paquete lleva una llave que solo
+> sirve para publicar los resultados de ESE campeonato. Al importarlo, este PC
+> la guarda y, **cada vez que haya internet**, manda los resultados cada 3
+> minutos: el público los ve en `campeonatos.dinamyt.org/resultados` con su
+> hora («Resultados a las 11:42»). Sin red no pasa nada: el campeonato sigue
+> igual y se manda cuando vuelva. Hace falta lo mismo que en §7.2:
+> `CAMPEONATOS_ONLINE_URL=https://campeonatos.dinamyt.org` en `backend/.env`
+> (si falta, la vista previa de la importación lo dice). En **Admin** se ve
+> «Publicación en vivo: … último envío hace 2 min». La llave vale cuatro días
+> y muere al «Devolver a la nube»; si crees que el paquete cayó en malas
+> manos, en internet: campeonato → **«Retirar la llave»** (los resultados
+> suben entonces al final, §7.2).
+
 ### Cómo saber de cuándo es la copia que tiene este PC
 
 En **Admin → Campeonatos** hay una línea que lo dice:

@@ -68,6 +68,14 @@ class Campeonato(db.Model):
     # nace sin él y allí se escribe.
     sede_local_desde = db.Column(db.DateTime, nullable=True)
     sede_local_por = db.Column(db.String(120), nullable=True)
+    # La publicación en vivo (app/en_vivo.py, decisión 9). En la instalación de
+    # INTERNET: hasta cuándo vale la llave que se entregó al ceder la sede, y
+    # su generación (retirarla la sube, y con ella la llave cambia). En el PC
+    # del EVENTO: la llave que llegó en el paquete y hasta cuándo vale. La
+    # llave en claro solo existe en el PC; en internet se deriva y no se guarda.
+    publicar_hasta = db.Column(db.DateTime, nullable=True)
+    publicar_gen = db.Column(db.Integer, nullable=True)
+    publicar_llave = db.Column(db.String(100), nullable=True)
     created_at = db.Column(
         db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
     )
@@ -103,11 +111,21 @@ class Campeonato(db.Model):
             "sede": "local" if self.sede_local_desde else "nube",
             "sede_local_desde": iso_utc(self.sede_local_desde) if self.sede_local_desde else None,
             "sede_local_por": self.sede_local_por,
+            # Hasta cuándo se publica en vivo. La llave NUNCA sale por aquí.
+            "publicar_hasta": iso_utc(self.publicar_hasta) if self.publicar_hasta else None,
             "created_at": iso_utc(self.created_at),
             "num_tatamis": self.tatamis.count() if self.tatamis else 0,
             "num_inscripciones": num_aceptadas,
             "num_pendientes": num_pendientes,
         }
+        if self.sede_local_desde and self.export_uuid:
+            # Para la franja del candado: de cuándo es lo último que llegó del
+            # PC del evento (app/en_vivo.py). Solo con la sede cedida, que son
+            # uno o dos campeonatos: no cuesta una consulta por fila en la lista.
+            from .resultado_publicado import ResultadoPublicado
+
+            pub = ResultadoPublicado.query.filter_by(export_uuid=self.export_uuid).first()
+            data["en_vivo_datos_de"] = pub.datos_de() if pub is not None else None
         if include_tatamis:
             data["tatamis"] = [t.to_dict() for t in self.tatamis.all()]
             data["config_categorias"] = self.config_categorias

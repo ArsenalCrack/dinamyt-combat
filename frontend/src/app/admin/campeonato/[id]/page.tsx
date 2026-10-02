@@ -14,6 +14,7 @@ import {
   accesoQrAPI,
   exportarCampeonatoAPI,
   cambiarSedeAPI,
+  retirarLlavePublicacionAPI,
   esInstalacionDeInternet,
   origenParaQr,
   MAX_TATAMIS,
@@ -70,6 +71,10 @@ interface Campeonato {
   sede?: "local" | "nube";
   sede_local_desde?: string | null;
   sede_local_por?: string | null;
+  /** La publicación en vivo (1 oct 2026): hasta cuándo vale la llave del PC. */
+  publicar_hasta?: string | null;
+  /** De cuándo es la última instantánea que llegó del PC del evento. */
+  en_vivo_datos_de?: string | null;
   tatamis: Tatami[];
 }
 
@@ -85,6 +90,10 @@ const ROLES_TATAMI: { value: string; labelKey: ClaveTexto }[] = [
 export default function CampeonatoDetailPage() {
   const router = useRouter();
   const { t, idioma } = useI18n();
+  const fechaHora = (iso: string) =>
+    new Date(iso).toLocaleString(idioma === "en" ? "en" : "es-CO", {
+      dateStyle: "medium", timeStyle: "short",
+    });
   const params = useParams();
   const campId = Number(params.id);
 
@@ -274,6 +283,27 @@ export default function CampeonatoDetailPage() {
         } catch (err) {
           const m = (err as { response?: { data?: { error?: string } } }).response?.data?.error;
           flash(m || t("sede.error"), "error");
+        }
+      },
+    });
+  }
+
+  /** La publicación en vivo: retirar la llave que viajó en el paquete. */
+  function handleRetirarLlave() {
+    if (!camp) return;
+    pedirConfirmacion({
+      titulo: t("envivo.retirar.titulo"),
+      mensaje: t("envivo.retirar.mensaje"),
+      tipo: "advertencia",
+      confirmLabel: t("envivo.retirar"),
+      onConfirm: async () => {
+        try {
+          await retirarLlavePublicacionAPI(camp.id);
+          await loadData();
+          flash(t("envivo.retirada.ok"), "ok");
+        } catch (err) {
+          const m = (err as { response?: { data?: { error?: string } } }).response?.data?.error;
+          flash(m || t("envivo.retirar.error"), "error");
         }
       },
     });
@@ -526,10 +556,28 @@ export default function CampeonatoDetailPage() {
               por: camp.sede_local_por || "—",
             })}
           </p>
-          <div>
+          {/* La publicación en vivo: la llave que viajó en el paquete */}
+          <p style={{ margin: 0, fontSize: "0.85rem" }}>
+            {camp.publicar_hasta && new Date(camp.publicar_hasta) > new Date() ? (
+              <>
+                {t("envivo.activa", { hasta: fechaHora(camp.publicar_hasta) })}{" "}
+                {camp.en_vivo_datos_de
+                  ? t("envivo.ultima", { hora: fechaHora(camp.en_vivo_datos_de) })
+                  : t("envivo.ninguna")}
+              </>
+            ) : (
+              <span className="text-muted">{t("envivo.retirada")}</span>
+            )}
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button className="btn btn-sm" onClick={handleDevolverANube}>
               {t("sede.devolver")}
             </button>
+            {camp.publicar_hasta && new Date(camp.publicar_hasta) > new Date() && (
+              <button className="btn btn-sm btn-outline" onClick={handleRetirarLlave}>
+                {t("envivo.retirar")}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -580,6 +628,11 @@ export default function CampeonatoDetailPage() {
                 <span className="text-muted">{t("sync.paraElEvento.desc")}</span>
               </span>
             </label>
+          )}
+          {esInstalacionDeInternet() && camp.sede === "local" && (
+            <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>
+              {t("sync.llaveEnElPaquete")}
+            </p>
           )}
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button className="btn btn-primary btn-sm" disabled={exportando} onClick={handleExportar}>

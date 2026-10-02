@@ -39,7 +39,7 @@ function resaltar(nombre: string, termino: string) {
 }
 
 export default function ResultadosPage() {
-  const { t } = useI18n();
+  const { t, idioma } = useI18n();
   const [campeonatos, setCampeonatos] = useState<CampeonatoOpcion[]>([]);
   const [campId, setCampId] = useState<number | string | null>(null);
   const [data, setData] = useState<ResultadosCampeonato | null>(null);
@@ -88,6 +88,25 @@ export default function ResultadosPage() {
     });
     return () => { cancelled = true; };
   }, [campId]);
+
+  // Mientras siguen llegando instantáneas del PC del evento (decisión 9), la
+  // lista se relee sola: el marcador se mueve con el evento sin recargar. Sin
+  // el aviso de «cargando»: el público está leyendo, no esperando.
+  const enVivo = Boolean(data?.en_vivo);
+  useEffect(() => {
+    if (!enVivo || campId == null) return;
+    let cancelado = false;
+    const cada = setInterval(() => {
+      getResultadosCampeonatoAPI(campId)
+        .then((res) => { if (!cancelado) setData(res); })
+        .catch(() => {});
+    }, 60000);
+    return () => { cancelado = true; clearInterval(cada); };
+  }, [enVivo, campId]);
+
+  // La hora del dato: «Resultados a las 11:42», nunca un «en vivo» sin hora.
+  const datosDe = data?.publicado && data.datos_de ? new Date(data.datos_de) : null;
+  const localeFecha = idioma === "en" ? "en" : "es-CO";
 
   const visibles = useMemo(() => {
     if (!data) return [];
@@ -207,6 +226,20 @@ export default function ResultadosPage() {
                   <span className="resultados-conteo">
                     {t("res.deTotal", { n: visibles.length, total: data.resultados.length })}
                   </span>
+                )}
+                {datosDe && (
+                  <p className="resultados-nota" style={{ margin: 0 }} role="status">
+                    <strong>
+                      {data?.en_vivo
+                        ? t("res.aLas", {
+                            hora: datosDe.toLocaleTimeString(localeFecha, { hour: "2-digit", minute: "2-digit" }),
+                          })
+                        : t("res.publicados", {
+                            fecha: datosDe.toLocaleString(localeFecha, { dateStyle: "medium", timeStyle: "short" }),
+                          })}
+                    </strong>
+                    {data?.en_vivo && <> · {t("res.aLas.envivo")}</>}
+                  </p>
                 )}
               </div>
 

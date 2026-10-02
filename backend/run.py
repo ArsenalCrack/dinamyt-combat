@@ -31,6 +31,12 @@ with app.app_context():
 from app.respaldos import iniciar_respaldos
 iniciar_respaldos(app)
 
+# La publicación en vivo durante el evento (cada PUBLICAR_MINUTOS; 0 = off).
+# Solo hace algo en el PC del evento: con CAMPEONATOS_ONLINE_URL y un paquete
+# «para el evento» importado, que es el que trae la llave (app/en_vivo.py).
+from app.en_vivo import iniciar_publicacion
+iniciar_publicacion(app)
+
 
 if __name__ == "__main__":
     import logging

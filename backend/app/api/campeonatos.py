@@ -11,6 +11,7 @@ from ..models.campeonato import ESTADOS_CAMPEONATO, Campeonato
 from ..models.invitacion import InvitacionClub
 from ..models.tatami import Tatami
 from ..sede import ceder_sede, recuperar_sede, sede_aqui
+from ..en_vivo import retirar_llave
 from .auth import mayusculas
 from .scoping import (
     SOLO_PERSONAL,
@@ -736,6 +737,30 @@ def cambiar_sede(camp_id):
         mensaje = "El campeonato vuelve a operarse aquí."
     db.session.commit()
     return jsonify({"message": mensaje, "campeonato": camp.to_dict()}), 200
+
+
+@campeonatos_bp.route("/<int:camp_id>/llave-publicacion", methods=["DELETE"])
+@jwt_required()
+def retirar_llave_publicacion(camp_id):
+    """
+    DELETE /api/campeonatos/:id/llave-publicacion
+
+    Retira la llave con la que el PC del evento publica en vivo
+    (app/en_vivo.py): la que viajó en su paquete deja de valer para siempre.
+    El campeonato sigue cedido, y sus resultados suben al final con la sesión
+    del admin (F8). Una bajada nueva del paquete entrega otra llave.
+    """
+    admin, camp, error = _campeonato_del_admin(camp_id)
+    if error:
+        return error
+    if admin.rol != "admin" and not admin.es_super:
+        return jsonify({"error": "Solo el administrador del campeonato retira la llave."}), 403
+    retirar_llave(camp)
+    db.session.commit()
+    return jsonify({
+        "message": "Llave retirada: el PC del evento ya no puede publicar en vivo.",
+        "campeonato": camp.to_dict(),
+    }), 200
 
 
 @campeonatos_bp.route("/<int:camp_id>/clubes", methods=["GET"])

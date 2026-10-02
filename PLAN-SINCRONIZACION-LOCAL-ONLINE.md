@@ -184,6 +184,11 @@ que es donde está el detalle.
 Si en el futuro se quisieran reportes también en el online, habría que añadir
 `combates` al paquete de vuelta; el formato ya está preparado para ello.
 
+Ese mismo sobre viaja hoy por tres caminos: el USB, la subida al final con la
+sesión del admin (F8, `backend/app/cartero.py`) y, durante el evento, la
+publicación en vivo cada pocos minutos con la llave del campeonato
+(`backend/app/en_vivo.py`, desde el 1 oct 2026). Sigue siendo un solo sentido.
+
 ---
 
 ## Alternativas evaluadas y descartadas
@@ -205,6 +210,7 @@ Si en el futuro se quisieran reportes también en el online, habría que añadir
 | Columnas nuevas en bases existentes | `backend/app/schema_compat.py` |
 | Exportar / importar (el motor) | `backend/app/api/sincronizacion.py` |
 | Publicar resultados (viaje de vuelta) | `backend/app/api/resultados.py` |
+| Publicar en vivo durante el evento | `backend/app/en_vivo.py` |
 | Tests del traspaso entre dos instancias | `backend/tests/test_sincronizacion.py` |
 | Panel de importación (interfaz) | `frontend/src/components/ImportarPaquetePanel.tsx` |
 | Llamadas del cliente | `frontend/src/lib/api.ts` (sección «Sincronización») |

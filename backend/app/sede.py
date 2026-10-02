@@ -26,7 +26,9 @@ la lleva—, así que allí se escribe como siempre.
 
 Lo que SÍ sigue abierto con el candado puesto: mirar (todas las lecturas), las
 fichas de competidores (son del workspace, no del campeonato) y la SUBIDA de
-resultados (`/api/resultados/importar`), que es justo el camino de vuelta.
+resultados (`/api/resultados/importar`), que es justo el camino de vuelta. Y
+mientras está puesto, el PC del evento publica sus resultados cada pocos
+minutos con la llave que viajó en el paquete (`app/en_vivo.py`, decisión 9).
 """
 from datetime import datetime, timezone
 from functools import wraps
@@ -126,6 +128,13 @@ def ceder_sede(camp, admin):
 
 
 def recuperar_sede(camp):
-    """Lo devuelve a esta instalación: vuelve a poder escribirse aquí."""
+    """Lo devuelve a esta instalación: vuelve a poder escribirse aquí.
+
+    Y la llave de publicación en vivo que se entregó al cederlo deja de valer
+    para siempre: una próxima cesión entrega otra (`app/en_vivo.py`).
+    """
+    from .en_vivo import retirar_llave
+
     camp.sede_local_desde = None
     camp.sede_local_por = None
+    retirar_llave(camp)

@@ -271,6 +271,23 @@ export interface EstadoSubida {
   sesion_viva: boolean;
   /** Por qué no se sube ahora mismo, o null si nada lo impide. */
   motivo: "sin_destino" | "sin_sesion" | "en_combate" | null;
+  /** La publicación en vivo durante el evento (backend/app/en_vivo.py). */
+  en_vivo?: EnVivoLocal[];
+}
+
+/** Un campeonato que trae llave de publicación en vivo en este PC. */
+export interface EnVivoLocal {
+  campeonato_id: number;
+  nombre: string;
+  hasta: string | null;
+  vigente: boolean;
+  /** Se está publicando (hay destino, la llave vale y no fue rechazada). */
+  activa: boolean;
+  rechazada: boolean;
+  sin_destino: boolean;
+  ultimo_envio_at: string | null;
+  ultimo_intento_at: string | null;
+  ultimo_error: string | null;
 }
 
 export async function estadoSubidaAPI() {
@@ -465,6 +482,10 @@ export interface ResultadosCampeonato {
   tatamis: number[];
   publicado?: boolean;
   importado_at?: string;
+  /** De cuándo son los datos (la hora a la que el PC del evento los armó). */
+  datos_de?: string | null;
+  /** Siguen llegando instantáneas del PC del evento (backend/app/en_vivo.py). */
+  en_vivo?: boolean;
 }
 
 export interface CampeonatoResultadoItem {
@@ -473,6 +494,8 @@ export interface CampeonatoResultadoItem {
   num_resultados: number;
   publicado?: boolean;
   importado_at?: string;
+  datos_de?: string | null;
+  en_vivo?: boolean;
 }
 
 export async function listCampeonatosResultadosAPI() {
@@ -652,6 +675,12 @@ export function esInstalacionDeInternet(): boolean {
 /** El candado de sede (backend/app/sede.py): «local» cede, «nube» recupera. */
 export async function cambiarSedeAPI(campId: number, sede: "local" | "nube") {
   const res = await api.post(`/campeonatos/${campId}/sede`, { sede });
+  return res.data as { message: string };
+}
+
+/** Retira la llave con la que el PC del evento publica en vivo (backend/app/en_vivo.py). */
+export async function retirarLlavePublicacionAPI(campId: number) {
+  const res = await api.delete(`/campeonatos/${campId}/llave-publicacion`);
   return res.data as { message: string };
 }
 

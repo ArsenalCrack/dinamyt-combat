@@ -70,6 +70,10 @@ OPTIONAL_COLUMNS = {
         # El candado de sede (26 sep 2026, app/sede.py). NULL = se opera aquí.
         "sede_local_desde": "TIMESTAMP",
         "sede_local_por": "VARCHAR(120)",
+        # La publicación en vivo (1 oct 2026, app/en_vivo.py). NULL = no hay.
+        "publicar_hasta": "TIMESTAMP",
+        "publicar_gen": "INTEGER",
+        "publicar_llave": "VARCHAR(100)",
     },
     "competidores": {
         "uid": "VARCHAR(32)",

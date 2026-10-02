@@ -28,6 +28,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, jsonify, request, Response
 from flask_jwt_extended import jwt_required
 
+from ..en_vivo import CABECERA as CABECERA_LLAVE, instante, llave_valida, llave_vigente
 from ..extensions import db
 from ..security import limitar
 from ..models.campeonato import Campeonato
@@ -43,6 +44,8 @@ from .scoping import require_admin, es_dueno_campeonato
 resultados_bp = Blueprint("resultados", __name__)
 
 FORMATO_EXPORT = "dinamyt-resultados"
+# Tope de la instantánea en vivo (`publicar_en_vivo`), por debajo del general.
+MAX_BYTES_EN_VIVO = 5 * 1024 * 1024
 
 
 @resultados_bp.route("/campeonatos", methods=["GET"])
@@ -77,7 +80,9 @@ def listar_campeonatos():
         # siempre el vivo: la lista decía «0 resultados» y los que volvieron no
         # se veían en ninguna parte. Manda el que tiene algo que enseñar.
         if publicado is not None and en_vivo == 0:
-            result.append(publicado.to_selector())
+            # `en_vivo` del selector = siguen llegando instantáneas del PC del
+            # evento (app/en_vivo.py), no los resultados calculados aquí.
+            result.append(publicado.to_selector(en_vivo=llave_vigente(c)))
             ya_puestos.add(c.export_uuid)
             continue
         if publicado is not None:
@@ -275,7 +280,8 @@ def resultados_campeonato(camp_id):
         pub = ResultadoPublicado.query.filter_by(export_uuid=camp_id[4:]).first()
         if not pub:
             return jsonify({"error": "Resultados no encontrados"}), 404
-        return jsonify(pub.to_resultados()), 200
+        vivo = Campeonato.query.filter_by(export_uuid=pub.export_uuid).first()
+        return jsonify(pub.to_resultados(en_vivo=llave_vigente(vivo))), 200
 
     # Campeonato en vivo (id numérico)
     try:
@@ -293,7 +299,7 @@ def resultados_campeonato(camp_id):
     if not data.get("resultados") and camp.export_uuid:
         pub = ResultadoPublicado.query.filter_by(export_uuid=camp.export_uuid).first()
         if pub is not None:
-            return jsonify(pub.to_resultados()), 200
+            return jsonify(pub.to_resultados(en_vivo=llave_vigente(camp))), 200
     return jsonify({
         "campeonato": {"id": camp.id, "nombre": camp.nombre},
         **data,
@@ -464,6 +470,79 @@ def importar_resultados():
         "num_resultados": len(resultados),
         "nuevo": nuevo,
     }), 200
+
+
+@resultados_bp.route("/en-vivo", methods=["POST"])
+@limitar(30, 60, nombre="resultados-en-vivo")
+def publicar_en_vivo():
+    """
+    POST /api/resultados/en-vivo — la instantánea que manda el PC del evento.
+
+    Sin sesión: se identifica con la llave del campeonato en la cabecera
+    `X-Llave-Publicacion` (app/en_vivo.py). El cuerpo es el mismo sobre que el
+    USB y que F8 (`sobre_de_resultados`). Solo vale para el campeonato de esa
+    llave, mientras siga cedido al PC del evento y dentro de su plazo.
+
+    Lo que llegue más viejo que lo que ya hay se descarta con un 200: con red
+    mala, la de las 11:40 puede llegar después de la de las 11:45, y eso no es
+    un error que el PC tenga que reintentar.
+    """
+    # Antes de leer el cuerpo: esta ruta no pide sesión, y sin llave no hay
+    # nada que mirar. Una instantánea de mil competidores ronda 1 MB.
+    llave = request.headers.get(CABECERA_LLAVE, "")
+    if not llave:
+        return jsonify({"error": "Falta la llave de publicación.", "motivo": "llave"}), 401
+    if (request.content_length or 0) > MAX_BYTES_EN_VIVO:
+        return jsonify({"error": "La instantánea es demasiado grande."}), 413
+
+    envelope = request.get_json(silent=True)
+    if not isinstance(envelope, dict) or envelope.get("formato") != FORMATO_EXPORT:
+        return jsonify({"error": "No es una instantánea de resultados de DINAMYT"}), 400
+    export_uuid = str(envelope.get("export_uuid") or "").strip()
+    resultados = envelope.get("resultados")
+    if not export_uuid or not isinstance(resultados, list):
+        return jsonify({"error": "La instantánea está incompleta"}), 400
+
+    # Sin sesión no hay workspace que acotar; lo que decide es la llave. Se
+    # busca con la red levantada para no depender de eso (ver `importar`).
+    from ..rls import sin_workspace
+
+    with sin_workspace():
+        camp = Campeonato.query.filter_by(export_uuid=export_uuid).first()
+        if not llave_valida(camp, llave):
+            # Una sola respuesta para «no existe», «llave falsa», «caducó» y
+            # «volvió a la nube»: quien no tiene la llave no aprende nada.
+            return jsonify({
+                "error": "La llave de publicación no vale: se retiró, caducó o el "
+                         "campeonato ya no se está operando en el PC del evento. "
+                         "Los resultados se suben al final (F8).",
+                "motivo": "llave",
+            }), 401
+
+        llega = instante(envelope.get("exportado_at"))
+        pub = ResultadoPublicado.query.filter_by(export_uuid=export_uuid).first()
+        ya_tenia = instante(pub.exportado_at) if pub is not None else None
+        if llega is not None and ya_tenia is not None and llega <= ya_tenia:
+            return jsonify({"ok": True, "descartado": True}), 200
+
+        if pub is None:
+            # Del dueño del campeonato: así lo ve en su workspace (RLS) y su
+            # subida final de F8 lo actualiza en vez de chocar con «es de otro».
+            pub = ResultadoPublicado(export_uuid=export_uuid, created_by=camp.created_by)
+            db.session.add(pub)
+        # El nombre es el de AQUÍ, no el que diga el archivo: lo peor que puede
+        # hacer quien tenga la llave es publicar podios falsos de este evento.
+        pub.nombre = camp.nombre
+        pub.payload = {
+            "resultados": resultados,
+            "categorias": envelope.get("categorias", []),
+            "tatamis": envelope.get("tatamis", []),
+        }
+        pub.exportado_at = envelope.get("exportado_at")
+        pub.importado_at = datetime.now(timezone.utc)
+        db.session.commit()
+
+    return jsonify({"ok": True, "num_resultados": len(resultados)}), 200
 
 
 @resultados_bp.route("/publicado/<export_uuid>", methods=["DELETE"])

@@ -660,3 +660,47 @@ def test_el_traspaso_con_la_red_puesta(pg, club):
     # Y el maestro que era del viejo ahora es de la casa del nuevo.
     assert cliente.get("/api/inscripciones/maestro/campeonatos",
                        headers=_h(tokens["maestro"])).get_json()[0]["acceso"] == "casa"
+
+
+def test_el_candado_y_la_publicacion_en_vivo_con_la_red_puesta(pg, club):
+    """Decisiones 8 y 9 contra PostgreSQL: ceder al bajar el paquete, el 423 con
+    la red del admin, la instantánea SIN sesión (sin workspace que acotar) y
+    que lo publicado siga siendo del dueño: lo ve y su F8 lo actualiza."""
+    app, db = pg
+    cliente, tokens, camp_id = club
+    from app.en_vivo import CABECERA
+
+    r = cliente.get(f"/api/sincronizacion/campeonato/{camp_id}/exportar?para_el_evento=1",
+                    headers=_h(tokens["admin"]))
+    assert r.status_code == 200, r.get_json()
+    paquete = r.get_json()
+    llave = paquete["publicacion"]["llave"]
+
+    r = cliente.put(f"/api/campeonatos/{camp_id}/clubes/solo-invitados",
+                    json={"solo_invitados": True}, headers=_h(tokens["admin"]))
+    assert r.status_code == 423, r.get_json()
+
+    sobre = {
+        "formato": "dinamyt-resultados", "version": 1,
+        "export_uuid": paquete["campeonato"]["uid"],
+        "exportado_at": "2026-10-10T16:45:00+00:00",
+        "campeonato": {"nombre": "COPA"},
+        "resultados": [{"tipo": "combate", "id": "llave-1", "nombre": "COMBATE -60KG",
+                        "podio": [{"puesto": 1, "nombre": "ANA"}],
+                        "participantes": ["ANA"]}],
+        "categorias": ["COMBATE -60KG"], "tatamis": [],
+    }
+    r = cliente.post("/api/resultados/en-vivo", json=sobre, headers={CABECERA: llave})
+    assert r.status_code == 200, r.get_json()
+
+    lista = cliente.get("/api/resultados/campeonatos").get_json()
+    assert lista[0]["publicado"] is True and lista[0]["en_vivo"] is True
+    r = cliente.post("/api/resultados/importar", json=sobre, headers=_h(tokens["admin"]))
+    assert r.status_code == 200, r.get_json()
+    assert r.get_json()["nuevo"] is False
+
+    r = cliente.post(f"/api/campeonatos/{camp_id}/sede", json={"sede": "nube"},
+                     headers=_h(tokens["admin"]))
+    assert r.status_code == 200, r.get_json()
+    r = cliente.post("/api/resultados/en-vivo", json=sobre, headers={CABECERA: llave})
+    assert r.status_code == 401

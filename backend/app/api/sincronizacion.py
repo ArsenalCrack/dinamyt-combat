@@ -61,6 +61,7 @@ from ..timeutil import iso_utc
 from ..uid import asegurar_uid, nuevo_uid
 from ..ultima_bajada import anotar as anotar_bajada, estado as estado_bajada
 from ..sede import ceder_sede, en_otra_sede
+from ..en_vivo import entregar_llave, guardar_llave
 from .scoping import (
     es_dueno_campeonato, filtrar_competidores, require_admin, workspace_owner_id,
 )
@@ -92,7 +93,11 @@ FORMATOS_VALIDOS = (FORMATO_CAMPEONATO, FORMATO_USUARIOS, FORMATO_COMPETIDORES)
 # llega sin invitaciones, que es como estaba todo antes de F5.
 # 7 desde «solo clubes invitados» (25 sep 2026): el campeonato viaja con su
 # interruptor. Uno anterior no lo trae y no se toca lo que hubiera.
-VERSION_PAQUETE = 7
+# 8 desde la publicación en vivo (1 oct 2026): el paquete de un campeonato
+# cedido al PC del evento lleva `publicacion`, la llave para publicar sus
+# resultados cada pocos minutos (`app/en_vivo.py`). Uno anterior no la trae, y
+# los resultados suben al final como siempre (F8).
+VERSION_PAQUETE = 8
 
 # Tope del archivo subido (25 MB). Un campeonato de 1000 competidores con sus
 # llaves ronda los 3 MB; más que esto no es un paquete de DINAMYT.
@@ -303,6 +308,9 @@ def exportar_campeonato(camp_id):
     Con `para_el_evento=1`, además CEDE la sede (app/sede.py): desde ese momento
     el campeonato aquí es de solo lectura. Sin ella es una copia de prueba —la
     del simulacro— y no cierra nada.
+
+    Mientras esté cedido, el paquete lleva la llave para publicar en vivo
+    (`app/en_vivo.py`): la de la víspera y la de la mañana son la misma.
     """
     admin = require_admin()
     if not admin:
@@ -386,6 +394,14 @@ def exportar_campeonato(camp_id):
             _llave_a_dict(ll, tatami_por_id.get(ll.tatami_id)) for ll in llaves
         ]
         paquete["incluye"].append("llaves")
+
+    # La llave de la publicación en vivo, si el campeonato está cedido. Va
+    # después de `_campeonato_a_dict`, que es quien le asegura el uid: la
+    # llave se deriva de él.
+    publicacion = entregar_llave(camp)
+    if publicacion is not None:
+        paquete["publicacion"] = publicacion
+        paquete["incluye"].append("publicacion")
 
     # Los uid recién generados durante la serialización se persisten: así el
     # mismo campeonato exportado otra vez conserva su identidad.
@@ -908,6 +924,29 @@ def _importar_campeonato(datos, admin, informe):
     return camp
 
 
+def _guardar_llave_de_publicacion(publicacion, camp, informe):
+    """La llave para publicar en vivo, si el paquete la trae (`app/en_vivo.py`)."""
+    from .. import cartero
+
+    hasta = guardar_llave(camp, publicacion)
+    if hasta is None:
+        return
+    cuando = hasta.strftime("%Y-%m-%d %H:%M UTC")
+    if cartero.destino():
+        informe.aviso(
+            f"Este paquete trae la llave para publicar los resultados en vivo, "
+            f"hasta el {cuando}: mientras haya internet, el público los ve cada "
+            "pocos minutos en la instalación de internet."
+        )
+    else:
+        informe.aviso(
+            f"Este paquete trae la llave para publicar los resultados en vivo "
+            f"(hasta el {cuando}), pero a este PC le falta CAMPEONATOS_ONLINE_URL "
+            "(https) en su configuración: no se publicará nada hasta ponerla y "
+            "reiniciar el backend."
+        )
+
+
 # Del estado más temprano al más avanzado. Un paquete no BAJA una invitación
 # que aquí ya se aceptó: que el club inscribió a alguien aquí sigue siendo
 # verdad, lo diga o no el paquete. `retirado` sí se aplica siempre: lo decide
@@ -1395,6 +1434,7 @@ def _ejecutar_importacion(paquete, formato, modo, forzar, admin, informe):
     # ── Paquete de campeonato: orden fijo de dependencias ──
     usuarios = _importar_usuarios(paquete.get("usuarios"), admin, informe)
     camp = _importar_campeonato(paquete.get("campeonato"), admin, informe)
+    _guardar_llave_de_publicacion(paquete.get("publicacion"), camp, informe)
 
     # Freno: si aquí ya se está compitiendo, importar podría pisar resultados.
     trae_competencia = bool(paquete.get("llaves") or paquete.get("inscripciones"))
