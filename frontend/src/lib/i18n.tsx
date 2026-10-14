@@ -246,6 +246,7 @@ const es = {
   "pie.ayuda": "¿Necesitas ayuda?",
   "pie.derechos": "Todos los derechos reservados.",
   "pie.nota": "DINAMYT Campeonatos es una obra protegida por el derecho de autor.",
+  "pie.ia": "Desarrollado con asistencia de inteligencia artificial.",
 
   // Panel del juez
   "juez.bienvenido": "Bienvenido,",
@@ -1754,6 +1755,7 @@ const en: Record<ClaveTexto, string> = {
   "pie.ayuda": "Need help?",
   "pie.derechos": "All rights reserved.",
   "pie.nota": "DINAMYT Championships is a work protected by copyright.",
+  "pie.ia": "Built with the help of artificial intelligence.",
 
   "juez.bienvenido": "Welcome,",
   "juez.misTatamis": "My Assigned Tatamis",

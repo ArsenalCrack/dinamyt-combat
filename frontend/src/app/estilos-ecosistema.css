@@ -778,6 +778,9 @@ input[type="password"]::-ms-clear { display: none; }
   }
   .pie-legal strong { color: var(--text); font-weight: 700; }
   .pie-legal-nota { margin-top: 0.2rem; opacity: 0.75; }
+  /* El aviso de IA es el único enlace de la franja legal: sin subrayado no se
+     distingue de las frases que tiene encima. */
+  .pie-legal a { text-decoration: underline; text-underline-offset: 2px; }
   /* La versión que está corriendo. Al final del todo: no es algo que nadie
      venga a buscar, es algo que hace falta tener a mano el día que alguien
      dice «me sigue pasando». */

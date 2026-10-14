@@ -98,6 +98,18 @@ export default function PieDePagina() {
           © {años} <strong>{AUTOR}</strong> · {t('pie.derechos')}
         </p>
         <p className="pie-legal-nota">{t('pie.nota')}</p>
+        {/* Lleva a la sección de la política que dice qué hace la IA aquí y
+            qué no. Sin guarda: aquí `PORTAL_URL` nunca viene vacía
+            (`lib/portal.ts`). */}
+        <p className="pie-legal-nota">
+          <a
+            href={`${PORTAL_URL}/privacidad#ia`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {t('pie.ia')}
+          </a>
+        </p>
         <Version />
       </div>
     </footer>
