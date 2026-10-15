@@ -73,6 +73,10 @@
   /* ── Trazos ── */
   --border: #262635;
   --border-strong: #3a3a4e;
+  /* El borde de un campo es lo que lo identifica, y tiene que dar 3:1 contra el
+     campo y contra lo que lo rodea (WCAG 1.4.11): `--border` daba 1.22:1. Solo
+     para input, select y textarea; las tarjetas siguen con el borde suave. */
+  --border-campo: #666579;
 
   /* ── Texto ── */
   --text: #f3f1e8;
@@ -197,6 +201,7 @@ html[data-theme='light'] {
      borde demasiado claro desaparece y los campos parecen manchas. */
   --border: #d3d7e0;
   --border-strong: #aeb4c2;
+  --border-campo: #828895;
 
   --text: #12121a;
   --text-muted: #565669;
@@ -218,10 +223,13 @@ html[data-theme='light'] {
      Es la solución de siempre para una marca luminosa en tema claro: el color
      no se apaga, se cambia de sitio. */
   /* Un punto más cálido que `#9a6a00`, que a ese peso tiraba a oliva y se leía
-     apagado. `#a05e00` está en el mismo sitio de luminosidad —5.13:1, sigue
-     pasando AA— pero con el matiz corrido hacia el ámbar, que es lo que hace
-     que se lea como oro oscuro y no como mostaza. */
-  --gold: #a05e00;
+     apagado: el matiz corrido hacia el ámbar es lo que hace que se lea como oro
+     oscuro y no como mostaza. `#9f5e00` y no `#a05e00`: el de antes pasaba sobre
+     la tarjeta blanca (5.13:1) pero se quedaba en 4.49:1 sobre el fondo de la
+     página (#eef0f4), donde también va texto pequeño —el «← Volver», las
+     etiquetas—. Un punto de rojo menos lo deja en 4.52:1 sin apagarlo
+     (antislop, auditoría 001, nº 1). */
+  --gold: #9f5e00;
   /* ── Y EL TERCER ORO: el de los titulares ──
      Éste era el que faltaba, y es el que más se ve. «EL CUADERNO» de la portada
      y cualquier acento grande salían pintados con `--gold`, que es un oro de
@@ -384,7 +392,7 @@ html[data-theme='light'] .badge-gold {
   color: #6b3f00;
 }
 /* El botón de contorno, al pasar por encima, tira del oro vivo y no del
-   oscuro: sobre blanco, un borde `#a05e00` no se distingue de uno gris. */
+   oscuro: sobre blanco, un borde `#9f5e00` no se distingue de uno gris. */
 html[data-theme='light'] .btn-outline:hover:not(:disabled) {
   border-color: var(--gold-fill);
   color: var(--gold);
@@ -465,7 +473,7 @@ html { scroll-padding-top: 4.5rem; }
 /* ── Formularios (base por elemento) ────────────────────────────────────── */
 input, select, textarea {
   background: var(--bg-input);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-campo);
   border-radius: 0.5rem;
   padding: 0.55rem 0.75rem;
   color: var(--text);
@@ -503,6 +511,11 @@ input[type="password"]::-ms-clear { display: none; }
     letter-spacing: -0.015em;
     line-height: 0.98;
   }
+  /* La etiqueta corta encima de un título. Monoespaciada, en mayúsculas y
+     abierta a propósito: es la voz de IBM Plex Mono que ya llevan los códigos
+     de club y las cifras de la portada, la del marcador, y nunca pasa de tres
+     o cuatro palabras. Si alguna vez hace falta un párrafo así, no es esto
+     (antislop R-06, auditoría 001, nº 10). */
   .eyebrow {
     font-family: var(--font-mono), ui-monospace, monospace;
     font-size: 0.72rem;
@@ -1493,8 +1506,11 @@ input[type="password"]::-ms-clear { display: none; }
   font-size: 0.85rem;
   cursor: pointer;
 }
+/* Sin `outline: none`: esta regla está fuera de capas y le ganaba al anillo
+   dorado de `:focus-visible`; con Tab, el foco solo se notaba por un fondo a
+   1.09:1 (antislop, auditoría 001, nº 2). */
 .navbar-item:hover,
-.navbar-item:focus-visible { background: var(--bg-elevated); outline: none; }
+.navbar-item:focus-visible { background: var(--bg-elevated); }
 .navbar-item[data-activo='true'] { color: var(--gold); }
 .navbar-sep { height: 1px; margin: 0.35rem 0; background: var(--border); }
 .navbar-panel-links { display: flex; flex-direction: column; gap: 0.15rem; }
@@ -1566,4 +1582,24 @@ input[type="password"]::-ms-clear { display: none; }
   .navbar-panel { right: 1rem; }
 }
 
-
+/* ── El pulgar ─────────────────────────────────────────────────────────────
+   En una pantalla táctil todo lo que se pulsa mide al menos 44 px: con el
+   ratón se acierta un botón de 38, con el dedo no (antislop R-03, auditoría
+   001, nº 4). Solo con `pointer: coarse`, para que en el escritorio no crezca
+   nada, y fuera de capas a propósito: tiene que ganarle al tamaño de cada
+   componente. */
+@media (pointer: coarse) {
+  .btn,
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  .navbar-item {
+    min-height: 44px;
+  }
+  .navbar-toggle { height: 44px; }
+  .pubctl-toggle { width: 44px; height: 44px; }
+  .pie-enlace {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+}
