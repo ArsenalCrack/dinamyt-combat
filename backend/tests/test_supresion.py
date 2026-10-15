@@ -4,13 +4,15 @@ La cuenta se borró en DINAMYT: lo suyo en Campeonatos también.
 Lo que se prueba, en orden:
 
   1. La cuenta se vacía y queda dada de baja; sus accesos a los tatamis (con
-     la IP) se borran.
+     la IP) y sus asignaciones de juez se borran.
   2. La ficha que compitió se queda con su nombre y su club —los resultados
      oficiales lo llevan—, sin documento, nacimiento ni peso; su inscripción a
      un campeonato que sigue en preparación se borra.
-  3. La ficha que nunca compitió se borra entera, también si solo se la
-     reconoce por el documento.
-  4. A nadie más se le toca nada, y una segunda vez no hace nada.
+  3. La ficha que nunca compitió se borra entera: también la que solo tuvo
+     inscripciones que nunca se aceptaron.
+  4. Una ficha con su documento que NO está ligada a la cuenta no se toca: es
+     del organizador que la cargó.
+  5. A nadie más se le toca nada, y una segunda vez no hace nada.
   5. Sin el secreto, la puerta está cerrada; sin la variable, la ruta no existe.
 """
 
@@ -46,7 +48,7 @@ def app(monkeypatch):
 
 @pytest.fixture()
 def mundo(app):
-    from app.models.asignacion import AccesoTatami
+    from app.models.asignacion import AccesoTatami, AsignacionJuez
     from app.models.campeonato import Campeonato
     from app.models.competidor import Competidor, Inscripcion
     from app.models.tatami import Tatami
@@ -76,10 +78,15 @@ def mundo(app):
     sin_enlazar = Competidor(nombre_completo="ANA GOMEZ", documento="1001",
                              fecha_nacimiento=date(2010, 4, 2), club="DOJANG SUR",
                              activo=True, created_by=otro_admin.id)
+    # Ligada a la cuenta, pero solo con una inscripción rechazada en un
+    # campeonato que ya acabó: nunca compitió.
+    rechazada = Competidor(nombre_completo="ANA GÓMEZ", documento="1003",
+                           fecha_nacimiento=date(2010, 4, 2), club="DOJANG SUR",
+                           activo=True, created_by=otro_admin.id, eco_sub=SUB_ANA)
     otra = Competidor(nombre_completo="LUZ MARINA", documento="2002",
                       fecha_nacimiento=date(2011, 7, 9), club="DOJANG SUR",
                       activo=True, created_by=admin.id)
-    db.session.add_all([compitio, sin_enlazar, otra])
+    db.session.add_all([compitio, sin_enlazar, rechazada, otra])
     db.session.flush()
 
     db.session.add_all([
@@ -87,29 +94,33 @@ def mundo(app):
         Inscripcion(campeonato_id=proximo.id, competidor_id=compitio.id, estado="aceptada"),
         Inscripcion(campeonato_id=proximo.id, competidor_id=sin_enlazar.id, estado="pendiente"),
         Inscripcion(campeonato_id=proximo.id, competidor_id=otra.id, estado="aceptada"),
+        Inscripcion(campeonato_id=pasado.id, competidor_id=rechazada.id, estado="rechazada"),
     ])
     tatami = Tatami(numero=1, campeonato_id=pasado.id)
     db.session.add(tatami)
     db.session.flush()
     db.session.add(AccesoTatami(tatami_id=tatami.id, usuario_id=ana.id, ip_address="10.0.0.9"))
+    db.session.add(AsignacionJuez(tatami_id=tatami.id, usuario_id=ana.id, rol_tatami="j1",
+                                  nombre_display="ANA GÓMEZ", asignado_por_id=admin.id))
     db.session.commit()
 
     return SimpleNamespace(
         cliente=app.test_client(),
         ana_id=ana.id, compitio_id=compitio.id, sin_enlazar_id=sin_enlazar.id,
-        otra_id=otra.id, pasado_id=pasado.id, proximo_id=proximo.id,
+        rechazada_id=rechazada.id, otra_id=otra.id, pasado_id=pasado.id,
+        proximo_id=proximo.id,
     )
 
 
 def _suprimir(m, cuerpo=None, secreto=SECRETO):
     cabeceras = {} if secreto is None else {"x-dinamyt-sync": secreto}
     return m.cliente.post("/api/sync/supresion",
-                          json=cuerpo or {"ecoSub": SUB_ANA, "documento": "1001"},
+                          json=cuerpo or {"ecoSub": SUB_ANA},
                           headers=cabeceras)
 
 
 def test_vacia_la_cuenta_y_borra_sus_accesos(mundo):
-    from app.models.asignacion import AccesoTatami
+    from app.models.asignacion import AccesoTatami, AsignacionJuez
     from app.models.usuario import Usuario
 
     res = _suprimir(mundo)
@@ -124,7 +135,10 @@ def test_vacia_la_cuenta_y_borra_sus_accesos(mundo):
     assert ana.activo is False
     assert ana.eliminado_at is not None
     assert not ana.check_password("secret123")
+    assert ana.clubes == []
     assert AccesoTatami.query.filter_by(usuario_id=mundo.ana_id).count() == 0
+    # Sin esto seguía asignada a su tatami como «PERSONA ELIMINADA».
+    assert AsignacionJuez.query.filter_by(usuario_id=mundo.ana_id).count() == 0
 
 
 def test_la_ficha_que_compitio_se_queda_con_su_nombre_y_sin_lo_demas(mundo):
@@ -142,12 +156,23 @@ def test_la_ficha_que_compitio_se_queda_con_su_nombre_y_sin_lo_demas(mundo):
     assert quedan == {mundo.pasado_id}
 
 
-def test_la_ficha_sin_competir_se_borra_aunque_solo_la_reconozca_el_documento(mundo):
+def test_la_ficha_que_nunca_compitio_se_borra_aunque_el_campeonato_acabara(mundo):
     from app.models.competidor import Competidor, Inscripcion
 
     _suprimir(mundo)
-    assert db.session.get(Competidor, mundo.sin_enlazar_id) is None
-    assert Inscripcion.query.filter_by(competidor_id=mundo.sin_enlazar_id).count() == 0
+    assert db.session.get(Competidor, mundo.rechazada_id) is None
+    assert Inscripcion.query.filter_by(competidor_id=mundo.rechazada_id).count() == 0
+
+
+def test_la_ficha_no_ligada_a_la_cuenta_no_se_toca_aunque_traiga_su_documento(mundo):
+    from app.models.competidor import Competidor, Inscripcion
+
+    res = _suprimir(mundo, cuerpo={"ecoSub": SUB_ANA, "documento": "1001"})
+    assert res.status_code == 200
+    ficha = db.session.get(Competidor, mundo.sin_enlazar_id)
+    assert ficha is not None
+    assert ficha.documento == "1001"
+    assert Inscripcion.query.filter_by(competidor_id=mundo.sin_enlazar_id).count() == 1
 
 
 def test_a_nadie_mas_se_le_toca_nada_y_dos_veces_no_hace_nada(mundo):

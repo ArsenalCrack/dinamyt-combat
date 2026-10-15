@@ -16,11 +16,10 @@ import re
 import secrets
 from datetime import datetime, timezone
 
-import bcrypt
 from flask import Blueprint, jsonify, request
 
 from ..extensions import db
-from ..models.asignacion import AccesoTatami
+from ..models.asignacion import AccesoTatami, AsignacionJuez
 from ..models.campeonato import Campeonato
 from ..models.competidor import Competidor, Inscripcion
 from ..models.usuario import Usuario
@@ -52,14 +51,21 @@ def supresion():
     se borra nada y lo reintenta al día siguiente. Idempotente.
 
     · **La cuenta** (`usuarios`) se vacía y se da de baja; no se borra, porque
-      de ella cuelgan campeonatos, llaves y asignaciones que son del evento.
-      Sus accesos a los tatamis (con la IP) sí se borran.
+      de ella cuelgan campeonatos y llaves que son del evento. Sus accesos a
+      los tatamis (con la IP) y sus asignaciones de juez (con su nombre) sí se
+      borran, como en cualquier baja (`auth.py`).
     · **Su ficha de competidor**: lo que no llegó a competir —inscripciones a
-      campeonatos que siguen en preparación— se borra. Si con eso no le queda
-      nada, se borra la ficha. Si compitió, la ficha se queda con su nombre y
-      su club, sin documento, nacimiento ni peso: los resultados oficiales
-      llevan su nombre (decidido el 14 oct 2026), y las llaves y combates ya
-      lo guardan copiado.
+      campeonatos que siguen en preparación, y las que nunca se aceptaron— se
+      borra. Si con eso no le queda nada, se borra la ficha. Si compitió, la
+      ficha se queda con su nombre y su club, sin documento, nacimiento ni
+      peso: los resultados oficiales llevan su nombre (decidido el 14 oct
+      2026), y las llaves y combates ya lo guardan copiado.
+
+    Solo se busca por `ecoSub`. Una ficha que un organizador cargó a mano y
+    nunca se ligó a la cuenta es suya, no de la cuenta: buscarla por el
+    documento dejaba que cualquiera se registrara en DINAMYT con el número de
+    otra persona, pidiera el borrado y le quitara sus inscripciones (thermos,
+    15 oct 2026).
     """
     cerrada = _puerta()
     if cerrada == 404:
@@ -71,9 +77,6 @@ def supresion():
     eco_sub = str(datos.get("ecoSub") or "").strip()
     if not UUID.match(eco_sub):
         return jsonify({"error": "Falta `ecoSub`."}), 422
-    # La llave entre un competidor y una persona (decisión 10): encuentra la
-    # ficha que nunca se enlazó a la cuenta.
-    documento = str(datos.get("documento") or "").strip() or None
 
     ahora = datetime.now(timezone.utc)
     with sin_workspace():
@@ -81,14 +84,8 @@ def supresion():
         for u in usuarios:
             _vaciar_usuario(u, ahora)
 
-        filtro = Competidor.eco_sub == eco_sub
-        if documento:
-            filtro = db.or_(
-                filtro,
-                db.and_(Competidor.documento == documento, Competidor.eco_sub.is_(None)),
-            )
         borrados = conservados = 0
-        for ficha in Competidor.query.filter(filtro).all():
+        for ficha in Competidor.query.filter(Competidor.eco_sub == eco_sub).all():
             if _borrar_o_vaciar_competidor(ficha):
                 borrados += 1
             else:
@@ -106,16 +103,14 @@ def supresion():
 
 def _vaciar_usuario(u, ahora):
     AccesoTatami.query.filter_by(usuario_id=u.id).delete(synchronize_session=False)
+    AsignacionJuez.query.filter_by(usuario_id=u.id).delete(synchronize_session=False)
     u.nombre = NOMBRE_BORRADA
     u.email = f"eliminado-{u.id}@eliminado.invalid"
-    # La columna no admite vacío: un hash de algo que nadie conoce.
-    u.password_hash = bcrypt.hashpw(secrets.token_bytes(32), bcrypt.gensalt()).decode("utf-8")
+    # La columna no admite vacío: como todo espejo, una que nadie conoce.
+    u.set_password(secrets.token_urlsafe(32))
     u.eco_sub = None
-    u.club = None
-    u._clubes = None
-    u.delegacion = None
-    u.pais_delegacion = None
-    u._roles_del_portal = None
+    u.clubes = []  # el setter vacía también `club`, `delegacion` y el país
+    u.roles_del_portal = []
     u.puede_juzgar = False
     u.activo = False
     u.eliminado_at = ahora
@@ -125,7 +120,9 @@ def _borrar_o_vaciar_competidor(ficha):
     """`True` si la ficha se borró; `False` si se quedó, vaciada, porque compitió."""
     for ins in Inscripcion.query.filter_by(competidor_id=ficha.id).all():
         camp = db.session.get(Campeonato, ins.campeonato_id)
-        if camp is None or camp.estado == "preparacion":
+        # Pendiente o rechazada: nunca llegó a competir, aunque el campeonato acabara.
+        no_compitio = (ins.estado or "aceptada") != "aceptada"
+        if camp is None or camp.estado == "preparacion" or no_compitio:
             db.session.delete(ins)
     db.session.flush()
 
