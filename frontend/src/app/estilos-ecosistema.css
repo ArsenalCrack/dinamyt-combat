@@ -175,9 +175,9 @@
    **Solo se redefinen colores.** Tipografía, espaciado y componentes se
    quedan igual: el modo claro no es otro diseño, es el mismo con otra luz.
 
-   ⚠️ El oro se oscurece a `#a37400`. El `#f0b800` del modo oscuro sobre
-   blanco da 1.9:1 de contraste — ilegible. Es el único token que no es una
-   traducción directa, y por eso lleva su motivo escrito.
+   ⚠️ El oro de letra (`--gold`) se oscurece: el `#f0b800` del modo oscuro
+   sobre blanco da 1.9:1 de contraste, ilegible. Es el único token que no es
+   una traducción directa, y por eso lleva su motivo escrito (abajo).
    ════════════════════════════════════════════════════════════════════════════ */
 html[data-theme='light'] {
   color-scheme: light;
@@ -207,14 +207,9 @@ html[data-theme='light'] {
   --text-muted: #565669;
 
   /* ── EL ORO, QUE SON DOS COLORES Y NO UNO ──
-     Aquí estaba el error, y era de accesibilidad, no de gusto: el oro de texto
-     era `#a37400`, que sobre blanco da **4.15:1** — por debajo del 4.5:1 que
-     pide WCAG AA. El antetítulo de cada pantalla se leía mal y nadie lo había
-     medido. `#9a6a00` da 4.73:1 y pasa.
-
-     Pero un oro que pasa como TEXTO es oscuro, y de fondo se ve embarrado: el
-     botón del login («Entrar») lleva texto oscuro ENCIMA del oro, y con el oro
-     oscuro eso daba 3.86:1 — el botón de marca, ilegible.
+     Un oro que pasa como TEXTO sobre blanco tiene que ser oscuro, y de fondo se
+     ve embarrado: el botón del login («Entrar») lleva texto oscuro ENCIMA del
+     oro, y con el oro oscuro no llegaba a 4.5:1.
 
      De ahí que sean dos:
        · `--gold`      el de la LETRA. Oscuro, porque tiene que pasar sobre blanco.
@@ -222,13 +217,12 @@ html[data-theme='light'] {
                        texto oscuro, y así da 10:1.
      Es la solución de siempre para una marca luminosa en tema claro: el color
      no se apaga, se cambia de sitio. */
-  /* Un punto más cálido que `#9a6a00`, que a ese peso tiraba a oliva y se leía
-     apagado: el matiz corrido hacia el ámbar es lo que hace que se lea como oro
-     oscuro y no como mostaza. `#9f5e00` y no `#a05e00`: el de antes pasaba sobre
-     la tarjeta blanca (5.13:1) pero se quedaba en 4.49:1 sobre el fondo de la
-     página (#eef0f4), donde también va texto pequeño —el «← Volver», las
-     etiquetas—. Un punto de rojo menos lo deja en 4.52:1 sin apagarlo
-     (antislop, auditoría 001, nº 1). */
+  /* La regla de `--gold`: 4.5:1 sobre `--bg` Y sobre `--bg-card`, porque va
+     texto pequeño en la página (el «← Volver», las etiquetas) y dentro de la
+     tarjeta (WCAG 1.4.3). Dentro de esa luminosidad, el matiz corrido hacia el
+     ámbar (más cálido se lee mostaza; más frío, oliva) y todo el croma que
+     quepa: no se oscurece más de lo que pide el contraste.
+     `apps/ecosystem-portal/src/lib/contraste.test.mts` lo mide. */
   --gold: #9f5e00;
   /* ── Y EL TERCER ORO: el de los titulares ──
      Éste era el que faltaba, y es el que más se ve. «EL CUADERNO» de la portada
@@ -515,7 +509,7 @@ input[type="password"]::-ms-clear { display: none; }
      abierta a propósito: es la voz de IBM Plex Mono que ya llevan los códigos
      de club y las cifras de la portada, la del marcador, y nunca pasa de tres
      o cuatro palabras. Si alguna vez hace falta un párrafo así, no es esto
-     (antislop R-06, auditoría 001, nº 10). */
+     (antislop R-06). */
   .eyebrow {
     font-family: var(--font-mono), ui-monospace, monospace;
     font-size: 0.72rem;
@@ -1508,7 +1502,7 @@ input[type="password"]::-ms-clear { display: none; }
 }
 /* Sin `outline: none`: esta regla está fuera de capas y le ganaba al anillo
    dorado de `:focus-visible`; con Tab, el foco solo se notaba por un fondo a
-   1.09:1 (antislop, auditoría 001, nº 2). */
+   1.09:1 (WCAG 2.4.7). */
 .navbar-item:hover,
 .navbar-item:focus-visible { background: var(--bg-elevated); }
 .navbar-item[data-activo='true'] { color: var(--gold); }
@@ -1584,20 +1578,35 @@ input[type="password"]::-ms-clear { display: none; }
 
 /* ── El pulgar ─────────────────────────────────────────────────────────────
    En una pantalla táctil todo lo que se pulsa mide al menos 44 px: con el
-   ratón se acierta un botón de 38, con el dedo no (antislop R-03, auditoría
-   001, nº 4). Solo con `pointer: coarse`, para que en el escritorio no crezca
-   nada, y fuera de capas a propósito: tiene que ganarle al tamaño de cada
-   componente. */
+   ratón se acierta un botón de 38, con el dedo no (WCAG 2.5.5, antislop R-03).
+   Solo con `pointer: coarse`, para que en el escritorio no crezca nada.
+
+   Va fuera de capas y al final del archivo: así gana a los componentes de
+   `@layer components` (`.btn`, `.pubctl-*`) por la capa, y a los de fuera de
+   capas (`.navbar-*`) por venir después con la misma especificidad.
+
+   Los enlaces en medio de una frase (el de la IA en el pie, los de la
+   política) no entran: la norma los exime y un `inline-flex` les rompería el
+   renglón. */
 @media (pointer: coarse) {
   .btn,
   input:not([type='checkbox']):not([type='radio']):not([type='range']),
   select,
-  .navbar-item {
+  .selectmenu-btn,
+  .fecha-btn,
+  .navbar-item,
+  .navbar-idioma,
+  .pubctl-item,
+  .pubctl-lang {
     min-height: 44px;
   }
   .navbar-toggle { height: 44px; }
   .pubctl-toggle { width: 44px; height: 44px; }
-  .pie-enlace {
+  /* Enlaces sueltos: necesitan caja para que la altura cuente. `.pie-enlaces a`
+     es el pie de Membresías y Campeonatos; el del portal lleva la variante
+     `pointer-coarse:` de Tailwind en el propio componente. */
+  .navbar-link,
+  .pie-enlaces a {
     display: inline-flex;
     align-items: center;
     min-height: 44px;
