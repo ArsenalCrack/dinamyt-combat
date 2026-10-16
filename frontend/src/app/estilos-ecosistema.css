@@ -1587,9 +1587,12 @@ input[type="password"]::-ms-clear { display: none; }
 
    Los enlaces en medio de una frase (el de la IA en el pie, los de la
    política) no entran: la norma los exime y un `inline-flex` les rompería el
-   renglón. */
+   renglón. Y `.btn-sm` tampoco: un botón que se pidió pequeño sale pequeño
+   (~26 px, por encima de los 24 de WCAG 2.5.8). Lo decidió Campeonatos, que lo
+   usa ~130 veces y en el tatami tiene una pantalla medida al píxel (su
+   `globals.css`, «el área táctil dejó de aplicarse A TODOS»). */
 @media (pointer: coarse) {
-  .btn,
+  .btn:not(.btn-sm),
   input:not([type='checkbox']):not([type='radio']):not([type='range']),
   select,
   .selectmenu-btn,
@@ -1597,7 +1600,8 @@ input[type="password"]::-ms-clear { display: none; }
   .navbar-item,
   .navbar-idioma,
   .pubctl-item,
-  .pubctl-lang {
+  .pubctl-lang,
+  .filtros-toggle {
     min-height: 44px;
   }
   .navbar-toggle { height: 44px; }
